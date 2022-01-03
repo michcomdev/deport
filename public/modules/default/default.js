@@ -6,13 +6,6 @@ ready(async ()=> {
 
     document.querySelector('#userCredentials').innerHTML = sessionResult.data.name+' '+sessionResult.data.lastname/*.split(' ')[0].toUpperCase()*/
 
-    if(document.querySelector('#badgeAuths')){//Ícono de autorizaciones
-        getAllAuthsRequests()
-        setInterval(()=> {
-            getAllAuthsRequests()
-        }, 30000)
-    }
-
     setInterval(()=> {
         checkSession()
     }, 60000)
