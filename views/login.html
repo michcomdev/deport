@@ -1,0 +1,54 @@
+{{!< layout/no-logged-layout}} <!--<title>Iniciar Sesión Deport</title>-->
+
+  {{#extend "css"}}
+  <link rel="stylesheet" type="text/css" href="/public/modules/login/style.css">
+
+  {{/extend}}
+
+  <div id="loginCardContainer" style="background-image: url('/public/img/background.jpg'); background-repeat: no-repeat; background-attachment: fixed;
+background-size: 100% 100%;">
+    <form method="post" action="/login">
+      <div id="loginCard" class="card bg-primary mb-3 center">
+
+        <div style="text-align: center;" class="card-body">
+
+          <img class="logo" src="/public/img/logo.png" alt="">
+
+          <div class="form-group">
+            <div class="form-group">
+              <label for="rut"><i class="fas fa-user"></i> Rut</label>
+              <div class="input-group mb-3">
+                <input name="rut" id="rut" type="text" class="form-control" aria-label="rut" placeholder="11.111.111-1">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="passtext"><i class="fas fa-key"></i> Contraseña</label>
+              <div class="input-group mb-3">
+                <input name="password" type="password" class="form-control" aria-label="password"
+                  placeholder="*********">
+              </div>
+            </div>
+
+            <!-- <a href="/restore-password">¿Olvidó su contraseña?</a> -->
+
+          </div>
+        </div>
+
+        {{#if message}}
+        <div class="alert alert-dismissible alert-light">
+          <button type="button" class="close" data-dismiss="alert">&times;</button>
+          {{message}}
+        </div>
+        {{/if}}
+        <div id="loginCardFooter">
+          <button type="submit" class="btn btn-block" style="text-decoration: none;">Iniciar sesión</button>
+        </div>
+
+      </div>
+
+    </form>
+  </div>
+  {{#extend "js"}}
+  <script src="/public/modules/login/default.js"></script>
+  {{/extend}}

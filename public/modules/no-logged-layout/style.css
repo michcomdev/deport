@@ -1,0 +1,33 @@
+html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--white) !important;
+}
+
+.card-body {
+    background-color: var(--white) !important;
+}
+
+.logo {
+    width: 50%;
+    margin-bottom: 40px;
+}
+
+.restore-form {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+input {
+    background-color:  white !important;
+    color: var(--cyan) !important;
+    border-radius: 50px !important;
+    text-align: center;
+}

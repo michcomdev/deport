@@ -1,0 +1,66 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/users/users.css">
+{{/extend}}
+
+<h2 class="text-center">Usuarios</h2>
+
+<br>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="row">
+            <div class="col-md-2 col-xs-12">
+                <br>
+                <button class="btn btn-dark btn-block" id="optionCreateUser">
+                    <i class="fas fa-user-plus"></i> NUEVO USUARIO
+                </button>
+                <hr>
+                <button class="btn btn-dark btn-block" id="optionModUser" disabled>
+                    <i class="fas fa-user-edit"></i> MODIFICAR USUARIO
+                </button>
+                <button class="btn btn-dark btn-block" id="optionDeleteUser" disabled>
+                    <i class="fas fa-user-times"></i> ELIMINAR USUARIO
+                </button>
+            </div>
+            <br>
+            <div class="col-md-10 col-xs-12 table-responsive">
+                <table id="tableUsers" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th>RUT</th>
+                            <th>NOMBRE</th>
+                            <th>EMAIL</th>
+                            <th>ROL</th>
+                            <th>ESTADO</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div id="loadingUsers">
+                    <center>
+                        <i class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                        <span class="sr-only">Cargando...</span>
+                    </center>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal" role="dialog" aria-labelledby="modal">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/modules/users/users.js"></script>
+{{/extend}}

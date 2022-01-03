@@ -1,0 +1,21 @@
+h2{
+    display: flex;
+    justify-content: center;
+}
+
+#filterBtn {
+    margin-top: 14px;
+    background-color:#1C508A;
+    color: beige;
+}
+
+.clientsFilters {
+    text-transform:uppercase;
+}
+
+#clientsTable thead tr {
+    background-color:#1C508A;
+}
+#clientsTable thead th {
+    color: beige;
+}
