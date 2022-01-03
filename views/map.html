@@ -1,0 +1,97 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/map/map.css">
+{{/extend}}
+
+<h2 class="text-center">MAPA</h2>
+
+<br>
+
+<div class="container-fluid h-100" style="height: 100%;">
+    <div class="row h-100" style="height: 100%;">
+        <div id="map" class="col-md-10" style="height: 100%;">
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-secondary mb-3">
+                <div class="card-header">CONTROLES</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6" style="text-align: center;">
+                            Mover
+                            <div class="row">
+                                <div class="col-md-3"></div>
+                                <div class="col-md-6">
+                                    <button id="btnForward" type="button" class="btn btn-light"><i class="fas fa-chevron-up"></i></button>
+                                </div>
+                                <div class="col-md-3"></div>
+                                
+
+                                <div class="col-md-4">
+                                    <button id="btnLeft" type="button" class="btn btn-light"><i class="fas fa-chevron-left"></i></button>
+                                </div>
+                                <div class="col-md-1"></div>
+                                <div class="col-md-4">
+                                    <button id="btnRight" type="button" class="btn btn-light"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                
+                                <div class="col-md-3"></div>
+                                <div class="col-md-6">
+                                    <button id="btnBackwards" type="button" class="btn btn-light"><i class="fas fa-chevron-down"></i></button>
+                                </div>
+                                <div class="col-md-3"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6" style="text-align: center;">
+                            Rotar
+                            <div class="row">
+                                <div class="col-md-3"></div>
+                                <div class="col-md-6">
+                                    <span class="fa-flip-vertical" style="display: inline-block;">
+                                        <button id="btnUp" type="button" class="btn btn-light"><i class="fas fa-share fa-rotate-270"></i></button>
+                                    </span>
+                                </div>
+                                <div class="col-md-3"></div>
+                                
+                                
+                                <div class="col-md-4">
+                                    <button id="btnLeftSide" type="button" class="btn btn-light"><i class="fas fa-share"></i></button>
+                                </div>
+                                <div class="col-md-1"></div>
+                                <div class="col-md-4">
+                                    <button id="btnRightSide" type="button" class="btn btn-light"><i class="fas fa-share fa-flip-horizontal"></i></button>
+                                </div>
+                                
+                                <div class="col-md-3"></div>
+                                <div class="col-md-6">
+                                    <span class="fa-flip-vertical" style="display: inline-block;">
+                                        <button id="btnDown" type="button" class="btn btn-light"><i class="fas fa-share fa-rotate-90"></i></button>
+                                    </div>
+                                </div>
+                                <div class="col-md-3"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            <button id="btnReset" type="button" class="btn btn-light"><i class="fas fa-circle-notch"></i>&nbsp;Reiniciar</button>
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            <br/>
+                            <select id="listContainer" type="button" class="form-control">
+                            </select>
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            <br/>
+                            <button id="btnChange" type="button" class="btn btn-light"><i class="fas fa-circle-notch"></i>&nbsp;Cambiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/js/three/three.js"></script>
+    <script src="/public/js/three/tween.umd.js"></script>
+    <script type="module" src="/public/modules/map/map.js"></script>
+    
+{{/extend}}
