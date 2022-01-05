@@ -1,18 +1,35 @@
 let internals = {
-    users: {
+    movements: {
         table: {},
         data: []
     },
     dataRowSelected: {}
 }
 
+let clients = {}
+let containerTypes = {}
+
 $(document).ready(async function () {
-    chargeUsersTable()
+    chargeMovementTable()
+    getClients()
+    getContainerTypes()
 })
 
-function chargeUsersTable() {
+async function getClients() {
+    let clientsData = await axios.get('api/clients')
+    clients = clientsData.data
+}
+async function getContainerTypes() {
+    let containerTypesData = await axios.get('api/containerTypes')
+    console.log(containerTypesData)
+    containerTypes = containerTypesData.data
+    console.log(containerTypes)
+}
+
+
+function chargeMovementTable() {
     try {
-        internals.users.table = $('#tableUsers')
+        internals.movements.table = $('#tableMovements')
         .DataTable( {
             dom: 'Bfrtip',
             buttons: [
@@ -39,22 +56,22 @@ function chargeUsersTable() {
             { data: 'enterprise' }
           ],
           initComplete: function (settings, json) {
-            getUsersEnabled()
+            getMovementsEnabled()
           }
         })
 
-        $('#tableUsers tbody').on('click', 'tr', function () {
+        $('#tableMovements tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected')
-                $('#optionModUser').prop('disabled', true)
-                $('#optionDeleteUser').prop('disabled', true)
+                $('#optionModMovement').prop('disabled', true)
+                $('#optionDeleteMovement').prop('disabled', true)
             } else {
-                internals.users.table.$('tr.selected').removeClass('selected');
+                internals.movements.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
-                $('#optionModUser').prop('disabled', false)
-                $('#optionDeleteUser').prop('disabled', false)
-                internals.users.data = internals.users.table.row($(this)).data()
-                internals.dataRowSelected = internals.users.table.row($(this))
+                $('#optionModMovement').prop('disabled', false)
+                $('#optionDeleteMovement').prop('disabled', false)
+                //internals.movements.data = internals.movements.table.row($(this)).data()
+                internals.dataRowSelected = internals.movements.table.row($(this)).data()
             }
         })
       } catch (error) {
@@ -63,127 +80,173 @@ function chargeUsersTable() {
 
 }
 
-async function getUsersEnabled() {
-    let userData = await axios.get('api/movements')
+async function getMovementsEnabled() {
+    let movementData = await axios.get('api/movements')
 
-    if (userData.data.length > 0) {
-        let formatData= userData.data.map(el => {
+    if (movementData.data.length > 0) {
+        let formatData= movementData.data.map(el => {
             el.createdAt = moment(el.createdAt).format('DD/MM/YYYY hh:mm:ss')
 
             return el
         })
 
-        internals.users.table.rows.add(formatData).draw()
-        $('#loadingUsers').empty()
+        internals.movements.table.rows.add(formatData).draw()
+        $('#loadingMovements').empty()
     } else {
-        console.log('vacio', userData);
+        console.log('vacio', movementData);
         toastr.warning('No se han encontrado datos de usuarios')
-        $('#loadingUsers').empty()
+        $('#loadingMovements').empty()
     }
 }
 
-$('#optionCreateUser').on('click', function () { // CREAR CLIENTE
-    $('#usersModal').modal('show');
-    $('#modal_title').html(`Nuevo INGRESO`)
+$('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
+    $('#movementsModal').modal('show');
+    $('#modal_title').html(`Nuevo Ingreso`)
     $('#modal_body').html(`
         <div class="row">
-            <div class="col-md-4" style="margin-top:10px;">
-                CODIGO
-                <input id="newUserRut" type="text" placeholder="ABC123" class="form-control border-input">
+
+            <div class="col-md-12">
+                <h5>DATOS GENERALES</h5>
             </div>
 
-            <div class="col-md-4" style="margin-top:10px;">
-                GRUA
-                <select id="newUserRole" class="custom-select">
-                    <option value="commercial">GRUA </option>
+            <div class="col-md-2">
+                Movimiento
+                <select id="movementRole" class="custom-select">
+                    <option value="in">INGRESO</option>
+                    <option value="out">SALIDA</option>
+                    <option value="to_in">POR INGRESAR</option>
+                    <option value="to_out">POR SALIR</option>
                 </select>
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                SIGLA
-                <input id="newUserLastname" type="text" placeholder="HASU-126" class="form-control border-input">
+            <div class="col-md-2">
+                Fecha
+                <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                LLEGADA
-                <input id="newUserLastname" type="date" class="form-control border-input">
+            <div class="col-md-2">
+                Hora
+                <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('hh:mm')}">
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                MOVIMIENTO
-                <select id="newUserRole" class="custom-select">
-                    <option value="commercial">LLEGADA </option>
-                    <option value="production">SALIDA </option>
-                    <option value="production">POR LLEGAR </option>
+            <div class="col-md-4">
+                Cliente
+                <select id="movementClient" class="custom-select">
+                    <option value="0">SELECCIONE...</option>
+                    ${                      
+                        clients.reduce((acc,el)=>{
+                            acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                            return acc
+                        },'')
+                    }
                 </select>
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                CONTENEDOR
-                <input id="newUserLastname" type="text" placeholder="ABCD-1234-0" class="form-control border-input">
+            <div class="col-md-2">
+                Código
+                <input id="movementCode" type="text" placeholder="ABC123" class="form-control border-input">
             </div>
 
-            <div class="col-md-4" style="margin-top:10px;">
-                LARGO
-                <select id="newUserRole" class="custom-select">
-                    <option value="commercial">20 </option>
-                    <option value="production">40 </option>
-                    <option value="production">101 </option>
-                    <option value="production">105 </option>
+
+            <div class="col-md-12">
+                <br/>
+                <h5>DATOS CONTAINER</h5>
+            </div>
+            <div class="col-md-3">
+                Sigla / Marca
+                <input id="movementContainerInitials" type="text" placeholder="HASU-126" class="form-control border-input">
+            </div>
+            <div class="col-md-3">
+                Número Container
+                <input id="movementContainerNumber" type="text" placeholder="ABCD-1234-0" class="form-control border-input">
+            </div>
+            <div class="col-md-3">
+                Tipo
+                <select id="movementContainerType" class="custom-select">
+                    <option value="1">DRY VAN</option>
+                    <option value="2">OPEN TOP</option>
+                    <option value="3">REEFER</option>
+                    <option value="4">TANK</option>
+                    <option value="5">HIGH CUBE</option>
+                    <option value="6">OPEN SIDE</option>
+                    <option value="7">FLAT RACK</option>
+                    <option value="8">PLATFORM</option>
                 </select>
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                PLACA
-                <input id="newUserCharge" type="text" placeholder="ABCD12" class="form-control border-input">
+            <div class="col-md-2">
+                Largo
+                <select id="movementContainerLarge" class="custom-select">
+                    <option value="20">20</option>
+                    <option value="40">40</option>
+                    <option value="40H">40H</option>
+                    <option value="101">101</option>
+                    <option value="105">105</option>
+                </select>
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                UBICACION
-                <input id="newUserPhone" type="text" placeholder="A1_1" class="form-control border-input">
+            
+            <div class="col-md-3">
+                Grúa
+                <select id="movementCrane" class="custom-select">
+                    <option value="1">GRUA 1</option>
+                    <option value="2">GRUA 2</option>
+                </select>
             </div>
+            <div class="col-md-3">
+                Sitio
+                <select id="movementSite" class="custom-select">
+                    <option value="1">SITIO 1</option>
+                    <option value="2">SITIO 2</option>
+                    <option value="3">SITIO 3</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                Ubicación
+                <select id="movementPosition" class="custom-select">
+                    <option value="A1_1">A1_1</option>
+                    <option value="A1_2">A1_2</option>
+                    <option value="A1_3">A1_3</option>
+                    <option value="A2_1">A2_1</option>
+                    <option value="A2_2">A2_2</option>
+                    <option value="A2_3">A2_3</option>
+                </select>
+            </div>
+            
 
             <div class="col-md-12">
                 <br/ >
-                <h4>DATOS DE CONDUCTOR</h3>
+                <h5>DATOS DE CONDUCTOR</h5>
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                RUT CONDUCTOR
-                <input id="newUserCharge" type="text" placeholder="11.111.111-0" class="form-control border-input">
+            <div class="col-md-3">
+                RUT
+                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input">
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                NOMBRE CONDUCTOR
-                <input id="newUserCharge" type="text" placeholder="JUANITO PEREZ" class="form-control border-input">
+            <div class="col-md-4">
+                Nombre
+                <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input">
             </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                EMPRESA
-                <select id="newUserRole" class="custom-select">
-                    <option value="commercial">TRANSPORTES MICHCOM </option>
-                    <option value="production">TRANSBEGA  </option>
-                </select>
+            <div class="col-md-4">
+                Placa Patente
+                <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input">
             </div>
+            
 
             <div class="col-md-12">
                 <br/ >
-                <h4>DATOS DE PAGO</h3>
+                <h5>DATOS DE PAGO</h5>
             </div>
-            <div class="form-check col-md-6" style="margin-left:20px;">
+            <div class="form-check col-md-6">
                 <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
                 <label class="form-check-label" for="flexCheckDefault">
-                PAGO ANTICIPADO
+                    PAGO ANTICIPADO
                 </label>
             </div>
-            <div class="col-md-6" style="margin-top:10px;">
+            <div class="col-md-6">
                 VALOR
-                <input id="newUserCharge" type="text" placeholder="$22.000" class="form-control border-input">
+                <input id="movementCharge" type="text" placeholder="$22.000" class="form-control border-input">
             </div>
             <br/ >
-            <div class="form-group col-md-12" style="margin-top:10px;">
+
+
+            
+            <div class="form-group col-md-12">
                 <h4 class="card-title">&nbsp;Observaciones</h4>
-                <textarea placeholder="Observacion" class="form-control" id="observationAgromillora" rows="5"></textarea>
+                <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control" rows="5"></textarea>
             </div>
 
         </div>
@@ -194,71 +257,71 @@ $('#optionCreateUser').on('click', function () { // CREAR CLIENTE
             <i ="color:#e74c3c;" class="fas fa-times"></i> CERRAR
         </button>
 
-        <button class="btn btn-dark" id="saveUser">
+        <button class="btn btn-dark" id="saveMovement">
             <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
         </button>
     `)
 
-    $('#newUserRut').on('keyup', function () {
-        let rut = $('#newUserRut').val();
+    $('#movementRut').on('keyup', function () {
+        let rut = $('#movementRut').val();
         if (isRut(rut) && rut.length >= 7) {
-            $('#newUserRut').val(rutFunc($('#newUserRut').val()))
+            $('#movementRut').val(rutFunc($('#movementRut').val()))
         }
     })
 
     setTimeout(() => {
-        $('#newUserRut').focus()
+        $('#movementRut').focus()
     }, 500)
 
-    $('#saveUser').on('click', function () {
-        let userData = {
-            rut: removeExtraSpaces($('#newUserRut').val()),
-            name: $('#newUserName').val(),
-            lastname: $('#newUserLastname').val(),
-            password: $('#newUserPassword').val(),
-            role: $('#newUserRole').val(),
-            charge: $('#newUserCharge').val(),
-            phone: $('#newUserPhone').val(),
-            email: removeExtraSpaces($('#newUserEmail').val()),
-            emailPassword: $('#newUserEmailPassword').val()
+    $('#saveMovement').on('click', function () {
+        let movementData = {
+            rut: removeExtraSpaces($('#movementRut').val()),
+            name: $('#movementName').val(),
+            lastname: $('#movementLastname').val(),
+            password: $('#movementPassword').val(),
+            role: $('#movementRole').val(),
+            charge: $('#movementCharge').val(),
+            phone: $('#movementPhone').val(),
+            email: removeExtraSpaces($('#movementEmail').val()),
+            emailPassword: $('#movementEmailPassword').val()
         }
 
-        userData.checkPer = []
+        movementData.checkPer = []
 
         if ($('#checkDisOrders').is(":checked")) {
-            userData.checkPer.push('disOrders')
+            movementData.checkPer.push('disOrders')
         }
 
         if ($('#checkMobile').is(":checked")) {
-            userData.checkPer.push('mobile')
+            movementData.checkPer.push('mobile')
         }
 
-        if (userData.checkPer == []) {
-            delete userData.checkPer
+        if (movementData.checkPer == []) {
+            delete movementData.checkPer
         }
 
-        validateUserData(userData).then(res => {
+        validateMovementData(movementData).then(res => {
             if (res.ok) {
                 ajax({
-                    url: 'api/user',
+                    url: 'api/movement',
                     type: 'POST',
                     data: {
-                        rut: userData.rut,
-                        name: userData.name,
-                        lastname: userData.lastname,
-                        password: userData.password,
-                        role: userData.role,
-                        charge: userData.charge,
-                        phone: userData.phone,
-                        email: userData.email,
-                        emailPassword: userData.emailPassword,
-                        checkPer: userData.checkPer
+                        rut: movementData.rut,
+                        name: movementData.name,
+                        lastname: movementData.lastname,
+                        password: movementData.password,
+                        role: movementData.role,
+                        charge: movementData.charge,
+                        phone: movementData.phone,
+                        email: movementData.email,
+                        emailPassword: movementData.emailPassword,
+                        checkPer: movementData.checkPer
                     }
                 }).then(res => {
                     if (res.err) {
                         toastr.warning(res.err)
                     } else if (res.ok) {
-                        toastr.success('{{ lang.createUser.saveUserToastrOK }}')
+                        toastr.success('{{ lang.createMovement.saveMovementToastrOK }}')
 
                         if (isRut(res.ok._id)) {
                             res.ok.rut = `${rutFunc(res.ok._id)}`
@@ -266,17 +329,17 @@ $('#optionCreateUser').on('click', function () { // CREAR CLIENTE
                             res.ok.rut = res.ok._id
                         }
 
-                        let newUserAdded = datatableUsers
+                        let movementAdded = datatableMovements
                             .row.add(res.ok)
                             .draw()
                             .node();
 
-                        $(newUserAdded).css('color', '#1abc9c');
+                        $(movementAdded).css('color', '#1abc9c');
                         setTimeout(() => {
-                            $(newUserAdded).css('color', '#484848');
+                            $(movementAdded).css('color', '#484848');
                         }, 5000);
 
-                        $('#usersModal').modal('hide')
+                        $('#movementsModal').modal('hide')
                     }
                 })
             }
@@ -287,9 +350,9 @@ $('#optionCreateUser').on('click', function () { // CREAR CLIENTE
 
 });
 
-$('#optionDeleteUser').on('click', function () {
+$('#optionDeleteMovement').on('click', function () {
     swal.fire({
-        title: '{{ lang.deleteUser.swalDeleteTitle }}',
+        title: '{{ lang.deleteMovement.swalDeleteTitle }}',
         type: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -297,12 +360,12 @@ $('#optionDeleteUser').on('click', function () {
         confirmButtonClass: 'btn btn-primary',
         cancelButtonClass: 'btn btn-danger',
         buttonsStyling: false,
-        confirmButtonText: '{{ lang.deleteUser.swalConfirmButtonText }}',
-        cancelButtonText: '{{ lang.deleteUser.swalCancelButtonText }}',
+        confirmButtonText: '{{ lang.deleteMovement.swalConfirmButtonText }}',
+        cancelButtonText: '{{ lang.deleteMovement.swalCancelButtonText }}',
     }).then((result) => {
         if (result.value) {
             ajax({
-                url: 'api/user',
+                url: 'api/movement',
                 type: 'DELETE',
                 data: {
                     _id: internals.dataRowSelected._id
@@ -311,13 +374,13 @@ $('#optionDeleteUser').on('click', function () {
                 if (res.err) {
                     toastr.warning(res.err)
                 } else if (res.ok) {
-                    $('#optionModUser').prop('disabled', true)
-                    $('#optionDeleteUser').prop('disabled', true)
+                    $('#optionModMovement').prop('disabled', true)
+                    $('#optionDeleteMovement').prop('disabled', true)
 
-                    toastr.success('{{ lang.deleteUser.swalToastrOK }}')
+                    toastr.success('{{ lang.deleteMovement.swalToastrOK }}')
 
-                    datatableUsers
-                        .row(userRowSelected)
+                    datatableMovements
+                        .row(movementRowSelected)
                         .remove()
                         .draw()
 
@@ -328,26 +391,26 @@ $('#optionDeleteUser').on('click', function () {
     })
 })
 
-$('#optionModUser').on('click', function () {
+$('#optionModMovement').on('click', function () {
     console.log('rowselected',internals.dataRowSelected)
 
-    $('#usersModal').modal('show');
-    $('#modal_title').html(`{{ lang.modUser.modalTitle }} ${capitalizeAll(internals.dataRowSelected.name)} ${capitalizeAll(internals.dataRowSelected.lastname)}`)
+    $('#movementsModal').modal('show');
+    $('#modal_title').html(`{{ lang.modMovement.modalTitle }} ${capitalizeAll(internals.dataRowSelected.name)} ${capitalizeAll(internals.dataRowSelected.lastname)}`)
     $('#modal_body').html(`
         <div class="row">
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.dniTitle }}
-                <input disabled value="${rutFunc(internals.dataRowSelected._id)}" id="modUserRut" type="text" placeholder="{{ lang.modUser.dniTitle }}" class="form-control border-input">
+                {{ lang.modMovement.dniTitle }}
+                <input disabled value="${rutFunc(internals.dataRowSelected._id)}" id="modMovementRut" type="text" placeholder="{{ lang.modMovement.dniTitle }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.nameTitle }}
-                <input value="${internals.dataRowSelected.name}" id="modUserName" type="text" placeholder="{{ lang.modUser.nameTitle }}" class="form-control border-input">
+                {{ lang.modMovement.nameTitle }}
+                <input value="${internals.dataRowSelected.name}" id="modMovementName" type="text" placeholder="{{ lang.modMovement.nameTitle }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.lastnameTitle }}
-                <input value="${internals.dataRowSelected.lastname}" id="modUserLastname" type="text" placeholder="{{ lang.modUser.lastnameTitle }}" class="form-control border-input">
+                {{ lang.modMovement.lastnameTitle }}
+                <input value="${internals.dataRowSelected.lastname}" id="modMovementLastname" type="text" placeholder="{{ lang.modMovement.lastnameTitle }}" class="form-control border-input">
             </div>
 
 
@@ -355,46 +418,46 @@ $('#optionModUser').on('click', function () {
                 <div class="form-group">
                     <div class="custom-control custom-checkbox">
                         <input type="checkbox" class="custom-control-input" id="changePassword" >
-                        <label class="custom-control-label" for="changePassword">{{ lang.modUser.systemPasswordTitle }}</label>
+                        <label class="custom-control-label" for="changePassword">{{ lang.modMovement.systemPasswordTitle }}</label>
                     </div>
                 </div>
 
-                <input disabled id="modUserPassword" type="password" placeholder="{{ lang.modUser.systemPasswordTitle }}" class="form-control border-input">
+                <input disabled id="modMovementPassword" type="password" placeholder="{{ lang.modMovement.systemPasswordTitle }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.roleTitle }}
-                <select id="modUserRole" class="custom-select">
-                    <option value="commercial">{{ lang.modUser.roles.commercial }} </option>
-                    <option value="production">{{ lang.modUser.roles.production }} </option>
+                {{ lang.modMovement.roleTitle }}
+                <select id="modMovementRole" class="custom-select">
+                    <option value="commercial">{{ lang.modMovement.roles.commercial }} </option>
+                    <option value="production">{{ lang.modMovement.roles.production }} </option>
                     <option value="samples">Muestras</option>
-                    <option value="sa">{{ lang.modUser.roles.sa }} </option>
+                    <option value="sa">{{ lang.modMovement.roles.sa }} </option>
                 </select>
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.chargeTitle }}
-                <input value="${internals.dataRowSelected.position}" id="modUserCharge" type="text" placeholder="{{ lang.modUser.chargeTitle }}" class="form-control border-input">
+                {{ lang.modMovement.chargeTitle }}
+                <input value="${internals.dataRowSelected.position}" id="modMovementCharge" type="text" placeholder="{{ lang.modMovement.chargeTitle }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.phone }}
-                <input value="${internals.dataRowSelected.phone}" id="modUserPhone" type="text" placeholder="{{ lang.modUser.phone }}" class="form-control border-input">
+                {{ lang.modMovement.phone }}
+                <input value="${internals.dataRowSelected.phone}" id="modMovementPhone" type="text" placeholder="{{ lang.modMovement.phone }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modUser.email }}
-                <input value="${internals.dataRowSelected.email}" id="modUserEmail" type="text" placeholder="{{ lang.modUser.email }}" class="form-control border-input">
+                {{ lang.modMovement.email }}
+                <input value="${internals.dataRowSelected.email}" id="modMovementEmail" type="text" placeholder="{{ lang.modMovement.email }}" class="form-control border-input">
             </div>
 
             <div class="col-md-4" style="margin-top:10px;">
                 <div class="form-group">
                     <div class="custom-control custom-checkbox">
                         <input type="checkbox" class="custom-control-input" id="changeEmailPassword" >
-                        <label class="custom-control-label" for="changeEmailPassword">{{ lang.modUser.emailPasswordTitle }}</label>
+                        <label class="custom-control-label" for="changeEmailPassword">{{ lang.modMovement.emailPasswordTitle }}</label>
                     </div>
                 </div>
-                <input disabled id="modUserEmailPassword" type="password" placeholder="{{ lang.modUser.emailPasswordTitle }}" class="form-control border-input">
+                <input disabled id="modMovementEmailPassword" type="password" placeholder="{{ lang.modMovement.emailPasswordTitle }}" class="form-control border-input">
             </div>
 
             <div class="col-md-12 form-group">
@@ -416,26 +479,26 @@ $('#optionModUser').on('click', function () {
                 </fieldset>
             </div>
 
-            <div class="col-md-12" id="newUserErrorMessage"></div>
+            <div class="col-md-12" id="movementErrorMessage"></div>
 
             <div class="alert alert-dismissible alert-primary">
                 <button type="button" class="close" data-dismiss="alert">&times;</button>
-                {{{ lang.modUser.alertMessage }}}
+                {{{ lang.modMovement.alertMessage }}}
             </div>
         </div>
     `)
 
     $('#modal_footer').html(`
         <button class="btn btn-dark" data-dismiss="modal">
-            <i ="color:#e74c3c;" class="fas fa-times"></i> {{ lang.modUser.cancelButton }}
+            <i ="color:#e74c3c;" class="fas fa-times"></i> {{ lang.modMovement.cancelButton }}
         </button>
 
-        <button class="btn btn-dark" id="saveUser">
-            <i ="color:#3498db;" class="fas fa-check"></i> {{ lang.modUser.saveButton }}
+        <button class="btn btn-dark" id="saveMovement">
+            <i ="color:#3498db;" class="fas fa-check"></i> {{ lang.modMovement.saveButton }}
         </button>
     `)
 
-    $('#modUserRole').val(internals.dataRowSelected.role)
+    $('#modMovementRole').val(internals.dataRowSelected.role)
 
     if (internals.dataRowSelected.checkPer && internals.dataRowSelected.checkPer.includes("disOrders")) {
         $('#checkDisOrders').attr('checked', true);
@@ -451,39 +514,39 @@ $('#optionModUser').on('click', function () {
 
     $('#changePassword').on('change', function () {
         if ($(this).is(':checked')) {
-            $('#modUserPassword').attr('disabled', false)
+            $('#modMovementPassword').attr('disabled', false)
         } else {
-            $('#modUserPassword').val('')
-            $('#modUserPassword').attr('disabled', true)
+            $('#modMovementPassword').val('')
+            $('#modMovementPassword').attr('disabled', true)
         }
     })
 
     $('#changeEmailPassword').on('change', function () {
         if ($(this).is(':checked')) {
-            $('#modUserEmailPassword').attr('disabled', false)
+            $('#modMovementEmailPassword').attr('disabled', false)
         } else {
-            $('#modUserEmailPassword').val('')
-            $('#modUserEmailPassword').attr('disabled', true)
+            $('#modMovementEmailPassword').val('')
+            $('#modMovementEmailPassword').attr('disabled', true)
         }
     })
 
-    $('#saveUser').on('click', function () {
-        let userData = {
+    $('#saveMovement').on('click', function () {
+        let movementData = {
             status: 'mod',
-            rut: removeExtraSpaces($('#modUserRut').val()),
-            name: $('#modUserName').val(),
-            lastname: $('#modUserLastname').val(),
+            rut: removeExtraSpaces($('#modMovementRut').val()),
+            name: $('#modMovementName').val(),
+            lastname: $('#modMovementLastname').val(),
             changePassword: $('#changePassword').is(':checked'),
-            password: $('#modUserPassword').val(),
-            role: $('#modUserRole').val(),
-            charge: $('#modUserCharge').val(),
-            phone: $('#modUserPhone').val(),
-            email: removeExtraSpaces($('#modUserEmail').val()),
+            password: $('#modMovementPassword').val(),
+            role: $('#modMovementRole').val(),
+            charge: $('#modMovementCharge').val(),
+            phone: $('#modMovementPhone').val(),
+            email: removeExtraSpaces($('#modMovementEmail').val()),
             changeEmailPassword: $('#changeEmailPassword').is(':checked'),
-            emailPassword: $('#modUserEmailPassword').val()
+            emailPassword: $('#modMovementEmailPassword').val()
         }
 
-        validateUserData(userData).then(res => {
+        validateMovementData(movementData).then(res => {
             if (res.ok) {
 
                 let changePassword = ''
@@ -501,43 +564,43 @@ $('#optionModUser').on('click', function () {
                     changeEmailPassword = 'no'
                 }
 
-                userData.checkPer = []
+                movementData.checkPer = []
 
                 if ($('#checkDisOrders').is(":checked")) {
-                    userData.checkPer.push('disOrders')
+                    movementData.checkPer.push('disOrders')
                 }
 
                 if ($('#checkMobile').is(":checked")) {
-                    userData.checkPer.push('mobile')
+                    movementData.checkPer.push('mobile')
                 }
 
-                if (userData.checkPer == []) {
-                    delete userData.checkPer
+                if (movementData.checkPer == []) {
+                    delete movementData.checkPer
                 }
 
 
                 ajax({
-                    url: 'api/modUser',
+                    url: 'api/modMovement',
                     type: 'POST',
                     data: {
-                        rut: userData.rut,
-                        name: userData.name,
-                        lastname: userData.lastname,
+                        rut: movementData.rut,
+                        name: movementData.name,
+                        lastname: movementData.lastname,
                         changePassword: changePassword,
                         changeEmailPassword: changeEmailPassword,
-                        password: userData.password,
-                        emailPassword: userData.emailPassword,
-                        role: userData.role,
-                        charge: userData.charge,
-                        phone: userData.phone,
-                        email: userData.email,
-                        checkPer: JSON.stringify(userData.checkPer)
+                        password: movementData.password,
+                        emailPassword: movementData.emailPassword,
+                        role: movementData.role,
+                        charge: movementData.charge,
+                        phone: movementData.phone,
+                        email: movementData.email,
+                        checkPer: JSON.stringify(movementData.checkPer)
                     }
                 }).then(res => {
                     if (res.err) {
                         toastr.warning(res.err)
                     } else if (res.ok) {
-                        toastr.success('{{ lang.modUser.saveUserToastrOK }}')
+                        toastr.success('{{ lang.modMovement.saveMovementToastrOK }}')
 
                         if (isRut(res.ok._id)) {
                             res.ok.rut = `${rutFunc(res.ok._id)}`
@@ -545,27 +608,27 @@ $('#optionModUser').on('click', function () {
                             res.ok.rut = res.ok._id
                         }
 
-                        $('#optionModUser').prop('disabled', true)
-                        $('#optionDeleteUser').prop('disabled', true)
+                        $('#optionModMovement').prop('disabled', true)
+                        $('#optionDeleteMovement').prop('disabled', true)
 
-                        datatableUsers
-                            .row(userRowSelected)
+                        datatableMovements
+                            .row(movementRowSelected)
                             .remove()
                             .draw()
 
-                        let modUserAdded = datatableUsers
+                        let modMovementAdded = datatableMovements
                             .row.add(res.ok)
                             .draw()
                             .node();
 
-                        //datatableUsers.search('').draw();
+                        //datatableMovements.search('').draw();
 
-                        $(modUserAdded).css('color', '#1abc9c')
+                        $(modMovementAdded).css('color', '#1abc9c')
                         setTimeout(() => {
-                            $(modUserAdded).css('color', '#484848')
+                            $(modMovementAdded).css('color', '#484848')
                         }, 5000);
 
-                        $('#usersModal').modal('hide')
+                        $('#movementsModal').modal('hide')
                     }
                 })
             }
@@ -573,117 +636,117 @@ $('#optionModUser').on('click', function () {
     })
 })
 
-function validateUserData(userData) { // VOY AQUI EN LA TRADUCCIÓN
-    // console.log(userData)
+function validateMovementData(movementData) { // VOY AQUI EN LA TRADUCCIÓN
+    // console.log(movementData)
     let validationCounter = 0
     let errorMessage = ''
 
     return new Promise(resolve => {
         // 7 puntos
 
-        if (userData.rut.length >= 6/*isRut(userData.rut)*/) { // 1
+        if (movementData.rut.length >= 6/*isRut(movementData.rut)*/) { // 1
             validationCounter++
-            $('#newUserRut').css('border', '1px solid #3498db')
+            $('#movementRut').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.dni }}}`
-            $('#newUserRut').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.dni }}}`
+            $('#movementRut').css('border', '1px solid #e74c3c')
         }
 
-        if (userData.name.length > 1) { // 2
+        if (movementData.name.length > 1) { // 2
             validationCounter++
-            $('#newUserName').css('border', '1px solid #3498db')
+            $('#movementName').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.name }}}</b>`
-            $('#newUserName').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.name }}}</b>`
+            $('#movementName').css('border', '1px solid #e74c3c')
         }
 
-        if (userData.lastname.length > 1) { // 3
+        if (movementData.lastname.length > 1) { // 3
             validationCounter++
-            $('#newUserLastname').css('border', '1px solid #3498db')
+            $('#movementLastname').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.lastname }}}`
-            $('#newUserLastname').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.lastname }}}`
+            $('#movementLastname').css('border', '1px solid #e74c3c')
         }
 
-        if (userData.charge.length > 1) { // 5
+        if (movementData.charge.length > 1) { // 5
             validationCounter++
-            $('#newUserCharge').css('border', '1px solid #3498db')
+            $('#movementCharge').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.charge }}}`
-            $('#newUserCharge').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.charge }}}`
+            $('#movementCharge').css('border', '1px solid #e74c3c')
         }
 
-        if (userData.phone.length > 1) { // 6
+        if (movementData.phone.length > 1) { // 6
             validationCounter++
-            $('#newUserPhone').css('border', '1px solid #3498db')
+            $('#movementPhone').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.phone }}}`
-            $('#newUserPhone').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.phone }}}`
+            $('#movementPhone').css('border', '1px solid #e74c3c')
         }
 
-        if (isEmail(userData.email)) { // 7
+        if (isEmail(movementData.email)) { // 7
             validationCounter++
-            $('#newUserEmail').css('border', '1px solid #3498db')
+            $('#movementEmail').css('border', '1px solid #3498db')
         } else {
-            errorMessage += `<br>{{{ lang.validateUserData.email }}}`
-            $('#newUserEmail').css('border', '1px solid #e74c3c')
+            errorMessage += `<br>{{{ lang.validateMovementData.email }}}`
+            $('#movementEmail').css('border', '1px solid #e74c3c')
         }
 
-        if (userData.status == 'mod') {
-            if (userData.changePassword) {
-                if (userData.password.length > 1) { // 4
+        if (movementData.status == 'mod') {
+            if (movementData.changePassword) {
+                if (movementData.password.length > 1) { // 4
                     validationCounter++
-                    $('#modUserPassword').css('border', '1px solid #3498db')
+                    $('#modMovementPassword').css('border', '1px solid #3498db')
                 } else {
-                    errorMessage += `<br>{{{ lang.validateUserData.systemPassword }}}`
-                    $('#modUserPassword').css('border', '1px solid #e74c3c')
+                    errorMessage += `<br>{{{ lang.validateMovementData.systemPassword }}}`
+                    $('#modMovementPassword').css('border', '1px solid #e74c3c')
                 }
             } else {
                 validationCounter++
             }
 
-            if (userData.changeEmailPassword) {
-                if (userData.emailPassword.length > 1) { // 9
+            if (movementData.changeEmailPassword) {
+                if (movementData.emailPassword.length > 1) { // 9
                     validationCounter++
-                    $('#modUserEmailPassword').css('border', '1px solid #3498db')
+                    $('#modMovementEmailPassword').css('border', '1px solid #3498db')
                 } else {
-                    errorMessage += `<br>{{{ lang.validateUserData.modEmailPassword }}}`
-                    $('#modUserEmailPassword').css('border', '1px solid #e74c3c')
+                    errorMessage += `<br>{{{ lang.validateMovementData.modEmailPassword }}}`
+                    $('#modMovementEmailPassword').css('border', '1px solid #e74c3c')
                 }
             } else {
                 validationCounter++
             }
 
         } else {
-            if (userData.password.length > 1) { // 4
+            if (movementData.password.length > 1) { // 4
                 validationCounter++
-                $('#newUserPassword').css('border', '1px solid #3498db')
+                $('#movementPassword').css('border', '1px solid #3498db')
             } else {
-                errorMessage += `<br>{{{ lang.validateUserData.systemPassword }}}`
-                $('#newUserPassword').css('border', '1px solid #e74c3c')
+                errorMessage += `<br>{{{ lang.validateMovementData.systemPassword }}}`
+                $('#movementPassword').css('border', '1px solid #e74c3c')
             }
 
-            if (userData.emailPassword) { // 8
+            if (movementData.emailPassword) { // 8
                 validationCounter++
-                $('#newUserEmailPassword').css('border', '1px solid #3498db')
+                $('#movementEmailPassword').css('border', '1px solid #3498db')
             } else {
-                errorMessage += `<br>{{{ lang.validateUserData.createEmailPassword }}}`
-                $('#newUserEmailPassword').css('border', '1px solid #e74c3c')
+                errorMessage += `<br>{{{ lang.validateMovementData.createEmailPassword }}}`
+                $('#movementEmailPassword').css('border', '1px solid #e74c3c')
             }
         }
         // console.log('validation', validationCounter)
         if (validationCounter == 8) {
-            $('#newUserErrorMessage').empty()
-            resolve({ ok: userData })
+            $('#movementErrorMessage').empty()
+            resolve({ ok: movementData })
         } else {
-            $('#newUserErrorMessage').html(`
+            $('#movementErrorMessage').html(`
             <div class="alert alert-dismissible alert-warning">
                 <button type="button" class="close" data-dismiss="alert">&times;</button>
-                <h4 class="alert-heading">{{{ lang.validateUserData.messageTitle }}}</h4>
+                <h4 class="alert-heading">{{{ lang.validateMovementData.messageTitle }}}</h4>
                 <p class="mb-0">${errorMessage}</p>
             </div>
             `)
-            resolve({ err: userData })
+            resolve({ err: movementData })
         }
     })
 }
