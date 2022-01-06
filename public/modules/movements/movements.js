@@ -8,24 +8,27 @@ let internals = {
 
 let clients = {}
 let containerTypes = {}
+let sites = {}
+let cranes = {}
 
 $(document).ready(async function () {
     chargeMovementTable()
-    getClients()
-    getContainerTypes()
+    getParameters()
 })
 
-async function getClients() {
+async function getParameters() {
     let clientsData = await axios.get('api/clients')
     clients = clientsData.data
-}
-async function getContainerTypes() {
-    let containerTypesData = await axios.get('api/containerTypes')
-    console.log(containerTypesData)
-    containerTypes = containerTypesData.data
-    console.log(containerTypes)
-}
 
+    let containerTypesData = await axios.get('api/containerTypes')
+    containerTypes = containerTypesData.data
+    
+    let sitesData = await axios.get('api/sites')
+    sites = sitesData.data
+
+    let cranesData = await axios.get('api/cranes')
+    cranes = cranesData.data
+}
 
 function chargeMovementTable() {
     try {
@@ -45,15 +48,16 @@ function chargeMovementTable() {
             rowCallback: function( row, data ) {
           },
           columns: [
-            { data: 'cod' },
-            { data: 'createdAt' },
-            { data: 'mov' },
-            { data: 'container' },
-            { data: 'large' },
-            { data: 'plate' },
+            { data: 'datetime' },
+            { data: 'movement' },
+            { data: 'client' },
+            { data: 'containerInitials' },
+            { data: 'containerNumber' },
+            { data: 'containerType' },
+            { data: 'containerLarge' },
             { data: 'position' },
-            { data: 'driver' },
-            { data: 'enterprise' }
+            { data: 'driverName' },
+            { data: 'driverPlate' }
           ],
           initComplete: function (settings, json) {
             getMovementsEnabled()
@@ -81,11 +85,11 @@ function chargeMovementTable() {
 }
 
 async function getMovementsEnabled() {
-    let movementData = await axios.get('api/movements')
+    let movementData = await axios.get('api/movementsTable')
 
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
-            el.createdAt = moment(el.createdAt).format('DD/MM/YYYY hh:mm:ss')
+            el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
 
             return el
         })
@@ -101,160 +105,12 @@ async function getMovementsEnabled() {
 
 $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementsModal').modal('show');
-    $('#modal_title').html(`Nuevo Ingreso`)
-    $('#modal_body').html(`
-        <div class="row">
+    $('#modalMov_title').html(`Nuevo Ingreso`)
+    $('#modalMov_body').html(createModalBody())
 
-            <div class="col-md-12">
-                <h5>DATOS GENERALES</h5>
-            </div>
-
-            <div class="col-md-2">
-                Movimiento
-                <select id="movementRole" class="custom-select">
-                    <option value="in">INGRESO</option>
-                    <option value="out">SALIDA</option>
-                    <option value="to_in">POR INGRESAR</option>
-                    <option value="to_out">POR SALIR</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                Fecha
-                <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
-            </div>
-            <div class="col-md-2">
-                Hora
-                <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('hh:mm')}">
-            </div>
-            <div class="col-md-4">
-                Cliente
-                <select id="movementClient" class="custom-select">
-                    <option value="0">SELECCIONE...</option>
-                    ${                      
-                        clients.reduce((acc,el)=>{
-                            acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                            return acc
-                        },'')
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                Código
-                <input id="movementCode" type="text" placeholder="ABC123" class="form-control border-input">
-            </div>
-
-
-            <div class="col-md-12">
-                <br/>
-                <h5>DATOS CONTAINER</h5>
-            </div>
-            <div class="col-md-3">
-                Sigla / Marca
-                <input id="movementContainerInitials" type="text" placeholder="HASU-126" class="form-control border-input">
-            </div>
-            <div class="col-md-3">
-                Número Container
-                <input id="movementContainerNumber" type="text" placeholder="ABCD-1234-0" class="form-control border-input">
-            </div>
-            <div class="col-md-3">
-                Tipo
-                <select id="movementContainerType" class="custom-select">
-                    <option value="1">DRY VAN</option>
-                    <option value="2">OPEN TOP</option>
-                    <option value="3">REEFER</option>
-                    <option value="4">TANK</option>
-                    <option value="5">HIGH CUBE</option>
-                    <option value="6">OPEN SIDE</option>
-                    <option value="7">FLAT RACK</option>
-                    <option value="8">PLATFORM</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                Largo
-                <select id="movementContainerLarge" class="custom-select">
-                    <option value="20">20</option>
-                    <option value="40">40</option>
-                    <option value="40H">40H</option>
-                    <option value="101">101</option>
-                    <option value="105">105</option>
-                </select>
-            </div>
-            
-            <div class="col-md-3">
-                Grúa
-                <select id="movementCrane" class="custom-select">
-                    <option value="1">GRUA 1</option>
-                    <option value="2">GRUA 2</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                Sitio
-                <select id="movementSite" class="custom-select">
-                    <option value="1">SITIO 1</option>
-                    <option value="2">SITIO 2</option>
-                    <option value="3">SITIO 3</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                Ubicación
-                <select id="movementPosition" class="custom-select">
-                    <option value="A1_1">A1_1</option>
-                    <option value="A1_2">A1_2</option>
-                    <option value="A1_3">A1_3</option>
-                    <option value="A2_1">A2_1</option>
-                    <option value="A2_2">A2_2</option>
-                    <option value="A2_3">A2_3</option>
-                </select>
-            </div>
-            
-
-            <div class="col-md-12">
-                <br/ >
-                <h5>DATOS DE CONDUCTOR</h5>
-            </div>
-            <div class="col-md-3">
-                RUT
-                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input">
-            </div>
-            <div class="col-md-4">
-                Nombre
-                <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input">
-            </div>
-            <div class="col-md-4">
-                Placa Patente
-                <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input">
-            </div>
-            
-
-            <div class="col-md-12">
-                <br/ >
-                <h5>DATOS DE PAGO</h5>
-            </div>
-            <div class="form-check col-md-6">
-                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-                <label class="form-check-label" for="flexCheckDefault">
-                    PAGO ANTICIPADO
-                </label>
-            </div>
-            <div class="col-md-6">
-                VALOR
-                <input id="movementCharge" type="text" placeholder="$22.000" class="form-control border-input">
-            </div>
-            <br/ >
-
-
-            
-            <div class="form-group col-md-12">
-                <h4 class="card-title">&nbsp;Observaciones</h4>
-                <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control" rows="5"></textarea>
-            </div>
-
-        </div>
-    `)
-
-    $('#modal_footer').html(`
+    $('#modalMov_footer').html(`
         <button class="btn btn-dark" data-dismiss="modal">
-            <i ="color:#e74c3c;" class="fas fa-times"></i> CERRAR
+            <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
         </button>
 
         <button class="btn btn-dark" id="saveMovement">
@@ -262,93 +118,60 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         </button>
     `)
 
-    $('#movementRut').on('keyup', function () {
-        let rut = $('#movementRut').val();
+    
+    $('#movementDriverRUT').on('keyup', function () {
+        return
+        let rut = $('#movementDriverRUT').val();
         if (isRut(rut) && rut.length >= 7) {
-            $('#movementRut').val(rutFunc($('#movementRut').val()))
+            $('#movementDriverRUT').val(rutFunc($('#movementDriverRUT').val()))
         }
     })
 
-    setTimeout(() => {
-        $('#movementRut').focus()
-    }, 500)
-
-    $('#saveMovement').on('click', function () {
+    $('#saveMovement').on('click', async function () {
         let movementData = {
-            rut: removeExtraSpaces($('#movementRut').val()),
-            name: $('#movementName').val(),
-            lastname: $('#movementLastname').val(),
-            password: $('#movementPassword').val(),
-            role: $('#movementRole').val(),
-            charge: $('#movementCharge').val(),
-            phone: $('#movementPhone').val(),
-            email: removeExtraSpaces($('#movementEmail').val()),
-            emailPassword: $('#movementEmailPassword').val()
+            movement: $('#movementType').val(),
+            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+            client: $('#movementClient').val(),
+            code: $('#movementCode').val(),
+            containerInitials: $('#movementContainerInitials').val(),
+            containerNumber: $('#movementContainerNumber').val(),
+            containerType: $('#movementContainerType').val(),
+            containerLarge: $('#movementContainerLarge').val(),
+            crane: $('#movementCrane').val(),
+            site: $('#movementSite').val(),
+            position: $('#movementPosition').val(),
+            driverRUT: $('#movementDriverRUT').val(),
+            driverName: $('#movementDriverName').val(),
+            driverPlate: $('#movementDriverPlate').val(),
+            paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
+            paymentValue: $('#movementPaymentValue').val(),
+            observation: $('#movementObservation').val()
         }
 
-        movementData.checkPer = []
+        const res = validateMovementData(movementData)
+        if(res.ok){
+            let saveMovement = await axios.post('/api/movementSave', res.ok)
+            if(saveMovement.data){
+                if(saveMovement.data._id){
+                    $('#movementsModal').modal('hide')
 
-        if ($('#checkDisOrders').is(":checked")) {
-            movementData.checkPer.push('disOrders')
-        }
-
-        if ($('#checkMobile').is(":checked")) {
-            movementData.checkPer.push('mobile')
-        }
-
-        if (movementData.checkPer == []) {
-            delete movementData.checkPer
-        }
-
-        validateMovementData(movementData).then(res => {
-            if (res.ok) {
-                ajax({
-                    url: 'api/movement',
-                    type: 'POST',
-                    data: {
-                        rut: movementData.rut,
-                        name: movementData.name,
-                        lastname: movementData.lastname,
-                        password: movementData.password,
-                        role: movementData.role,
-                        charge: movementData.charge,
-                        phone: movementData.phone,
-                        email: movementData.email,
-                        emailPassword: movementData.emailPassword,
-                        checkPer: movementData.checkPer
-                    }
-                }).then(res => {
-                    if (res.err) {
-                        toastr.warning(res.err)
-                    } else if (res.ok) {
-                        toastr.success('{{ lang.createMovement.saveMovementToastrOK }}')
-
-                        if (isRut(res.ok._id)) {
-                            res.ok.rut = `${rutFunc(res.ok._id)}`
-                        } else {
-                            res.ok.rut = res.ok._id
-                        }
-
-                        let movementAdded = datatableMovements
-                            .row.add(res.ok)
-                            .draw()
-                            .node();
-
-                        $(movementAdded).css('color', '#1abc9c');
-                        setTimeout(() => {
-                            $(movementAdded).css('color', '#484848');
-                        }, 5000);
-
-                        $('#movementsModal').modal('hide')
-                    }
-                })
+                    $('#modal_title').html(`Almacenado`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Contenedor almacenado correctamente</h5>`)
+                    //chargeMovementTable()
+                }else{
+                    $('#modal_title').html(`Error`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
+                }
+            }else{
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
+            $('#modal').modal('show');
+        }
 
-        });
+    })
 
-    });
-
-});
+})
 
 $('#optionDeleteMovement').on('click', function () {
     swal.fire({
@@ -391,362 +214,351 @@ $('#optionDeleteMovement').on('click', function () {
     })
 })
 
-$('#optionModMovement').on('click', function () {
+$('#optionModMovement').on('click', async function () {
     console.log('rowselected',internals.dataRowSelected)
+    console.log('id',internals.dataRowSelected.id)
+
+    let movementData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
+    let movement = movementData.data
+    console.log(movement)
 
     $('#movementsModal').modal('show');
-    $('#modal_title').html(`{{ lang.modMovement.modalTitle }} ${capitalizeAll(internals.dataRowSelected.name)} ${capitalizeAll(internals.dataRowSelected.lastname)}`)
-    $('#modal_body').html(`
-        <div class="row">
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.dniTitle }}
-                <input disabled value="${rutFunc(internals.dataRowSelected._id)}" id="modMovementRut" type="text" placeholder="{{ lang.modMovement.dniTitle }}" class="form-control border-input">
-            </div>
+    $('#modalMov_title').html(`Modifica Ingreso`)
+    $('#modalMov_body').html(createModalBody())
 
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.nameTitle }}
-                <input value="${internals.dataRowSelected.name}" id="modMovementName" type="text" placeholder="{{ lang.modMovement.nameTitle }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.lastnameTitle }}
-                <input value="${internals.dataRowSelected.lastname}" id="modMovementLastname" type="text" placeholder="{{ lang.modMovement.lastnameTitle }}" class="form-control border-input">
-            </div>
-
-
-            <div class="col-md-4" style="margin-top:10px;">
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="changePassword" >
-                        <label class="custom-control-label" for="changePassword">{{ lang.modMovement.systemPasswordTitle }}</label>
-                    </div>
-                </div>
-
-                <input disabled id="modMovementPassword" type="password" placeholder="{{ lang.modMovement.systemPasswordTitle }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.roleTitle }}
-                <select id="modMovementRole" class="custom-select">
-                    <option value="commercial">{{ lang.modMovement.roles.commercial }} </option>
-                    <option value="production">{{ lang.modMovement.roles.production }} </option>
-                    <option value="samples">Muestras</option>
-                    <option value="sa">{{ lang.modMovement.roles.sa }} </option>
-                </select>
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.chargeTitle }}
-                <input value="${internals.dataRowSelected.position}" id="modMovementCharge" type="text" placeholder="{{ lang.modMovement.chargeTitle }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.phone }}
-                <input value="${internals.dataRowSelected.phone}" id="modMovementPhone" type="text" placeholder="{{ lang.modMovement.phone }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                {{ lang.modMovement.email }}
-                <input value="${internals.dataRowSelected.email}" id="modMovementEmail" type="text" placeholder="{{ lang.modMovement.email }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-4" style="margin-top:10px;">
-                <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="changeEmailPassword" >
-                        <label class="custom-control-label" for="changeEmailPassword">{{ lang.modMovement.emailPasswordTitle }}</label>
-                    </div>
-                </div>
-                <input disabled id="modMovementEmailPassword" type="password" placeholder="{{ lang.modMovement.emailPasswordTitle }}" class="form-control border-input">
-            </div>
-
-            <div class="col-md-12 form-group">
-                <fieldset class="form-group">
-                    <legend class="mt-4">Permisos</legend>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="checkDisOrders">
-                            Ordenes de despacho
-                        </label>
-                    </div>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="checkMobile">
-                            Acceso mobile
-                        </label>
-                    </div>
-
-                </fieldset>
-            </div>
-
-            <div class="col-md-12" id="movementErrorMessage"></div>
-
-            <div class="alert alert-dismissible alert-primary">
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-                {{{ lang.modMovement.alertMessage }}}
-            </div>
-        </div>
-    `)
-
-    $('#modal_footer').html(`
-        <button class="btn btn-dark" data-dismiss="modal">
-            <i ="color:#e74c3c;" class="fas fa-times"></i> {{ lang.modMovement.cancelButton }}
+    $('#modalMov_footer').html(`
+         <button class="btn btn-dark" data-dismiss="modal">
+            <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
         </button>
 
         <button class="btn btn-dark" id="saveMovement">
-            <i ="color:#3498db;" class="fas fa-check"></i> {{ lang.modMovement.saveButton }}
+            <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
         </button>
     `)
 
-    $('#modMovementRole').val(internals.dataRowSelected.role)
+    $('#movementType').val(movement.movement)
+    $('#movementDate').val(moment(movement.datetime).format('YYYY-MM-DD'))
+    $('#movementTime').val(moment(movement.datetime).format('HH:mm'))
+    $('#movementClient').val(movement.client)
+    $('#movementCode').val(movement.code)
+    $('#movementContainerInitials').val(movement.containerInitials)
+    $('#movementContainerNumber').val(movement.containerNumber)
+    $('#movementContainerType').val(movement.containerType)
+    $('#movementContainerLarge').val(movement.containerLarge)
+    $('#movementCrane').val(movement.crane)
+    $('#movementSite').val(movement.site)
+    $('#movementPosition').val(movement.position)
+    $('#movementDriverRUT').val(movement.driverRUT)
+    $('#movementDriverName').val(movement.driverName)
+    $('#movementDriverPlate').val(movement.driverPlate)
+    $('#movementPaymentAdvance').prop('checked',movement.paymentValue)
+    $('#movementPaymentValue').val(movement.paymentValue)
+    $('#movementObservation').val(movement.observation)
 
-    if (internals.dataRowSelected.checkPer && internals.dataRowSelected.checkPer.includes("disOrders")) {
-        $('#checkDisOrders').attr('checked', true);
-    } else {
-        $('#checkDisOrders').attr('checked', false);
-    }
-
-    if (internals.dataRowSelected.checkPer && internals.dataRowSelected.checkPer.includes("mobile")) {
-        $('#checkMobile').attr('checked', true);
-    } else {
-        $('#checkMobile').attr('checked', false);
-    }
-
-    $('#changePassword').on('change', function () {
-        if ($(this).is(':checked')) {
-            $('#modMovementPassword').attr('disabled', false)
-        } else {
-            $('#modMovementPassword').val('')
-            $('#modMovementPassword').attr('disabled', true)
-        }
-    })
-
-    $('#changeEmailPassword').on('change', function () {
-        if ($(this).is(':checked')) {
-            $('#modMovementEmailPassword').attr('disabled', false)
-        } else {
-            $('#modMovementEmailPassword').val('')
-            $('#modMovementEmailPassword').attr('disabled', true)
-        }
-    })
-
-    $('#saveMovement').on('click', function () {
+    
+    $('#saveMovement').on('click', async function () {
         let movementData = {
-            status: 'mod',
-            rut: removeExtraSpaces($('#modMovementRut').val()),
-            name: $('#modMovementName').val(),
-            lastname: $('#modMovementLastname').val(),
-            changePassword: $('#changePassword').is(':checked'),
-            password: $('#modMovementPassword').val(),
-            role: $('#modMovementRole').val(),
-            charge: $('#modMovementCharge').val(),
-            phone: $('#modMovementPhone').val(),
-            email: removeExtraSpaces($('#modMovementEmail').val()),
-            changeEmailPassword: $('#changeEmailPassword').is(':checked'),
-            emailPassword: $('#modMovementEmailPassword').val()
+            id: internals.dataRowSelected.id,
+            movement: $('#movementType').val(),
+            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+            client: $('#movementClient').val(),
+            code: $('#movementCode').val(),
+            containerInitials: $('#movementContainerInitials').val(),
+            containerNumber: $('#movementContainerNumber').val(),
+            containerType: $('#movementContainerType').val(),
+            containerLarge: $('#movementContainerLarge').val(),
+            crane: $('#movementCrane').val(),
+            site: $('#movementSite').val(),
+            position: $('#movementPosition').val(),
+            driverRUT: $('#movementDriverRUT').val(),
+            driverName: $('#movementDriverName').val(),
+            driverPlate: $('#movementDriverPlate').val(),
+            paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
+            paymentValue: $('#movementPaymentValue').val(),
+            observation: $('#movementObservation').val()
         }
 
-        validateMovementData(movementData).then(res => {
-            if (res.ok) {
+        console.log(movementData)
 
-                let changePassword = ''
-                let changeEmailPassword = ''
+        const res = validateMovementData(movementData)
+        if(res.ok){
+            console.log(res.ok)
+            let saveMovement = await axios.post('/api/movementUpdate', res.ok)
+            if(saveMovement.data){
+                if(saveMovement.data._id){
+                    $('#movementsModal').modal('hide')
 
-                if ($('#changePassword').is(':checked')) {
-                    changePassword = 'yes'
-                } else {
-                    changePassword = 'no'
+                    $('#modal_title').html(`Almacenado`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Datos actualizados correctamente</h5>`)
+                    //chargeMovementTable()
+                }else{
+                    $('#modal_title').html(`Error`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
                 }
-
-                if ($('#changeEmailPassword').is(':checked')) {
-                    changeEmailPassword = 'yes'
-                } else {
-                    changeEmailPassword = 'no'
-                }
-
-                movementData.checkPer = []
-
-                if ($('#checkDisOrders').is(":checked")) {
-                    movementData.checkPer.push('disOrders')
-                }
-
-                if ($('#checkMobile').is(":checked")) {
-                    movementData.checkPer.push('mobile')
-                }
-
-                if (movementData.checkPer == []) {
-                    delete movementData.checkPer
-                }
-
-
-                ajax({
-                    url: 'api/modMovement',
-                    type: 'POST',
-                    data: {
-                        rut: movementData.rut,
-                        name: movementData.name,
-                        lastname: movementData.lastname,
-                        changePassword: changePassword,
-                        changeEmailPassword: changeEmailPassword,
-                        password: movementData.password,
-                        emailPassword: movementData.emailPassword,
-                        role: movementData.role,
-                        charge: movementData.charge,
-                        phone: movementData.phone,
-                        email: movementData.email,
-                        checkPer: JSON.stringify(movementData.checkPer)
-                    }
-                }).then(res => {
-                    if (res.err) {
-                        toastr.warning(res.err)
-                    } else if (res.ok) {
-                        toastr.success('{{ lang.modMovement.saveMovementToastrOK }}')
-
-                        if (isRut(res.ok._id)) {
-                            res.ok.rut = `${rutFunc(res.ok._id)}`
-                        } else {
-                            res.ok.rut = res.ok._id
-                        }
-
-                        $('#optionModMovement').prop('disabled', true)
-                        $('#optionDeleteMovement').prop('disabled', true)
-
-                        datatableMovements
-                            .row(movementRowSelected)
-                            .remove()
-                            .draw()
-
-                        let modMovementAdded = datatableMovements
-                            .row.add(res.ok)
-                            .draw()
-                            .node();
-
-                        //datatableMovements.search('').draw();
-
-                        $(modMovementAdded).css('color', '#1abc9c')
-                        setTimeout(() => {
-                            $(modMovementAdded).css('color', '#484848')
-                        }, 5000);
-
-                        $('#movementsModal').modal('hide')
-                    }
-                })
+            }else{
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-        })
+            $('#modal').modal('show');
+        }
     })
 })
 
-function validateMovementData(movementData) { // VOY AQUI EN LA TRADUCCIÓN
-    // console.log(movementData)
-    let validationCounter = 0
+function validateMovementData(movementData) {
     let errorMessage = ''
 
-    return new Promise(resolve => {
-        // 7 puntos
+    //return new Promise(resolve => {
 
-        if (movementData.rut.length >= 6/*isRut(movementData.rut)*/) { // 1
-            validationCounter++
-            $('#movementRut').css('border', '1px solid #3498db')
-        } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.dni }}}`
-            $('#movementRut').css('border', '1px solid #e74c3c')
+        if(movementData.client==0){
+            errorMessage += '<br> Cliente'
+            $('#movementClient').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementClient').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.containerInitials==0){
+            errorMessage += '<br>Sigla/Marca Container'
+            $('#movementContainerInitials').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementContainerInitials').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.containerNumber==0){
+            errorMessage += '<br>Número Container'
+            $('#movementContainerNumber').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementContainerNumber').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.crane==0){
+            errorMessage += '<br>Grúa'
+            $('#movementCrane').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementCrane').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.site==0){
+            errorMessage += '<br>Sitio'
+            $('#movementSite').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementSite').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.position==0){
+            errorMessage += '<br>Ubicación'
+            $('#movementPosition').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementPosition').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.driverRUT==0){
+            errorMessage += '<br>RUT Chofer'
+            $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.driverName==0){
+            errorMessage += '<br>Nombre Chofer'
+            $('#movementDriverName').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementDriverName').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.driverPlate==0){
+            errorMessage += '<br>Patente Camión'
+            $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementDriverPlate').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.driverPlate){
+            if(!$.isNumeric(movementData.driverPlate)){
+                movementData.paymentValue = 0
+            }
         }
 
-        if (movementData.name.length > 1) { // 2
-            validationCounter++
-            $('#movementName').css('border', '1px solid #3498db')
+        if (errorMessage.length===0) {
+            return { ok: movementData }
+            //resolve({ ok: movementData })
         } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.name }}}</b>`
-            $('#movementName').css('border', '1px solid #e74c3c')
-        }
+            $(document).on('hidden.bs.modal', '.modal', function () { //Soluciona problema de scroll
+                $('.modal:visible').length && $(document.body).addClass('modal-open');
+           });
 
-        if (movementData.lastname.length > 1) { // 3
-            validationCounter++
-            $('#movementLastname').css('border', '1px solid #3498db')
-        } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.lastname }}}`
-            $('#movementLastname').css('border', '1px solid #e74c3c')
-        }
+            $('#modal').modal('show');
+            $('#modal_title').html(`Error al almacenar Ingreso`)
+            $('#modal_body').html(`<h5 class="alert-heading">Falta ingresar los siguientes datos:</h5>
+                                        <p class="mb-0">${errorMessage}</p>`)
 
-        if (movementData.charge.length > 1) { // 5
-            validationCounter++
-            $('#movementCharge').css('border', '1px solid #3498db')
-        } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.charge }}}`
-            $('#movementCharge').css('border', '1px solid #e74c3c')
+            //resolve({ err: movementData })
+            return { err: movementData }
         }
+    //})
+}
 
-        if (movementData.phone.length > 1) { // 6
-            validationCounter++
-            $('#movementPhone').css('border', '1px solid #3498db')
-        } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.phone }}}`
-            $('#movementPhone').css('border', '1px solid #e74c3c')
-        }
+function createModalBody(){
+    let body = `
+    <div class="row">
 
-        if (isEmail(movementData.email)) { // 7
-            validationCounter++
-            $('#movementEmail').css('border', '1px solid #3498db')
-        } else {
-            errorMessage += `<br>{{{ lang.validateMovementData.email }}}`
-            $('#movementEmail').css('border', '1px solid #e74c3c')
-        }
+        <div class="col-md-12">
+            <h5>DATOS GENERALES</h5>
+            <button class="btn btn-primary" onclick="testing()">Rellenar</button>
+        </div>
 
-        if (movementData.status == 'mod') {
-            if (movementData.changePassword) {
-                if (movementData.password.length > 1) { // 4
-                    validationCounter++
-                    $('#modMovementPassword').css('border', '1px solid #3498db')
-                } else {
-                    errorMessage += `<br>{{{ lang.validateMovementData.systemPassword }}}`
-                    $('#modMovementPassword').css('border', '1px solid #e74c3c')
+        <div class="col-md-2">
+            Movimiento
+            <select id="movementType" class="custom-select">
+                <option value="INGRESO">INGRESO</option>
+                <option value="SALIDA">SALIDA</option>
+                <option value="POR INGRESAR">POR INGRESAR</option>
+                <option value="POR SALIR">POR SALIR</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            Fecha
+            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
+        </div>
+        <div class="col-md-2">
+            Hora
+            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
+        </div>
+        <div class="col-md-4">
+            Cliente
+            <select id="movementClient" class="custom-select">
+                <option value="0">SELECCIONE...</option>
+                ${                      
+                    clients.reduce((acc,el)=>{
+                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                        return acc
+                    },'')
                 }
-            } else {
-                validationCounter++
-            }
+            </select>
+        </div>
+        <div class="col-md-2">
+            Código
+            <input id="movementCode" type="text" placeholder="ABC123" class="form-control border-input">
+        </div>
 
-            if (movementData.changeEmailPassword) {
-                if (movementData.emailPassword.length > 1) { // 9
-                    validationCounter++
-                    $('#modMovementEmailPassword').css('border', '1px solid #3498db')
-                } else {
-                    errorMessage += `<br>{{{ lang.validateMovementData.modEmailPassword }}}`
-                    $('#modMovementEmailPassword').css('border', '1px solid #e74c3c')
+
+        <div class="col-md-12">
+            <br/>
+            <h5>DATOS CONTAINER</h5>
+        </div>
+        <div class="col-md-3">
+            Sigla / Marca
+            <input id="movementContainerInitials" type="text" placeholder="HASU-126" class="form-control border-input">
+        </div>
+        <div class="col-md-3">
+            Número Container
+            <input id="movementContainerNumber" type="text" placeholder="ABCD-1234-0" class="form-control border-input">
+        </div>
+        <div class="col-md-3">
+            Tipo
+            <select id="movementContainerType" class="custom-select">
+                <option value="0">GENÉRICO</option>
+                ${                      
+                    containerTypes.reduce((acc,el)=>{
+                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                        return acc
+                    },'')
                 }
-            } else {
-                validationCounter++
-            }
+            </select>
+        </div>
+        <div class="col-md-2">
+            Largo
+            <select id="movementContainerLarge" class="custom-select">
+                <option value="20">20</option>
+                <option value="40">40</option>
+                <option value="40H">40H</option>
+                <option value="101">101</option>
+                <option value="105">105</option>
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            Grúa
+            <select id="movementCrane" class="custom-select">
+                <option value="0">SELECCIONE...</option>
+                ${                      
+                    cranes.reduce((acc,el)=>{
+                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                        return acc
+                    },'')
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            Sitio
+            <select id="movementSite" class="custom-select">
+                <option value="0">SELECCIONE...</option>
+                ${                      
+                    sites.reduce((acc,el)=>{
+                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                        return acc
+                    },'')
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            Ubicación
+            <select id="movementPosition" class="custom-select">
+                <option value="A1_1">A1_1</option>
+                <option value="A1_2">A1_2</option>
+                <option value="A1_3">A1_3</option>
+                <option value="A2_1">A2_1</option>
+                <option value="A2_2">A2_2</option>
+                <option value="A2_3">A2_3</option>
+            </select>
+        </div>
+        
 
-        } else {
-            if (movementData.password.length > 1) { // 4
-                validationCounter++
-                $('#movementPassword').css('border', '1px solid #3498db')
-            } else {
-                errorMessage += `<br>{{{ lang.validateMovementData.systemPassword }}}`
-                $('#movementPassword').css('border', '1px solid #e74c3c')
-            }
+        <div class="col-md-12">
+            <br/ >
+            <h5>DATOS DE CONDUCTOR</h5>
+        </div>
+        <div class="col-md-3">
+            RUT
+            <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input">
+        </div>
+        <div class="col-md-4">
+            Nombre
+            <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input">
+        </div>
+        <div class="col-md-4">
+            Placa Patente
+            <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input">
+        </div>
+        
 
-            if (movementData.emailPassword) { // 8
-                validationCounter++
-                $('#movementEmailPassword').css('border', '1px solid #3498db')
-            } else {
-                errorMessage += `<br>{{{ lang.validateMovementData.createEmailPassword }}}`
-                $('#movementEmailPassword').css('border', '1px solid #e74c3c')
-            }
-        }
-        // console.log('validation', validationCounter)
-        if (validationCounter == 8) {
-            $('#movementErrorMessage').empty()
-            resolve({ ok: movementData })
-        } else {
-            $('#movementErrorMessage').html(`
-            <div class="alert alert-dismissible alert-warning">
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-                <h4 class="alert-heading">{{{ lang.validateMovementData.messageTitle }}}</h4>
-                <p class="mb-0">${errorMessage}</p>
-            </div>
-            `)
-            resolve({ err: movementData })
-        }
-    })
+        <div class="col-md-12">
+            <br/ >
+            <h5>DATOS DE PAGO</h5>
+        </div>
+        <div class="form-check col-md-6">
+            <input class="form-check-input" type="checkbox" value="" id="movementPaymentAdvance">
+            <label class="form-check-label" for="flexCheckDefault">
+                PAGO ANTICIPADO
+            </label>
+        </div>
+        <div class="col-md-6">
+            VALOR
+            <input id="movementPaymentValue" type="text" placeholder="$22.000" class="form-control border-input">
+        </div>
+        <br/ >
+
+
+        
+        <div class="form-group col-md-12">
+            <h4 class="card-title">&nbsp;Observaciones</h4>
+            <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control" rows="5"></textarea>
+        </div>
+
+    </div>
+`
+    return body
+}
+
+
+function testing(){
+    $('#movementClient').val('61b88ccdeb77f0bf62cb74b3')
+    $('#movementContainerInitials').val('ASD')
+    $('#movementContainerNumber').val('QWE')
+    $('#movementCrane').val('61d5e3abf5ffd3251426d08e')
+    $('#movementSite').val('61d5e360f5ffd3251426d08a')
+    $('#movementPosition').val('A1_1')
+    $('#movementDriverRUT').val('6-K')
+    $('#movementDriverName').val('KEN BLOCK')
+    $('#movementDriverPlate').val('FJDJ67')
 }

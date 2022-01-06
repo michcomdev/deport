@@ -8,6 +8,6 @@ const containerTypeSchema = new Schema({
     versionKey: false
 })
 
-const ContainerTypes = mongoose.model('containerTypes', containerTypeSchema)
+const ContainerTypes = mongoose.model('containertypes', containerTypeSchema)
 
 export default ContainerTypes

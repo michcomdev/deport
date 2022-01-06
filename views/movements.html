@@ -25,15 +25,16 @@
                 <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>FECHA</th>
                             <th>MOVIMIENTO</th>
+                            <th>CLIENTE</th>
+                            <th>SIGLA</th>
                             <th>CONTENEDOR</th>
+                            <th>TIPO</th>
                             <th>LARGO</th>
-                            <th>PLACA</th>
-                            <th>POSICION</th>
+                            <th>UBICACION</th>
                             <th>CONDUCTOR</th>
-                            <th>EMPRESA</th>
+                            <th>PATENTE</th>
                         </tr>
                     </thead>
                 </table>
@@ -50,6 +51,21 @@
 
 <div class="modal fade" id="movementsModal" role="dialog" aria-labelledby="modal">
     <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalMov_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalMov_body"></div>
+            <div class="modal-footer" id="modalMov_footer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="modal_title"></h4>
