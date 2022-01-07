@@ -9,16 +9,16 @@ dotEnv.config()
 export default [
     {
         method: 'GET',
-        path: '/api/movements',
+        path: '/api/inventory',
         options: {
             auth: false,
-            description: 'get all movements data',
-            notes: 'return all data from movements',
+            description: 'get all inventory data',
+            notes: 'return all data from inventory',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let movements = await Movement.find().lean().populate(['clients','sites','cranes','containertypes'])
-                    return movements
+                    let inventory = await Movement.find().lean().populate(['clients','sites','cranes','containertypes'])
+                    return inventory
                 } catch (error) {
                     console.log(error)
 
@@ -31,15 +31,15 @@ export default [
     },
     {
         method: 'GET',
-        path: '/api/movementsTable',
+        path: '/api/inventoryTable',
         options: {
-            description: 'get all movements data with associated data',
-            notes: 'return all data from movements',
+            description: 'get all inventory data with associated data',
+            notes: 'return all data from inventory',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let movements = await Movement.find().populate(['clients','containertypes'])
-                    let movementsTable = movements.reduce((acc, el, i) => {
+                    let inventory = await Movement.find().populate(['clients','containertypes'])
+                    let inventoryTable = inventory.reduce((acc, el, i) => {
 
                         acc.push({
                             id: el._id.toString(),
@@ -59,7 +59,7 @@ export default [
                     }, [])
 
 
-                    return movementsTable
+                    return inventoryTable
                 } catch (error) {
                     console.log(error)
 
@@ -72,16 +72,16 @@ export default [
     },
     {
         method: 'GET',
-        path: '/api/movementsMap',
+        path: '/api/inventoryMap',
         options: {
             auth: false,
-            description: 'get all movements data',
-            notes: 'return all data from movements',
+            description: 'get all inventory data',
+            notes: 'return all data from inventory',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let movements = await Movement.find({movement: 'INGRESO'}).sort({'position.row': 'ascending','position.position': 'ascending','position.level': 'ascending'})
-                    movements = movements.reduce((acc, el, i) => {
+                    let inventory = await Movement.find().sort({'position.row': 'ascending','position.position': 'ascending','position.level': 'ascending'})
+                    inventory = inventory.reduce((acc, el, i) => {
                         acc.push({
                             id: 0,
                             row: el.position.row,
@@ -94,7 +94,7 @@ export default [
                         return acc
                     }, [])
 
-                    return movements
+                    return inventory
                 } catch (error) {
                     console.log(error)
 
@@ -107,7 +107,7 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementSingle',
+        path: '/api/inventoryingle',
         options: {
             description: 'get one movement data',
             notes: 'return all data from movement',
@@ -141,7 +141,7 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementSave',
+        path: '/api/inventoryave',
         options: {
             description: 'create movement',
             notes: 'create movement',
@@ -165,11 +165,8 @@ export default [
                         driverRUT: payload.driverRUT,
                         driverName: payload.driverName,
                         driverPlate: payload.driverPlate,
-                        services: payload.services,
                         paymentAdvance: payload.paymentAdvance,
-                        paymentNet: payload.paymentNet,
-                        paymentIVA: payload.paymentIVA,
-                        paymentTotal: payload.paymentTotal,
+                        paymentValue: payload.paymentValue,
                         observation: payload.observation
                     })
 
@@ -206,11 +203,8 @@ export default [
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
                     paymentAdvance: Joi.boolean().optional(),
-                    paymentNet: Joi.number().allow(0).optional(),
-                    paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
+                    paymentValue: Joi.number().allow(0).optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -218,7 +212,7 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementUpdate',
+        path: '/api/inventoryUpdate',
         options: {
             description: 'modify movement',
             notes: 'modify movement',
@@ -245,11 +239,8 @@ export default [
                         movement.driverRUT = payload.driverRUT,
                         movement.driverName = payload.driverName,
                         movement.driverPlate = payload.driverPlate,
-                        movement.services = payload.services,
                         movement.paymentAdvance = payload.paymentAdvance,
-                        movement.paymentNet = payload.paymentNet,
-                        movement.paymentIVA = payload.paymentIVA,
-                        movement.paymentTotal = payload.paymentTotal,
+                        movement.paymentValue = payload.paymentValue,
                         movement.observation = payload.observation
                     }
 
@@ -289,11 +280,8 @@ export default [
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
                     paymentAdvance: Joi.boolean().optional(),
-                    paymentNet: Joi.number().allow(0).optional(),
-                    paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
+                    paymentValue: Joi.number().allow(0).optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }

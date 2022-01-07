@@ -12,6 +12,6 @@ const clientSchema = new Schema({
     versionKey: false
 })
 
-const Client = mongoose.model('Clients', clientSchema)
+const Client = mongoose.model('clients', clientSchema)
 
 export default Client

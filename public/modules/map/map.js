@@ -25,7 +25,7 @@ scene.add(floor)
 
 const loaderText = new FontLoader()
 
-const mapRows = getMap()
+const mapRows = await getMap()
 //Set row letters
 
 loaderText.load( '/public/js/three/fonts/helvetiker_regular.typeface.json', function ( font ) {
@@ -59,7 +59,7 @@ loaderText.load( '/public/js/three/fonts/helvetiker_regular.typeface.json', func
 
 
 
-const containerList = setPositions(scene)
+const containerList = await setPositions(scene)
 
 //Cámara
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 )
@@ -411,263 +411,36 @@ document.querySelector("#listContainer").onchange = function (e) {
 
 ////////////////////////////POSICIONES/////////////////////////////
 
-function setPositions(scene){
+async function setPositions(scene){
 	
 	const geometryBasic = new THREE.BoxGeometry(2,0.86,0.8)
 	const geometryContainer20 = new THREE.BoxGeometry(2,0.86,0.8)
 	const geometryContainer40 = new THREE.BoxGeometry(4,0.86,0.8)
-	//const materialBasic1 = new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true })
-	//const materialBasic2 = new THREE.MeshPhongMaterial({ color: 0x00ff4d, flatShading: true })
 
 	const loader = new THREE.TextureLoader()
 
-	const materials = [
-		{
-			id: 1,
-			material: [
-				'cai1.jpg',//Derecha
-				'cai2.jpg',//Izquierda
-				'cai3.jpg',//Arriba
-				'cai4.jpg',//Abajo
-				'cai5.jpg',//Frente
-				'cai6.jpg',//Atrás
-			]
-		},
-		{
-			id: 2,
-			material: [
-				'hp1.jpg',//Derecha
-				'hp2.jpg',//Izquierda
-				'hp3.jpg',//Arriba
-				'hp4.jpg',//Abajo
-				'hp5.jpg',//Frente
-				'hp6.jpg',//Atrás
-			]
-		},
-		{
-			id: 3,
-			material: [
-				'ma1.jpg',//Derecha
-				'ma2.jpg',//Izquierda
-				'ma3.jpg',//Arriba
-				'ma4.jpg',//Abajo
-				'ma5.jpg',//Frente
-				'ma6.jpg',//Atrás
-			]
-		},
-		{
-			id: 4,
-			material: [
-				'blu1.jpg',//Derecha
-				'blu2.jpg',//Izquierda
-				'blu3.jpg',//Arriba
-				'blu4.jpg',//Abajo
-				'blu5.jpg',//Frente
-				'blu6.jpg',//Atrás
-			]
-		},
-		{
-			id: 5,
-			material: [
-				'gre1.jpg',//Derecha
-				'gre2.jpg',//Izquierda
-				'gre3.jpg',//Arriba
-				'gre4.jpg',//Abajo
-				'gre5.jpg',//Frente
-				'gre6.jpg',//Atrás
-			]
-		},
-		{
-			id: 6,
-			material: [
-				'mh1.jpg',//Derecha
-				'mh2.jpg',//Izquierda
-				'mh3.jpg',//Arriba
-				'mh4.jpg',//Abajo
-				'mh5.jpg',//Frente
-				'mh6.jpg',//Atrás
-			]
-		},
-		{
-			id: 7,
-			material: [
-				'mv1.jpeg',//Derecha
-				'mv2.jpeg',//Izquierda
-				'mv3.jpeg',//Arriba
-				'mv4.jpeg',//Abajo
-				'mv5.jpeg',//Frente
-				'mv6.jpeg',//Atrás
-			]
-		},
-		{
-			id: 8,
-			material: [
-				'mb1.jpeg',//Derecha
-				'mb2.jpeg',//Izquierda
-				'mb3.jpeg',//Arriba
-				'mb4.jpeg',//Abajo
-				'mb5.jpeg',//Frente
-				'mb6.jpeg',//Atrás
-			]
-		}
-	]
-	//Nomenclatura: A5_2 = Fila A, posición 5, nivel 2 
 
-	const rows = getMap()
-
-	//let materialIndex = 1
-	//let material = materialBasic2
-
-
-	const containerList = [
-							{id: 0, row: 'A', position: 1, level: 2, large: 20, type: 1},
-							//Ejemplo: Posición A1_2
-							//Fila A, posición 1, nivel (altura) 2, largo de container 20, tipo = textura
-							{id: 0, row: 'A', position: 2, level: 1, large: 20, type: 2},
-							{id: 0, row: 'A', position: 3, level: 1, large: 20, type: 3},
-							{id: 0, row: 'A', position: 4, level: 1, large: 20, type: 4},
-							{id: 0, row: 'A', position: 5, level: 1, large: 20, type: 5},
-							{id: 0, row: 'A', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'A', position: 7, level: 1, large: 20, type: 4},
-							{id: 0, row: 'A', position: 8, level: 1, large: 20, type: 3},
-							{id: 0, row: 'A', position: 9, level: 1, large: 20, type: 3},
-							
-							{id: 0, row: 'B', position: 1, level: 1, large: 40, type: 3},
-							{id: 0, row: 'B', position: 1, level: 2, large: 40, type: 1},
-							{id: 0, row: 'B', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'B', position: 4, level: 1, large: 40, type: 3},
-							{id: 0, row: 'B', position: 4, level: 2, large: 40, type: 3},
-							{id: 0, row: 'B', position: 4, level: 3, large: 40, type: 4},
-							{id: 0, row: 'B', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'B', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'B', position: 7, level: 1, large: 40, type: 5},
-							{id: 0, row: 'B', position: 7, level: 2, large: 40, type: 5},
-							{id: 0, row: 'B', position: 7, level: 3, large: 40, type: 5},
-							{id: 0, row: 'B', position: 9, level: 1, large: 20, type: 4},
-
-							{id: 0, row: 'C', position: 3, level: 1, large: 20, type: 5},
-							{id: 0, row: 'C', position: 4, level: 1, large: 20, type: 4},
-							{id: 0, row: 'C', position: 3, level: 2, large: 40, type: 3},
-							{id: 0, row: 'C', position: 3, level: 3, large: 20, type: 2},
-
-							{id: 0, row: 'D', position: 1, level: 1, large: 20, type: 2},
-							{id: 0, row: 'D', position: 2, level: 1, large: 20, type: 1},
-							{id: 0, row: 'D', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'D', position: 4, level: 1, large: 40, type: 3},
-							{id: 0, row: 'D', position: 4, level: 2, large: 40, type: 2},
-							{id: 0, row: 'D', position: 4, level: 3, large: 40, type: 2},
-							{id: 0, row: 'D', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'D', position: 7, level: 1, large: 20, type: 4},
-							{id: 0, row: 'D', position: 9, level: 1, large: 20, type: 4},
-
-							{id: 0, row: 'E', position: 1, level: 1, large: 40, type: 3},
-							{id: 0, row: 'E', position: 1, level: 2, large: 40, type: 1},
-							{id: 0, row: 'E', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'E', position: 4, level: 1, large: 40, type: 3},
-							{id: 0, row: 'E', position: 4, level: 2, large: 40, type: 3},
-							{id: 0, row: 'E', position: 4, level: 3, large: 40, type: 4},
-							{id: 0, row: 'E', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'E', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'E', position: 7, level: 1, large: 40, type: 5},
-							{id: 0, row: 'E', position: 7, level: 2, large: 40, type: 5},
-							{id: 0, row: 'E', position: 7, level: 3, large: 40, type: 5},
-							{id: 0, row: 'E', position: 9, level: 1, large: 20, type: 4},
-
-
-							{id: 0, row: 'G', position: 3, level: 1, large: 20, type: 5},
-							{id: 0, row: 'G', position: 4, level: 1, large: 20, type: 4},
-							{id: 0, row: 'G', position: 3, level: 2, large: 40, type: 3},
-							{id: 0, row: 'G', position: 3, level: 3, large: 20, type: 2},
-
-
-							{id: 0, row: 'H', position: 1, level: 1, large: 20, type: 1},
-							{id: 0, row: 'H', position: 1, level: 2, large: 20, type: 1},
-							{id: 0, row: 'H', position: 2, level: 1, large: 20, type: 2},
-							{id: 0, row: 'H', position: 3, level: 1, large: 20, type: 3},
-							{id: 0, row: 'H', position: 4, level: 1, large: 20, type: 4},
-							{id: 0, row: 'H', position: 5, level: 1, large: 20, type: 5},
-							{id: 0, row: 'H', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'H', position: 7, level: 1, large: 20, type: 4},
-							{id: 0, row: 'H', position: 8, level: 1, large: 20, type: 3},
-							{id: 0, row: 'H', position: 9, level: 1, large: 20, type: 3},
-
-							{id: 0, row: 'I', position: 1, level: 1, large: 40, type: 3},
-							{id: 0, row: 'I', position: 1, level: 2, large: 40, type: 1},
-							{id: 0, row: 'I', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'I', position: 4, level: 1, large: 40, type: 3},
-							{id: 0, row: 'I', position: 4, level: 2, large: 40, type: 3},
-							{id: 0, row: 'I', position: 4, level: 3, large: 40, type: 4},
-							{id: 0, row: 'I', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'I', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'I', position: 7, level: 1, large: 40, type: 5},
-							{id: 0, row: 'I', position: 7, level: 2, large: 40, type: 5},
-							{id: 0, row: 'I', position: 7, level: 3, large: 40, type: 5},
-							{id: 0, row: 'I', position: 9, level: 1, large: 20, type: 4},
-
-							
-							
-
-						
-
-							{id: 0, row: 'J', position: 1, level: 1, large: 40, type: 3},
-							{id: 0, row: 'J', position: 1, level: 2, large: 40, type: 1},
-							{id: 0, row: 'J', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'J', position: 4, level: 1, large: 40, type: 3},
-							{id: 0, row: 'J', position: 4, level: 2, large: 40, type: 3},
-							{id: 0, row: 'J', position: 4, level: 3, large: 40, type: 4},
-							{id: 0, row: 'J', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'J', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'J', position: 7, level: 1, large: 20, type: 5},
-							{id: 0, row: 'J', position: 7, level: 2, large: 20, type: 3},
-							{id: 0, row: 'J', position: 7, level: 3, large: 20, type: 3},
-							{id: 0, row: 'J', position: 8, level: 1, large: 20, type: 5},
-							{id: 0, row: 'J', position: 8, level: 2, large: 20, type: 5},
-							{id: 0, row: 'J', position: 9, level: 1, large: 20, type: 4},
-
-							{id: 0, row: 'K', position: 1, level: 1, large: 20, type: 3},
-							{id: 0, row: 'K', position: 1, level: 2, large: 20, type: 4},
-							{id: 0, row: 'K', position: 2, level: 1, large: 20, type: 5},
-							{id: 0, row: 'K', position: 2, level: 2, large: 20, type: 5},
-							{id: 0, row: 'K', position: 3, level: 1, large: 20, type: 1},
-							{id: 0, row: 'K', position: 4, level: 1, large: 40, type: 1},
-							{id: 0, row: 'K', position: 4, level: 2, large: 40, type: 4},
-							{id: 0, row: 'K', position: 4, level: 3, large: 40, type: 4},
-							{id: 0, row: 'K', position: 6, level: 1, large: 20, type: 5},
-							{id: 0, row: 'K', position: 6, level: 2, large: 20, type: 2},
-							{id: 0, row: 'K', position: 7, level: 1, large: 20, type: 2},
-							{id: 0, row: 'K', position: 7, level: 2, large: 20, type: 1},
-							{id: 0, row: 'K', position: 7, level: 3, large: 20, type: 1},
-							{id: 0, row: 'K', position: 8, level: 1, large: 20, type: 5},
-							{id: 0, row: 'K', position: 8, level: 2, large: 20, type: 5},
-							{id: 0, row: 'K', position: 9, level: 1, large: 20, type: 4},
-
-							{id: 0, row: 'L', position: 9, level: 1, large: 20, type: 2},
-							{id: 0, row: 'L', position: 7, level: 1, large: 40, type: 1},
-							{id: 0, row: 'L', position: 4, level: 1, large: 20, type: 2},
-							{id: 0, row: 'L', position: 3, level: 1, large: 20, type: 2}
-						]
-
+	const containerList = await getContainerList()
+	
 		
 	for(let i=0;i<containerList.length;i++){
 
-		let positionX = rows.find(x => x.row === containerList[i].row).positionX
-		let positionZ = rows.find(x => x.row === containerList[i].row).positionZ
-		let rotationY = rows.find(x => x.row === containerList[i].row).rotationY
-		let orientation = rows.find(x => x.row === containerList[i].row).orientation
+		let positionX = mapRows.find(x => x.row === containerList[i].row).positionX
+		let positionZ = mapRows.find(x => x.row === containerList[i].row).positionZ
+		let rotationY = mapRows.find(x => x.row === containerList[i].row).rotationY
+		let orientation = mapRows.find(x => x.row === containerList[i].row).orientation
 		let level = containerList[i].level
 		let position = containerList[i].position
 		let large = containerList[i].large
-		let type = containerList[i].type
-		//let material = materials.find(x => x.id === containerList[i].type).material
-		let materialTextures = materials.find(x => x.id === containerList[i].type).material
+		let texture = containerList[i].texture
 
 		let material = [
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[0])}),//Derecha
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[1])}),//Izquierda
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[2])}),//Arriba
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[3])}),//Abajo
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[4])}),//Frente
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+materialTextures[5])}),//Atrás
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'1.jpg')}),//Derecha
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'2.jpg')}),//Izquierda
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'3.jpg')}),//Arriba
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'4.jpg')}),//Abajo
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'5.jpg')}),//Frente
+			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'6.jpg')}),//Atrás
 		]
 
 
@@ -688,10 +461,7 @@ function setPositions(scene){
 			geometry = geometryContainer40
 		}
 
-
-		//const container = new THREE.Mesh( geometry, material )
 		const container = new THREE.Mesh( geometry, material )
-
 
 		container.position.x = positionX
 		container.position.y = (level - 1) * 0.86 //Se suman 0.86 radianes por nivel, partiendo de 0
@@ -709,206 +479,19 @@ function setPositions(scene){
 
 }
 
+async function getContainerList(){
 
-function getMap(){
-	const map = [
-				{row: 'A',
-					orientation: 'vertical',
-					positionX: 10,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'B', 
-					orientation: 'vertical',
-					positionX: 9.1,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'C', 
-					orientation: 'vertical',
-					positionX: 8.2,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'D', 
-					orientation: 'vertical',
-					positionX: 0.9,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'E', 
-					orientation: 'vertical',
-					positionX: 0,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'F', 
-					orientation: 'vertical',
-					positionX: -0.9,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'G', 
-					orientation: 'vertical',
-					positionX: -8.2,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'H', 
-					orientation: 'vertical',
-					positionX: -9.1,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'I', 
-					orientation: 'vertical',
-					positionX: -10,
-					positionZ: 8,
-					rotationY: Math.PI / 2,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'J', 
-					orientation: 'horizontal',
-					positionX: 8,
-					positionZ: -15,
-					rotationY: 0,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'K', 
-					orientation: 'horizontal',
-					positionX: 8,
-					positionZ: -14.1,
-					rotationY: 0,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				},
-				{row: 'L', 
-					orientation: 'horizontal',
-					positionX: 8,
-					positionZ: -13.2,
-					rotationY: 0,
-					positions: [
-						{position: 1, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 2, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 3, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 4, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 5, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 6, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 7, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 8, levels: [{level: 1},{level: 2},{level: 3}]},
-						{position: 9, levels: [{level: 1},{level: 2},{level: 3}]}
-					]
-				}]
-	return map
+	let containerData = await axios.get('api/movementsMap')
+    let containers = containerData.data
+
+	console.log(containers)
+	return containers
+}
+
+async function getMap(){
+
+	let mapsData = await axios.get('api/maps')
+    let maps = mapsData.data
+
+	return maps
 }

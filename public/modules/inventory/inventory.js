@@ -29,8 +29,9 @@ async function getParameters() {
     let cranesData = await axios.get('api/cranes')
     cranes = cranesData.data
 
-    let servicesData = await axios.get('api/services')
-    services = servicesData.data
+    let mapsData = await axios.get('api/maps')
+    maps = mapsData.data
+    console.log(maps)
 }
 
 function chargeMovementTable() {
@@ -74,6 +75,7 @@ function chargeMovementTable() {
                 $('#optionDeleteMovement').prop('disabled', true)
                 $('#optionCloseMovement').prop('disabled', true)
             } else {
+                console.log(internals.movements.table.row($(this)).data())
                 internals.movements.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 $('#optionModMovement').prop('disabled', false)
@@ -157,11 +159,8 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
-            services: $('#movementService').val(),
             paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: $('#movementPaymentNet').val(),
-            paymentIVA: $('#movementPaymentIVA').val(),
-            paymentTotal: $('#movementPaymentTotal').val(),
+            paymentValue: $('#movementPaymentValue').val(),
             observation: $('#movementObservation').val()
         }
 
@@ -233,9 +232,12 @@ $('#optionDeleteMovement').on('click', function () {
 })
 
 $('#optionModMovement').on('click', async function () {
+    console.log('rowselected',internals.dataRowSelected)
+    console.log('id',internals.dataRowSelected.id)
 
     let movementData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let movement = movementData.data
+    console.log(movement)
 
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Modifica Ingreso`)
@@ -270,11 +272,8 @@ $('#optionModMovement').on('click', async function () {
     $('#movementDriverRUT').val(movement.driverRUT)
     $('#movementDriverName').val(movement.driverName)
     $('#movementDriverPlate').val(movement.driverPlate)
-    $('#movementService').val(movement.services)
-    $('#movementPaymentAdvance').prop('checked',movement.paymentAdvance)
-    $('#movementPaymentNet').val(dot_separators(movement.paymentNet))
-    $('#movementPaymentIVA').val(dot_separators(movement.paymentIVA))
-    $('#movementPaymentTotal').val(dot_separators(movement.paymentTotal))
+    $('#movementPaymentAdvance').prop('checked',movement.paymentValue)
+    $('#movementPaymentValue').val(movement.paymentValue)
     $('#movementObservation').val(movement.observation)
 
     
@@ -300,11 +299,8 @@ $('#optionModMovement').on('click', async function () {
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
-            services: $('#movementService').val(),
             paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: $('#movementPaymentNet').val(),
-            paymentIVA: $('#movementPaymentIVA').val(),
-            paymentTotal: $('#movementPaymentTotal').val(),
+            paymentValue: $('#movementPaymentValue').val(),
             observation: $('#movementObservation').val()
         }
 
@@ -377,11 +373,8 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementDriverRUT').val(movement.driverRUT)
     $('#movementDriverName').val(movement.driverName)
     $('#movementDriverPlate').val(movement.driverPlate)
-    $('#movementService').val(movement.services)
-    $('#movementPaymentAdvance').prop('checked',movement.paymentAdvance)
-    $('#movementPaymentNet').val(dot_separators(movement.paymentNet))
-    $('#movementPaymentIVA').val(dot_separators(movement.paymentIVA))
-    $('#movementPaymentTotal').val(dot_separators(movement.paymentTotal))
+    $('#movementPaymentAdvance').prop('checked',movement.paymentValue)
+    $('#movementPaymentValue').val(movement.paymentValue)
     $('#movementObservation').val(movement.observation)
 
     $(".classOut").prop('disabled',true)
@@ -410,9 +403,7 @@ $('#optionCloseMovement').on('click', async function () {
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
             paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: $('#movementPaymentNet').val(),
-            paymentIVA: $('#movementPaymentIVA').val(),
-            paymentTotal: $('#movementPaymentTotal').val(),
+            paymentValue: $('#movementPaymentValue').val(),
             observation: $('#movementObservation').val()
         }
 
@@ -478,29 +469,27 @@ function validateMovementData(movementData) {
             $('#movementSite').css('border', '1px solid #CED4DA')
         }
         
-        if(movementData.driverRUT==''){
+        if(movementData.driverRUT==0){
             errorMessage += '<br>RUT Chofer'
             $('#movementDriverRUT').css('border', '1px solid #E74C3C')
         }else{
             $('#movementDriverRUT').css('border', '1px solid #CED4DA')
         }
-        if(movementData.driverName==''){
+        if(movementData.driverName==0){
             errorMessage += '<br>Nombre Chofer'
             $('#movementDriverName').css('border', '1px solid #E74C3C')
         }else{
             $('#movementDriverName').css('border', '1px solid #CED4DA')
         }
-        if(movementData.driverPlate==''){
+        if(movementData.driverPlate==0){
             errorMessage += '<br>Patente Camión'
             $('#movementDriverPlate').css('border', '1px solid #E74C3C')
         }else{
             $('#movementDriverPlate').css('border', '1px solid #CED4DA')
         }
-        if(movementData.paymentNet){
-            if(!$.isNumeric(movementData.paymentNet)){
-                movementData.paymentNet = 0
-                movementData.paymentIVA = 0
-                movementData.paymentTotal = 0
+        if(movementData.driverPlate){
+            if(!$.isNumeric(movementData.driverPlate)){
+                movementData.paymentValue = 0
             }
         }
 
@@ -700,28 +689,15 @@ function createModalBody(){
             <br/ >
             <h5>DATOS DE PAGO</h5>
         </div>
-        <div class="form-check col-md-3">
+        <div class="form-check col-md-6">
             <input class="form-check-input" type="checkbox" value="" id="movementPaymentAdvance">
             <label class="form-check-label" for="flexCheckDefault">
                 PAGO ANTICIPADO
             </label>
         </div>
-        <div class="col-md-3">
-            Servicio
-            <select id="movementService" class="custom-select">
-                ${                      
-                    services.reduce((acc,el)=>{
-                        acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                        return acc
-                    },'')
-                }
-            </select>
-        </div>
         <div class="col-md-6">
             VALOR
-            <input id="movementPaymentNet" type="text" placeholder="$22.000" class="form-control border-input">
-            <input id="movementPaymentIVA" type="text" placeholder="0" class="form-control border-input">
-            <input id="movementPaymentTotal" type="text" placeholder="0" class="form-control border-input">
+            <input id="movementPaymentValue" type="text" placeholder="$22.000" class="form-control border-input">
         </div>
         <br/ >
 
