@@ -1,6 +1,6 @@
-import Containers from '../../models/Containers'
-//import Client from '../../models/Client'
-import ContainerTypes from '../../models/ContainerTypes'
+import Containers from '../../../models/Containers'
+//import Client from '../../../models/Client'
+import ContainerTypes from '../../../models/ContainerTypes'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -9,7 +9,7 @@ dotEnv.config()
 export default [
     {
         method: 'GET',
-        path: '/api/movements',
+        path: '/api/mobile/movements',
         options: {
             auth: false,
             description: 'get all movements data',
@@ -31,8 +31,9 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementsTable',
+        path: '/api/mobile/movementsTable',
         options: {
+            auth: false,
             description: 'get all movements data with associated data',
             notes: 'return all data from movements',
             tags: ['api'],
@@ -93,7 +94,7 @@ export default [
     },
     {
         method: 'GET',
-        path: '/api/movementsMap',
+        path: '/api/mobile/movementsMap',
         options: {
             auth: false,
             description: 'get all movements data',
@@ -147,8 +148,9 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementSingle',
+        path: '/api/mobile/movementSingle',
         options: {
+            auth: false,
             description: 'get one movement data',
             notes: 'return all data from movement',
             tags: ['api'],
@@ -182,8 +184,9 @@ export default [
     },    
     {
         method: 'POST',
-        path: '/api/movementsByFilter',
+        path: '/api/mobile/movementsByFilter',
         options: {
+            auth: false,
             description: 'get one movement data',
             notes: 'return all data from movement',
             tags: ['api'],
@@ -260,8 +263,9 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementSave',
+        path: '/api/mobile/movementSave',
         options: {
+            auth: false,
             description: 'create movement',
             notes: 'create movement',
             tags: ['api'],
@@ -341,8 +345,9 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementUpdate',
+        path: '/api/mobile/movementUpdate',
         options: {
+            auth: false,
             description: 'modify movement',
             notes: 'modify movement',
             tags: ['api'],
@@ -457,8 +462,9 @@ export default [
     },
     {
         method: 'POST',
-        path: '/api/movementUpdatePosition',
+        path: '/api/mobile/movementUpdatePosition',
         options: {
+            auth: false,
             description: 'modify movement position',
             notes: 'modify movement position',
             tags: ['api'],
