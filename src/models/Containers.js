@@ -32,7 +32,11 @@ const containerSchema = new Schema({
         observation: { type: String }
     }],
     services: [{
-        services: { type: Schema.Types.ObjectId, ref: 'services' }
+        services: { type: Schema.Types.ObjectId, ref: 'services' },
+        paymentAdvance: { type: Boolean },
+        paymentNet: { type: Number },
+        paymentIVA: { type: Number },
+        paymentTotal: { type: Number }
     }]
 })
 

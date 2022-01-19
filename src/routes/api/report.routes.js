@@ -9,11 +9,11 @@ dotEnv.config()
 export default [
     {
         method: 'GET',
-        path: '/api/inventory',
+        path: '/api/report',
         options: {
             auth: false,
-            description: 'get all inventory data',
-            notes: 'return all data from inventory',
+            description: 'get all report data',
+            notes: 'return all data from report',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
@@ -28,27 +28,33 @@ export default [
                 }
             }
         }
-    },
+    },   
     {
-        method: 'GET',
-        path: '/api/inventoryTable',
+        method: 'POST',
+        path: '/api/reportByFilter',
         options: {
-            description: 'get all inventory data with associated data',
-            notes: 'return all data from inventory',
+            description: 'get one movement data',
+            notes: 'return all data from movement',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-
+                    let payload = request.payload
                     let query = {
+                        clients: payload.client,
                         movements : { 
                             $elemMatch : { 
-                                movement: ['POR INGRESAR','INGRESADO','INGRESADO PENDIENTE','TRASLADO','POR RETIRAR','RETIRADO PENDIENTE']
-
+                                datetime: {
+                                    $gt: `${payload.startDate}T00:00:00.000Z`,
+                                    $lt: `${payload.endDate}T23:59:59.999Z`
+                                }
                             } 
                         }
                     }
-                    let inventory = await Containers.find(query).populate(['clients','containertypes'])
-                    let inventoryTable = inventory.reduce((acc, el, i) => {
+                    
+                    let containers = await Containers.find(query).populate(['clients','containertypes','sites','cranes','services.services'])
+
+
+                    containers = containers.reduce((acc, el, i) => {
 
                         let lastMov = el.movements.length - 1
                         if(el.movements[lastMov].movement!='SALIDA'){
@@ -69,9 +75,9 @@ export default [
                 
                         return acc
                     }, [])
-
-
-                    return inventoryTable
+                   
+                    return containers
+                
                 } catch (error) {
                     console.log(error)
 
@@ -79,34 +85,32 @@ export default [
                         error: 'Internal Server Error'
                     }).code(500)
                 }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    startDate: Joi.string().required(),
+                    endDate: Joi.string().required(),
+                    client: Joi.string().optional().allow('')
+                })
             }
         }
     },
     {
-        method: 'GET',
-        path: '/api/inventoryMap',
+        method: 'POST',
+        path: '/api/reportMovement',
         options: {
-            auth: false,
-            description: 'get all inventory data',
-            notes: 'return all data from inventory',
+            description: 'get one movement data',
+            notes: 'return all data from movement',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let inventory = await Containers.find().sort({'position.row': 'ascending','position.position': 'ascending','position.level': 'ascending'})
-                    inventory = inventory.reduce((acc, el, i) => {
-                        acc.push({
-                            id: 0,
-                            row: el.position.row,
-                            position: el.position.position,
-                            level: el.position.level,
-                            large: el.containerLarge,
-                            texture: el.containerTexture
-                        })
-                
-                        return acc
-                    }, [])
+                    let payload = request.payload   
 
-                    return inventory
+                    let movement = await Containers.findById(payload.id).lean().populate(['clients','sites','cranes','containertypes','services.services'])
+                    
+
+                    return movement
+                
                 } catch (error) {
                     console.log(error)
 
@@ -114,6 +118,11 @@ export default [
                         error: 'Internal Server Error'
                     }).code(500)
                 }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required()
+                })
             }
         }
     }

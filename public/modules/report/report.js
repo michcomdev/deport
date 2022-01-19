@@ -3,6 +3,10 @@ let internals = {
         table: {},
         data: []
     },
+    services: {
+        table: {},
+        data: []
+    },
     dataRowSelected: {}
 }
 
@@ -15,14 +19,14 @@ $(document).ready(async function () {
     $('#searchDate').daterangepicker({
         opens: 'left',
         locale: dateRangePickerDefaultLocale,
-        startDate: moment().add(-1,'weeks')
+        startDate: moment().add(-1,'months')
         //endDate: moment()
     }, function(start, end, label) {
         //internals.initDate = start.format('YYYY-MM-DD')
         //internals.endDate = end.format('YYYY-MM-DD')
     })
 
-    chargeMovementTable()
+    //chargeMovementTable()
     getParameters()
 
     $("#search").on('click', function(){
@@ -36,6 +40,17 @@ async function getParameters() {
 
     for(let i=0; i < clients.length; i++){
         $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
+        if(i+1==clients.length){
+            $('#searchClient').on('change', function(){
+                console.log($(this).val())
+                loadSingleContainer(0)
+                if($(this).val()!=0){
+                    chargeMovementTable()
+                }else{
+
+                }
+            })
+        }
     }
 
     let containerTypesData = await axios.get('api/containerTypes')
@@ -62,11 +77,14 @@ function chargeMovementTable() {
         .DataTable( {
             dom: 'Bfrtip',
             buttons: [
-              'excel'
+                'excel'
             ],
             iDisplayLength: 50,
             oLanguage: {
               sSearch: 'buscar: '
+            },
+            language: {
+                url: spanishDataTableLang
             },
             responsive: false,
             order: [[ 0, 'desc' ]],
@@ -76,14 +94,14 @@ function chargeMovementTable() {
           columns: [
             { data: 'datetime' },
             { data: 'movement' },
-            { data: 'client' },
+            //{ data: 'client' },
             { data: 'containerInitials' },
             { data: 'containerNumber' },
             { data: 'containerType' },
             { data: 'containerLarge' },
-            { data: 'position' },
-            { data: 'driverName' },
-            { data: 'driverPlate' }
+            //{ data: 'position' },
+            //{ data: 'driverName' },
+            //{ data: 'driverPlate' }
           ],
           initComplete: function (settings, json) {
             getMovementsEnabled()
@@ -99,7 +117,6 @@ function chargeMovementTable() {
                 $('#optionDeleteMovement').prop('disabled', true)
                 $('#optionCloseMovement').prop('disabled', true)
             } else {
-                console.log(internals.movements.table.row($(this)).data())
                 internals.movements.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 $('#optionModMovement').prop('disabled', false)
@@ -111,6 +128,7 @@ function chargeMovementTable() {
                 }else{
                     $('#optionCloseMovement').prop('disabled', true)
                 }
+                loadSingleContainer(internals.dataRowSelected.id)
             }
         })
       } catch (error) {
@@ -120,7 +138,15 @@ function chargeMovementTable() {
 }
 
 async function getMovementsEnabled() {
-    let movementData = await axios.get('api/inventoryTable')
+
+    let query = {
+        client: $("#searchClient").val(),
+        startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
+        endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
+    }
+    let movementData = await axios.post('api/reportByFilter',query)
+
+    console.log(movementData)
 
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
@@ -130,11 +156,66 @@ async function getMovementsEnabled() {
         })
 
         internals.movements.table.rows.add(formatData).draw()
-        $('#loadingMovements').empty()
+        
     } else {
         console.log('vacio', movementData);
-        toastr.warning('No se han encontrado datos de usuarios')
-        $('#loadingMovements').empty()
+        toastr.warning('No se hay containers asociados')
+        
+    }
+}
+
+async function loadSingleContainer(id){
+    if(id==0){
+        if($.fn.DataTable.isDataTable('#tableServices')){
+            internals.services.table.clear().destroy()
+        }
+        return
+    }
+    let movementData = await axios.post('/api/reportMovement', {id: id})
+    let movement = movementData.data
+    console.log(movement)
+
+    if($.fn.DataTable.isDataTable('#tableServices')){
+        internals.services.table.clear().destroy()
+    }
+
+    try {
+        internals.services.table = $('#tableServices')
+        .DataTable( {
+            dom: 'Bfrtip',
+            buttons: [
+                'excel'
+            ],
+            iDisplayLength: 50,
+            oLanguage: {
+              sSearch: 'buscar: '
+            },
+            language: {
+                url: spanishDataTableLang
+            },
+            responsive: false,
+            order: [[ 0, 'desc' ]],
+            ordering: true,
+            rowCallback: function( row, data ) {
+          },
+          columns: [
+            { data: 'service' },
+            { data: 'paymentNet' },
+            { data: 'paymentIVA' },
+            { data: 'paymentTotal' }
+          ],
+          initComplete: function (settings, json) {
+
+                let formatData= movement.services.map(el => {
+                    el.service = el.services.name
+                    return el
+                })
+
+                internals.services.table.rows.add(formatData).draw()
+          }
+        })
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -764,17 +845,3 @@ function changeTexture(by,texture){
     }
 }
 
-
-function testing(){
-    $('#movementClient').val('61b88ccdeb77f0bf62cb74b3')
-    $('#movementContainerInitials').val('ASD')
-    $('#movementContainerNumber').val('QWE')
-    $('#movementCrane').val('61d5e3abf5ffd3251426d08e')
-    $('#movementSite').val('61d5e360f5ffd3251426d08a')
-    $('#movementPositionRow').val('B')
-    $('#movementPositionPosition').val('4')
-    $('#movementPositionLevel').val('1')
-    $('#movementDriverRUT').val('6-K')
-    $('#movementDriverName').val('KEN BLOCK')
-    $('#movementDriverPlate').val('FJDJ67')
-}

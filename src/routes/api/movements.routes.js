@@ -113,23 +113,25 @@ export default [
                     }*/
 
                     let sort = {
-                        'movement.position.row': 'ascending',
-                        'movement.position.position': 'ascending',
-                        'movement.position.level': 'ascending'
+                        'movements.position.row': 'ascending',
+                        'movements.position.position': 'ascending',
+                        'movements.position.level': 'ascending'
                     }
                     
                     let containers = await Containers.find().sort(sort)
                     //let containers = await Containers.find()
                     containers = containers.reduce((acc, el, i) => {
                         let lastMov = el.movements.length - 1
-                        acc.push({
-                            id: 0,
-                            row: el.movements[lastMov].position.row,
-                            position: el.movements[lastMov].position.position,
-                            level: el.movements[lastMov].position.level,
-                            large: el.containerLarge,
-                            texture: el.containerTexture
-                        })
+                        if(el.movements[lastMov].movement!='SALIDA'){
+                            acc.push({
+                                id: 0,
+                                row: el.movements[lastMov].position.row,
+                                position: el.movements[lastMov].position.position,
+                                level: el.movements[lastMov].position.level,
+                                large: el.containerLarge,
+                                texture: el.containerTexture
+                            })
+                        }
                 
                         return acc
                     }, [])
@@ -293,6 +295,10 @@ export default [
                         }],
                         services: [{
                             services: payload.services,
+                            paymentAdvance: payload.paymentAdvance,
+                            paymentNet: payload.paymentNet,
+                            paymentIVA: payload.paymentIVA,
+                            paymentTotal: payload.paymentTotal
                         }]
                     })
 
@@ -378,7 +384,11 @@ export default [
 
                         if(payload.services){
                             container.services.push({
-                                services: payload.services
+                                services: payload.services,
+                                paymentAdvance: payload.paymentAdvance,
+                                paymentNet: payload.paymentNet,
+                                paymentIVA: payload.paymentIVA,
+                                paymentTotal: payload.paymentTotal
                             })
                         }
                     }

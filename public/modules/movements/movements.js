@@ -89,6 +89,8 @@ function chargeMovementTable() {
           }
         })
 
+        $('#tableMovements tbody').off("click")
+
         $('#tableMovements tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected')
@@ -105,7 +107,7 @@ function chargeMovementTable() {
                 //internals.movements.data = internals.movements.table.row($(this)).data()
                 internals.dataRowSelected = internals.movements.table.row($(this)).data()
                 console.log(internals.dataRowSelected)
-                if(internals.dataRowSelected.movement=='INGRESO' || internals.dataRowSelected.movement=='TRASLADO'){
+                if(internals.dataRowSelected.movement=='INGRESADO' || internals.dataRowSelected.movement=='TRASLADO'){
                     $('#optionCloseMovement').prop('disabled', false)
                     $('#optionMovMovement').prop('disabled', false)
                 }else{
@@ -411,7 +413,7 @@ $('#optionCloseMovement').on('click', async function () {
     `)
 
     $('#movementType').val('SALIDA')
-    $('#movementType option[value="INGRESO"]').prop('disabled',true)
+    $('#movementType option[value="INGRESADO"]').prop('disabled',true)
     $('#movementType option[value="POR INGRESAR"]').prop('disabled',true)
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
@@ -686,7 +688,7 @@ function createModalBody(type){
         <div class="col-md-2">
             Movimiento
             <select id="movementType" class="custom-select classMove">
-                <option value="INGRESO">INGRESO</option>
+                <option value="INGRESADO">INGRESADO</option>
                 <option value="SALIDA">SALIDA</option>
                 <option value="TRASLADO">TRASLADO</option>
                 <option value="POR INGRESAR">POR INGRESAR</option>

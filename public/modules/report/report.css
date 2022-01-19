@@ -1,0 +1,19 @@
+@font-face {font-family: "Password"; src: url("/public/fonts/password.ttf") format("truetype") /* chrome firefox opera Safari, Android, iOS 4.2+*/ }
+
+.inputUserForm {
+    text-align: center;
+    font-size: 25px;
+}
+
+.swal-wide {
+    min-width: 70%;
+}
+
+
+#inputEmailPasswordSeller {
+    font-family: 'Password' !important;
+}
+
+#inputEmailPasswordSeller::placeholder {
+    font-family: 'Arial' !important
+}

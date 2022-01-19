@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 const Schema = mongoose.Schema
 
 const clientSchema = new Schema({
+    rut: { type: String },
     name: { type: String },
     email: { type: String },
     status: { type: String, required: true },
