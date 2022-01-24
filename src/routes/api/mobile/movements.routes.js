@@ -1,6 +1,6 @@
 import Containers from '../../../models/Containers'
 //import Client from '../../../models/Client'
-import ContainerTypes from '../../../models/ContainerTypes'
+// import ContainerTypes from '../../../models/ContainerTypes'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -11,13 +11,13 @@ export default [
         method: 'GET',
         path: '/api/mobile/movements',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all movements data',
             notes: 'return all data from movements',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let movements = await Containers.find().lean().populate(['clients','sites','cranes','containertypes'])
+                    let movements = await Containers.find().populate(['clients', 'containertypes', 'movements.cranes', 'movements.sites', 'services.services'])
                     return movements
                 } catch (error) {
                     console.log(error)
@@ -33,7 +33,7 @@ export default [
         method: 'POST',
         path: '/api/mobile/movementsTable',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all movements data with associated data',
             notes: 'return all data from movements',
             tags: ['api'],
@@ -42,19 +42,19 @@ export default [
                     let payload = request.payload
 
                     let query = {
-                        movements : { 
-                            $elemMatch : { 
+                        movements: {
+                            $elemMatch: {
                                 datetime: {
                                     $gt: `${payload.startDate}T00:00:00.000Z`,
                                     $lt: `${payload.endDate}T23:59:59.999Z`
                                 }
-                            } 
+                            }
                         }
                     }
 
-                    let containers = await Containers.find(query).populate(['clients','containertypes'])
-                    let movementsTable = containers.reduce((acc, el, i) => {
-                        for(let i=0;i<el.movements.length;i++){
+                    let containers = await Containers.find(query).populate(['clients', 'containertypes'])
+                    let movementsTable = containers.reduce((acc, el) => {
+                        for (let i = 0; i < el.movements.length; i++) {
                             acc.push({
                                 id: el._id.toString(),
                                 datetime: el.movements[i].datetime,
@@ -70,10 +70,10 @@ export default [
                                 driverPlate: el.movements[i].driverPlate
                             })
                         }
-                    
+
                         return acc
                     }, [])
-                        
+
 
                     return movementsTable
                 } catch (error) {
@@ -96,7 +96,7 @@ export default [
         method: 'GET',
         path: '/api/mobile/movementsMap',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all movements data',
             notes: 'return all data from movements',
             tags: ['api'],
@@ -104,12 +104,12 @@ export default [
                 try {
                     //let containers = await Containers.find({movement: 'INGRESO'}).sort({'position.row': 'ascending','position.position': 'ascending','position.level': 'ascending'})
                     /*let sort = {
-                        movements : { 
-                            $sort : { 
+                        movements : {
+                            $sort : {
                                 'position.row': 'ascending',
                                 'position.position': 'ascending',
                                 'position.level': 'ascending'
-                            } 
+                            }
                         }
                     }*/
 
@@ -118,10 +118,10 @@ export default [
                         'movement.position.position': 'ascending',
                         'movement.position.level': 'ascending'
                     }
-                    
+
                     let containers = await Containers.find().sort(sort)
                     //let containers = await Containers.find()
-                    containers = containers.reduce((acc, el, i) => {
+                    containers = containers.reduce((acc, el) => {
                         let lastMov = el.movements.length - 1
                         acc.push({
                             id: 0,
@@ -131,7 +131,7 @@ export default [
                             large: el.containerLarge,
                             texture: el.containerTexture
                         })
-                
+
                         return acc
                     }, [])
 
@@ -150,23 +150,23 @@ export default [
         method: 'POST',
         path: '/api/mobile/movementSingle',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get one movement data',
             notes: 'return all data from movement',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload   
+                    let payload = request.payload
 
                     /*var mongo = require('mongodb');
                     let movement = await Movement.findOne({
                         _id: new mongo.ObjectID(payload.id)
                     }).lean()*/
                     let movement = await Containers.findById(payload.id)
-                    
+
 
                     return movement
-                
+
                 } catch (error) {
                     console.log(error)
 
@@ -181,46 +181,38 @@ export default [
                 })
             }
         }
-    },    
+    },
     {
         method: 'POST',
         path: '/api/mobile/movementsByFilter',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get one movement data',
             notes: 'return all data from movement',
             tags: ['api'],
             handler: async (request, h) => {
+                console.log(request.payload)
                 try {
                     let payload = request.payload
-                    let query = {
-                        movements : { 
-                            $elemMatch : { 
-                                datetime: {
-                                    $gt: `${payload.startDate}T00:00:00.000Z`,
-                                    $lt: `${payload.endDate}T23:59:59.999Z`
-                                }
-                            } 
-                        }
-                    }
-                    
-                    if(payload.containerNumber){
-                        if(payload.containerNumber!=''){
+                    let query = {}
+
+                    if (payload.containerNumber) {
+                        if (payload.containerNumber != '') {
                             query.containerNumber = new RegExp(payload.containerNumber, 'i') //i se aplica para case insensitive
                         }
                     }
 
-                    if(payload.client){
-                        if(payload.client!=''){
+                    if (payload.client) {
+                        if (payload.client != '') {
                             query.clients = payload.client
                         }
                     }
 
                     //let movement = await Movement.find(query)
-                    let containers = await Containers.find(query).populate(['clients','containertypes','sites','cranes','services'])
+                    let containers = await Containers.find(query).populate(['clients', 'containertypes', 'movements.sites', 'movements.cranes', 'services.services'])
 
-                    if(payload.table){
-                        containers = containers.reduce((acc, el, i) => {
+                    if (payload.table) {
+                        containers = containers.reduce((acc, el) => {
 
                             acc.push({
                                 id: el._id.toString(),
@@ -235,13 +227,13 @@ export default [
                                 driverName: el.driverName,
                                 driverPlate: el.driverPlate
                             })
-                    
+
                             return acc
                         }, [])
                     }
-                    
+
                     return containers
-                
+
                 } catch (error) {
                     console.log(error)
 
@@ -252,9 +244,6 @@ export default [
             },
             validate: {
                 payload: Joi.object().keys({
-                    startDate: Joi.string().required(),
-                    endDate: Joi.string().required(),
-                    table: Joi.boolean().required(),
                     containerNumber: Joi.string().optional().allow(''),
                     client: Joi.string().optional().allow('')
                 })
@@ -265,13 +254,13 @@ export default [
         method: 'POST',
         path: '/api/mobile/movementSave',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'create movement',
             notes: 'create movement',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload   
+                    let payload = request.payload
                     let movement = new Containers({
                         clients: payload.client,
                         containerInitials: payload.containerInitials,
@@ -347,22 +336,22 @@ export default [
         method: 'POST',
         path: '/api/mobile/movementUpdate',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'modify movement',
             notes: 'modify movement',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload  
-                    
+                    let payload = request.payload
+
                     let container = await Containers.findById(payload.id)
                     //let i = payload.movementID
 
-                    console.log("original",container)
+                    console.log('original', container)
 
-                    if(container){
+                    if (container) {
                         //let i = container.movements.length -1
-                        
+
                         container.movements.push({
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
@@ -381,14 +370,14 @@ export default [
                             observation: payload.observation
                         })
 
-                        if(payload.services){
+                        if (payload.services) {
                             container.services.push({
                                 services: payload.services
                             })
                         }
                     }
 
-                    console.log("after",container)
+                    console.log('after', container)
 
 
                     /*if (container) {
@@ -414,7 +403,7 @@ export default [
                         container.movements[i].paymentTotal = payload.paymentTotal,
                         container.movements[i].observation = payload.observation
                     }*/
-                    
+
                     const response = await container.save()
 
                     return response
@@ -464,20 +453,20 @@ export default [
         method: 'POST',
         path: '/api/mobile/movementUpdatePosition',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'modify movement position',
             notes: 'modify movement position',
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload   
-                    
+                    let payload = request.payload
+
                     let container = await Containers.findById(payload.id)
 
 
-                    if(container){
-                        let i = container.movements.length -1
-                        
+                    if (container) {
+                        let i = container.movements.length - 1
+
                         container.movements.push({
                             movement: payload.movement,//MOVIMIENTO,//MOVIMIENTO
                             datetime: Date.now(),//FECHA HORA

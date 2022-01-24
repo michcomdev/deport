@@ -12,7 +12,7 @@ export default [
         method: 'GET',
         path: '/api/mobile/containerTypes',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all container types data',
             notes: 'return all data from container types',
             tags: ['api'],
@@ -34,12 +34,12 @@ export default [
         method: 'GET',
         path: '/api/mobile/sites',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all sites data',
             notes: 'return all data from sites types',
             tags: ['api'],
             handler: async (request, h) => {
-                try {                    
+                try {
                     let sites = await Sites.find().lean()
                     return sites
                 } catch (error) {
@@ -56,12 +56,12 @@ export default [
         method: 'GET',
         path: '/api/mobile/cranes',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all cranes data',
             notes: 'return all data from cranes types',
             tags: ['api'],
             handler: async (request, h) => {
-                try {                    
+                try {
                     let cranes = await Cranes.find().lean()
                     return cranes
                 } catch (error) {
@@ -78,12 +78,12 @@ export default [
         method: 'GET',
         path: '/api/mobile/maps',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all map positions data',
             notes: 'return all data from map positions',
             tags: ['api'],
             handler: async (request, h) => {
-                try {                    
+                try {
                     let maps = await Maps.find().lean()
                     return maps
                 } catch (error) {
@@ -100,12 +100,12 @@ export default [
         method: 'GET',
         path: '/api/mobile/services',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all services data',
             notes: 'return all data from services',
             tags: ['api'],
             handler: async (request, h) => {
-                try {                    
+                try {
                     let services = await Services.find().lean()
                     return services
                 } catch (error) {

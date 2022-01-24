@@ -8,7 +8,7 @@ export default [
         method: 'GET',
         path: '/api/mobile/clients',
         options: {
-            auth: false,
+            auth: 'jwt',
             description: 'get all clients data',
             notes: 'return all data from clients',
             tags: ['api'],
