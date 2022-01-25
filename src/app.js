@@ -102,8 +102,8 @@ internals.server = async () => {
             key: process.env.SECRET_KEY,          // Never Share your secret key
             validate: async function (decoded, request) {
 
-                if (decoded.aud && decoded.aud == 'restorepassword') {
-                    let tokenredis = await request.redis.client.get(`deportrestorepassword-${decoded.id}`)
+                if (decoded.aud && decoded.aud == 'mobileuser') {
+                    let tokenredis = await request.redis.client.hget('deportmobile', decoded.id)
 
                     if (!tokenredis) {
                         return { isValid: false }
