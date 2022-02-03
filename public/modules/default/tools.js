@@ -146,7 +146,6 @@ function removeSpecials(data) {
 
 function validateRut(userRut) {
     let rut = new Rut(userRut)
-    console.log(userRut)
 
     if ( rut.isValid ) {
         return rut.getNiceRut()

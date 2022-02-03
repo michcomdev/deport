@@ -9,10 +9,8 @@
 
 <div class="row">
     <div class="col-md-2 col-xs-12">
-    </div>
-    <div class="col-md-2 col-xs-12">
         Cliente
-        <select id="searchClient" class="custom-select classOut">
+        <select id="searchClient" class="custom-select">
             <option value="">TODOS</option>
         </select>
     </div>
@@ -21,13 +19,32 @@
         <input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">
     </div>
     <div class="col-md-2 col-xs-12">
-        Movimiento Desde - Hasta
-        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input">
+        Estado
+        <select id="searchStatus" class="custom-select noInventory">
+            <option value="TODOS">TODOS</option>
+            <option value="EN SITIO">EN SITIO</option>
+            <option value="POR INGRESAR">POR INGRESAR</option>
+            <option value="INGRESADO">INGRESADO</option>
+            <option value="TRASLADO">TRASLADO</option>
+            <option value="POR SALIR">POR SALIR</option>
+            <option value="SALIDA">SALIDA</option>
+        </select>
     </div>
-    
+    <div class="col-md-2 col-xs-12">
+        Movimiento Desde - Hasta
+        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input noInventory">
+    </div>
+    <div class="form-check col-md-2  col-xs-12">
+        <br/>
+        <input class="form-check-input classMove" type="checkbox" value="" id="searchInventory">
+        <label class="form-check-label" for="flexCheckDefault">
+            Sólo en inventario
+        </label>
+    </div>
+        
     <div class="col-md-2 col-xs-12">
         <br>
-        <button class="btn btn-dark btn-block" id="search">
+        <button class="btn btn-primary btn-block" id="search">
             <i class="fas fa-search"></i> BUSCAR
         </button>
     </div>
@@ -36,20 +53,20 @@
         <div class="row">
             <div class="col-md-2 col-xs-12">
                 <br>
-                <button class="btn btn-dark btn-block" id="optionCreateMovement">
+                <button class="btn btn-success btn-block" id="optionCreateMovement">
                     <i class="fas fa-file-import"></i> NUEVO INGRESO
                 </button>
                 <hr>
-                <button class="btn btn-dark btn-block" id="optionCloseMovement" disabled>
-                    <i class="fas fa-file-alt"></i> DAR SALIDA
+                <button class="btn btn-outline-success btn-block" id="optionModMovement" disabled>
+                    <i class="fas fa-edit"></i> MODIFICAR
                 </button>
                 <hr>
-                <button class="btn btn-dark btn-block" id="optionModMovement" disabled>
-                    <i class="fas fa-file-alt"></i> MODIFICAR
+                <button class="btn btn-info btn-block" id="optionMovMovement" disabled>
+                    <i class="fas fa-trailer"></i> TRASLADAR
                 </button>
                 <hr>
-                <button class="btn btn-dark btn-block" id="optionMovMovement" disabled>
-                    <i class="fas fa-file-alt"></i> TRASLADAR
+                <button class="btn btn-primary btn-block" id="optionCloseMovement" disabled>
+                    <i class="fas fa-file-export"></i> DAR SALIDA
                 </button>
             </div>
             <br>
@@ -60,7 +77,6 @@
                             <th>FECHA</th>
                             <th>MOVIMIENTO</th>
                             <th>CLIENTE</th>
-                            <th>SIGLA</th>
                             <th>CONTENEDOR</th>
                             <th>TIPO</th>
                             <th>LARGO</th>
@@ -111,5 +127,6 @@
     </div>
 </div>
 {{#extend "js"}}
+    <script src="/public/modules/default/logoImg.js"></script>
     <script src="/public/modules/movements/movements.js"></script>
 {{/extend}}

@@ -77,7 +77,6 @@ function chargeMovementTable() {
             { data: 'datetime' },
             { data: 'movement' },
             { data: 'client' },
-            { data: 'containerInitials' },
             { data: 'containerNumber' },
             { data: 'containerType' },
             { data: 'containerLarge' },

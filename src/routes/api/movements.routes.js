@@ -52,7 +52,28 @@ export default [
                     }
 
                     let containers = await Containers.find(query).populate(['clients','containertypes'])
+                    
                     let movementsTable = containers.reduce((acc, el, i) => {
+
+                        let lastMov = el.movements.length - 1
+                        acc.push({
+                            id: el._id.toString(),
+                            datetime: el.movements[lastMov].datetime,
+                            movementID: lastMov,
+                            movement: el.movements[lastMov].movement,
+                            client: el.clients.name,
+                            containerNumber: el.containerNumber,
+                            containerType: el.containertypes.name,
+                            containerLarge: el.containerLarge,
+                            position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                            driverName: el.movements[lastMov].driverName,
+                            driverPlate: el.movements[lastMov].driverPlate
+                        })
+                
+                        return acc
+                    }, [])
+
+                    /*let movementsTable = containers.reduce((acc, el, i) => {
                         for(let i=0;i<el.movements.length;i++){
                             acc.push({
                                 id: el._id.toString(),
@@ -60,7 +81,6 @@ export default [
                                 movementID: i,
                                 movement: el.movements[i].movement,
                                 client: el.clients.name,
-                                containerInitials: el.containerInitials,
                                 containerNumber: el.containerNumber,
                                 containerType: el.containertypes.name,
                                 containerLarge: el.containerLarge,
@@ -71,7 +91,7 @@ export default [
                         }
                     
                         return acc
-                    }, [])
+                    }, [])*/
                         
 
                     return movementsTable
@@ -192,8 +212,11 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
-                    let query = {
-                        movements : { 
+                    let query = {}
+                    let status = ''
+
+                    if(!payload.onlyInventory){
+                        query.movements = { 
                             $elemMatch : { 
                                 datetime: {
                                     $gt: `${payload.startDate}T00:00:00.000Z`,
@@ -201,6 +224,13 @@ export default [
                                 }
                             } 
                         }
+
+                        if(payload.status){
+                            if(payload.status!='TODOS'){
+                                status = payload.status
+                            }
+                        }
+                        
                     }
                     
                     if(payload.containerNumber){
@@ -221,19 +251,57 @@ export default [
                     if(payload.table){
                         containers = containers.reduce((acc, el, i) => {
 
-                            acc.push({
-                                id: el._id.toString(),
-                                datetime: el.datetime,
-                                movement: el.movement,
-                                client: el.clients.name,
-                                containerInitials: el.containerInitials,
-                                containerNumber: el.containerNumber,
-                                containerType: el.containertypes.name,
-                                containerLarge: el.containerLarge,
-                                position: el.position.row + el.position.position + '_' + el.position.level,
-                                driverName: el.driverName,
-                                driverPlate: el.driverPlate
-                            })
+                            let lastMov = el.movements.length - 1
+
+                            if(status==''){
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: el.movements[lastMov].datetime,
+                                    movementID: lastMov,
+                                    movement: el.movements[lastMov].movement,
+                                    client: el.clients.name,
+                                    containerNumber: el.containerNumber,
+                                    containerType: el.containertypes.name,
+                                    containerLarge: el.containerLarge,
+                                    position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                    driverName: el.movements[lastMov].driverName,
+                                    driverPlate: el.movements[lastMov].driverPlate
+                                })
+                            }else{
+                                if(payload.onlyInventory || status=='EN SITIO'){
+                                    if(el.movements[lastMov].movement!='SALIDA'){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                            driverName: el.movements[lastMov].driverName,
+                                            driverPlate: el.movements[lastMov].driverPlate
+                                        })
+                                    }
+                                }else{
+                                    if(el.movements[lastMov].movement==status){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                            driverName: el.movements[lastMov].driverName,
+                                            driverPlate: el.movements[lastMov].driverPlate
+                                        })
+                                    }
+                                }
+                            }
                     
                             return acc
                         }, [])
@@ -251,15 +319,114 @@ export default [
             },
             validate: {
                 payload: Joi.object().keys({
-                    startDate: Joi.string().required(),
-                    endDate: Joi.string().required(),
                     table: Joi.boolean().required(),
                     containerNumber: Joi.string().optional().allow(''),
-                    client: Joi.string().optional().allow('')
+                    client: Joi.string().optional().allow(''),
+                    status: Joi.string().optional().allow(''),
+                    startDate: Joi.string().required(),
+                    endDate: Joi.string().required(),
+                    onlyInventory: Joi.boolean().required()
                 })
             }
         }
     },
+    {
+        method: 'POST',
+        path: '/api/movementVoucher',
+        options: {
+            description: 'get one movement data',
+            notes: 'return all data from movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+
+                    let container = await Containers.findById(payload.id).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
+                    
+
+                    console.log(container)
+                    let movement = {
+                        containerNumber: container.containerNumber,
+                        containerLarge: container.containerLarge,
+                        clientRUT: container.clients.rut,
+                        clientName: container.clients.name
+                    }
+
+                    console.log('movement',movement)
+
+                    for(let i=0;i<container.movements.length;i++){
+                        let mov = container.movements[i]
+                        if(payload.type=='in'){
+                            if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
+                                movement.datetimeIn = mov.datetime
+                                movement.driverPlate = mov.driverPlate
+                                movement.driverGuide = mov.driverGuide
+                                movement.driverSeal = mov.driverSeal
+                                movement.driverName = mov.driverName
+                            }
+                        }else if(payload.type=='out'){
+                            if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
+                                movement.datetimeIn = mov.datetime
+                            }else if(mov.movement=='POR SALIR' || mov.movement=='SALIDA'){
+                                movement.datetimeOut = mov.datetime
+                                movement.driverPlate = mov.driverPlate
+                                movement.driverGuide = mov.driverGuide
+                                movement.driverSeal = mov.driverSeal
+                                movement.driverName = mov.driverName
+                            }
+                        }
+                    }
+
+                    //////MODIFICAR!!
+                    let serv = container.services[0]
+
+                    movement.service = serv.services.name
+                    movement.net = serv.paymentNet
+                    movement.iva = serv.paymentIVA
+                    movement.total = serv.paymentTotal
+                    /*for(i=0;container.services.length;i++){
+                        if(type=='in'){
+                            if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
+                                movement.datetimeIn = mov.datetime
+                                movement.driverPlate = mov.driverPlate
+                                movement.driverGuide = mov.driverGuide
+                                movement.driverSeal = mov.driverSeal
+                                movement.driverName = mov.driverName
+                                movement.driverSeal = mov.driverSeal
+                            }
+                        }
+                    }
+
+                        /*id: el._id.toString(),
+                        datetime: el.movements[lastMov].datetime,
+                        movementID: lastMov,
+                        movement: el.movements[lastMov].movement,
+                        client: el.clients.name,
+                        containerNumber: el.containerNumber,
+                        containerType: el.containertypes.name,
+                        containerLarge: el.containerLarge,
+                        position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                        driverName: el.movements[lastMov].driverName,
+                        driverPlate: el.movements[lastMov].driverPlate*/
+                
+                    return movement
+                
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required(),
+                    type: Joi.string().required()
+                })
+            }
+        }
+    },   
     {
         method: 'POST',
         path: '/api/movementSave',
@@ -272,7 +439,6 @@ export default [
                     let payload = request.payload   
                     let movement = new Containers({
                         clients: payload.client,
-                        containerInitials: payload.containerInitials,
                         containerNumber: payload.containerNumber,
                         containertypes: payload.containerType,
                         containerTexture: payload.containerTexture,
@@ -280,13 +446,12 @@ export default [
                         movements: [{
                             movement: payload.movement,
                             datetime: payload.datetime,
-                            code: payload.code,
-                            cranes: payload.cranes,
-                            sites: payload.sites,
                             position: payload.position,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
+                            driverGuide: payload.driverGuide,
+                            driverSeal: payload.driverSeal,
                             paymentAdvance: payload.paymentAdvance,
                             paymentNet: payload.paymentNet,
                             paymentIVA: payload.paymentIVA,
@@ -295,12 +460,21 @@ export default [
                         }],
                         services: [{
                             services: payload.services,
+                            paymentType: payload.paymentType,
+                            paymentNumber: payload.paymentNumber,
                             paymentAdvance: payload.paymentAdvance,
                             paymentNet: payload.paymentNet,
                             paymentIVA: payload.paymentIVA,
                             paymentTotal: payload.paymentTotal
                         }]
                     })
+
+                    if(payload.cranes!=0){
+                        movement.movements[0].cranes = payload.cranes
+                    }
+                    if(payload.sites!=0){
+                        movement.movements[0].sites = payload.sites
+                    }
 
                     const response = await movement.save()
 
@@ -319,8 +493,6 @@ export default [
                     movement: Joi.string().optional().allow(''),
                     datetime: Joi.string().optional().allow(''),
                     client: Joi.string().optional().allow(''),
-                    code: Joi.string().optional().allow(''),
-                    containerInitials: Joi.string().optional().allow(''),
                     containerNumber: Joi.string().optional().allow(''),
                     containerType: Joi.string().optional().allow(''),
                     containerTexture: Joi.string().optional().allow(''),
@@ -335,7 +507,11 @@ export default [
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
+                    driverGuide: Joi.string().optional().allow(''),
+                    driverSeal: Joi.string().optional().allow(''),
                     services: Joi.string().optional().allow(''),
+                    paymentType: Joi.string().optional().allow(''),
+                    paymentNumber: Joi.string().optional().allow(''),
                     paymentAdvance: Joi.boolean().optional(),
                     paymentNet: Joi.number().allow(0).optional(),
                     paymentIVA: Joi.number().allow(0).optional(),
@@ -367,13 +543,12 @@ export default [
                         container.movements.push({
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
-                            code: payload.code,
-                            cranes: payload.cranes,
-                            sites: payload.sites,
                             position: payload.position,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
+                            driverGuide: payload.driverGuide,
+                            driverSeal: payload.driverSeal,
                             //container.services: payload.services,
                             paymentAdvance: payload.paymentAdvance,
                             paymentNet: payload.paymentNet,
@@ -385,12 +560,23 @@ export default [
                         if(payload.services){
                             container.services.push({
                                 services: payload.services,
+                                paymentType: payload.paymentType,
+                                paymentNumber: payload.paymentNumber,
                                 paymentAdvance: payload.paymentAdvance,
                                 paymentNet: payload.paymentNet,
                                 paymentIVA: payload.paymentIVA,
                                 paymentTotal: payload.paymentTotal
                             })
                         }
+
+                        let lastMov = container.movements.length - 1
+                        if(payload.cranes!=0){
+                            container.movements[lastMov].cranes = payload.cranes
+                        }
+                        if(payload.sites!=0){
+                            container.movements[lastMov].sites = payload.sites
+                        }
+    
                     }
 
                     console.log("after",container)
@@ -400,8 +586,6 @@ export default [
                         container.movements[i].movement = payload.movement,
                         container.movements[i].datetime = payload.datetime,
                         container.clients = payload.client,
-                        container.movements[i].code = payload.code,
-                        container.containerInitials = payload.containerInitials,
                         container.containerNumber = payload.containerNumber,
                         container.containertypes = payload.containerType,
                         container.containerTexture = payload.containerTexture,
@@ -439,8 +623,6 @@ export default [
                     movement: Joi.string().optional().allow(''),
                     datetime: Joi.string().optional().allow(''),
                     client: Joi.string().optional().allow(''),
-                    code: Joi.string().optional().allow(''),
-                    containerInitials: Joi.string().optional().allow(''),
                     containerNumber: Joi.string().optional().allow(''),
                     containerType: Joi.string().optional().allow(''),
                     containerTexture: Joi.string().optional().allow(''),
@@ -455,7 +637,11 @@ export default [
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
+                    driverGuide: Joi.string().optional().allow(''),
+                    driverSeal: Joi.string().optional().allow(''),
                     services: Joi.string().optional().allow(''),
+                    paymentType: Joi.string().optional().allow(''),
+                    paymentNumber: Joi.string().optional().allow(''),
                     paymentAdvance: Joi.boolean().optional(),
                     paymentNet: Joi.number().allow(0).optional(),
                     paymentIVA: Joi.number().allow(0).optional(),
@@ -485,13 +671,14 @@ export default [
                         container.movements.push({
                             movement: payload.movement,//MOVIMIENTO,//MOVIMIENTO
                             datetime: Date.now(),//FECHA HORA
-                            code: container.movements[i].code,
                             cranes: payload.cranes,//GRÚA
                             sites: payload.sites, //SITIO
                             position: payload.position, //UBICACION
                             driverRUT: container.movements[i].driverRUT,
                             driverName: container.movements[i].driverName,
                             driverPlate: container.movements[i].driverPlate,
+                            driverGuide: container.movements[i].driverGuide,
+                            driverSeal: container.movements[i].driverSeal,
                             paymentAdvance: container.movements[i].paymentAdvance,
                             paymentNet: container.movements[i].paymentNet,
                             paymentIVA: container.movements[i].paymentIVA,

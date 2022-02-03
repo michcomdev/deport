@@ -5,7 +5,6 @@ const Schema = mongoose.Schema
 const containerSchema = new Schema({
 
     clients: { type: Schema.Types.ObjectId, ref: 'clients' },
-    containerInitials: { type: String },
     containerNumber: { type: String },
     containertypes: { type: Schema.Types.ObjectId, ref: 'containertypes' },
     containerTexture: { type: String },
@@ -14,7 +13,6 @@ const containerSchema = new Schema({
         createdAt: { type: Date, default: Date.now()},
         movement: { type: String },
         datetime: { type: Date },
-        code: { type: String },
         cranes: { type: Schema.Types.ObjectId, ref: 'cranes' },
         sites: { type: Schema.Types.ObjectId, ref: 'sites' },
         position: {
@@ -25,6 +23,8 @@ const containerSchema = new Schema({
         driverRUT: { type: String },
         driverName: { type: String },
         driverPlate: { type: String },
+        driverGuide: { type: String },
+        driverSeal: { type: String },
         paymentAdvance: { type: Boolean },
         paymentNet: { type: Number },
         paymentIVA: { type: Number },
@@ -33,6 +33,8 @@ const containerSchema = new Schema({
     }],
     services: [{
         services: { type: Schema.Types.ObjectId, ref: 'services' },
+        paymentType: { type: String },
+        paymentNumber: { type: String },
         paymentAdvance: { type: Boolean },
         paymentNet: { type: Number },
         paymentIVA: { type: Number },

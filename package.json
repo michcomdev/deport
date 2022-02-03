@@ -42,6 +42,7 @@
     "hapi-redis2": "^3.0.1",
     "hapi-router": "^4.0.1",
     "hapi-swagger": "^14.0.0",
+    "imask": "^6.3.0",
     "joi": "^17.3.0",
     "moment": "^2.29.1",
     "moment-timezone": "^0.5.33",

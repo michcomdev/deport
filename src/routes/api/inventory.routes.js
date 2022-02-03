@@ -57,7 +57,6 @@ export default [
                                 datetime: el.movements[lastMov].datetime,
                                 movement: el.movements[lastMov].movement,
                                 client: el.clients.name,
-                                containerInitials: el.containerInitials,
                                 containerNumber: el.containerNumber,
                                 containerType: el.containertypes.name,
                                 containerLarge: el.containerLarge,

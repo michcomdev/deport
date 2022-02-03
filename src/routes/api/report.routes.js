@@ -104,7 +104,7 @@ export default [
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload   
+                    let payload = request.payload
 
                     let movement = await Containers.findById(payload.id).lean().populate(['clients','sites','cranes','containertypes','services.services'])
                     
