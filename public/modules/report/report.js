@@ -95,7 +95,7 @@ function chargeMovementTable() {
             { data: 'datetime' },
             { data: 'movement' },
             //{ data: 'client' },
-            { data: 'containerInitials' },
+            //{ data: 'containerInitials' },
             { data: 'containerNumber' },
             { data: 'containerType' },
             { data: 'containerLarge' },
@@ -145,8 +145,6 @@ async function getMovementsEnabled() {
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
     }
     let movementData = await axios.post('api/reportByFilter',query)
-
-    console.log(movementData)
 
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {

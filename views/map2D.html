@@ -1,0 +1,150 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/map2D/map2D.css">
+{{/extend}}
+
+<h2 class="text-center">MAPA 2D</h2>
+
+<br>
+
+<div class="container-fluid " style="height: 100%;">
+    <div class="row " style="height: 100%;">
+       
+        <div class="col-md-2">
+            PAÑO
+            <select id="listSites" class="custom-select">
+                <option value="0">SELECCIONE...</option>
+            </select>
+            <br/>
+            <br/>
+        </div>
+
+        <div class="col-md-2">
+            Cliente
+            <select id="searchClient" class="custom-select">
+                <option value="">TODOS</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            Número Container
+            <input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">
+        </div>
+        <div class="col-md-2">
+            <br/>
+            <button class="btn btn-primary btn-block" id="btnSearch">
+                <i class="fas fa-search"></i> BUSCAR
+            </button>
+        </div>
+        <div class="col-md-4">
+            SIMBOLOGÍA
+            <table>
+                <tr>
+                    <td style="text-align: right;">Cantidad Containers:&nbsp;</td>
+                    <td style="background-color: #FFFFFF; color: #000; border: 1px solid black; width: 50px; text-align: center;">0</td>
+                    <td style="background-color: #DAF7A6; color: #000; border: 1px solid black; width: 50px; text-align: center;">1</td>
+                    <td style="background-color: #FFC300; color: #000; border: 1px solid black; width: 50px; text-align: center;">2</td>
+                    <td style="background-color: #FF5733; color: #000; border: 1px solid black; width: 50px; text-align: center;">3</td>
+                    <td style="background-color: #C70039; color: #FFF; border: 1px solid black; width: 50px; text-align: center;">4</td>
+                    <td style="background-color: #900C3E; color: #FFF; border: 1px solid black; width: 50px; text-align: center;">5</td>
+                </tr>
+            </table>
+        </div>       
+        
+        <div id="divMap" class="col-md-9" style="height: 100%;">
+            <canvas id="wallCanvas" style="border:1px solid #000000; position: absolute; z-index: 0; display: block; margin: 0 auto;"></canvas>
+            <canvas id="myCanvas" style="border:1px solid #000000; position: absolute; z-index: 1; display: block; margin: 0 auto;"></canvas>
+        </div>
+
+
+        <div class="col-md-3" style="height: 100%;">
+            <div class="card bg-light mb-3">
+                <div class="card-header" style="text-align: center;">VISTA PERFIL</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div id="sideViewText" class="col-md-12" style="text-align: center;">
+                            Seleccione una ubicación
+                        </div>
+                        <div id="sideView" class="col-md-12" style="text-align: center;">
+                            <table style="width: 100%; background-color: #ffffff; border: 1px solid black; text-align: center;">
+                                <tr id="trSide5" class="trSide" style="cursor: not-allowed" data_i="0" data_j="0">
+                                    <td style="width: 50%"><img id="imgSide5" class="imgSide" src="/public/img/textures/transparent.jpg" style="width: 50%; height: 40px;"/></td>
+                                    <td style="width: 50%" id="txtSide5" class="txtSide"></td>
+                                </tr>
+                                <tr id="trSide4" class="trSide" style="cursor: not-allowed" data_i="0" data_j="0">
+                                    <td style="width: 50%"><img id="imgSide4" class="imgSide" src="/public/img/textures/transparent.jpg" style="width: 50%; height: 40px;"/></td>
+                                    <td style="width: 50%" id="txtSide4" class="txtSide"></td>
+                                </tr>
+                                <tr id="trSide3" class="trSide" style="cursor: not-allowed" data_i="0" data_j="0">
+                                    <td style="width: 50%"><img id="imgSide3" class="imgSide" src="/public/img/textures/transparent.jpg" style="width: 50%; height: 40px;"/></td>
+                                    <td style="width: 50%" id="txtSide3" class="txtSide"></td>
+                                </tr>
+                                <tr id="trSide2" class="trSide" style="cursor: not-allowed" data_i="0" data_j="0">
+                                    <td style="width: 50%"><img id="imgSide2" class="imgSide" src="/public/img/textures/transparent.jpg" style="width: 50%; height: 40px;"/></td>
+                                    <td style="width: 50%" id="txtSide2" class="txtSide"></td>
+                                </tr>
+                                <tr id="trSide1" class="trSide" style="cursor: not-allowed" data_i="0" data_j="0">
+                                    <td style="width: 50%"><img id="imgSide1" class="imgSide" src="/public/img/textures/transparent.jpg" style="width: 50%; height: 40px;"/></td>
+                                    <td style="width: 50%" id="txtSide1" class="txtSide"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-light mb-3">
+                <div id="detailViewText" class="card-header" style="text-align: center;">DETALLE</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div id="DetailView" class="col-md-12">
+                            <table style="width: 100%; background-color: #ffffff;">
+                                <tr>
+                                    <td style="width: 40%">Cliente</td>
+                                    <td style="width: 60%" id="txtDetailClient" class="txtDetail"></td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 40%">Número Container</td>
+                                    <td style="width: 60%" id="txtDetailNumber" class="txtDetail"></td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 40%">Tipo Container</td>
+                                    <td style="width: 60%" id="txtDetailType" class="txtDetail"></td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 40%">Ubicación</td>
+                                    <td style="width: 60%" id="txtDetailPosition" class="txtDetail"></td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 40%">Fecha Ingreso</td>
+                                    <td style="width: 60%" id="txtDetailDate" class="txtDetail"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/js/three/tween.umd.js"></script>
+    <script type="module" src="/public/modules/map2D/map2D.js"></script>
+    
+{{/extend}}

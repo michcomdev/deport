@@ -31,27 +31,6 @@ export default [
     },
     {
         method: 'GET',
-        path: '/api/sites',
-        options: {
-            description: 'get all sites data',
-            notes: 'return all data from sites types',
-            tags: ['api'],
-            handler: async (request, h) => {
-                try {                    
-                    let sites = await Sites.find().lean()
-                    return sites
-                } catch (error) {
-                    console.log(error)
-
-                    return h.response({
-                        error: 'Internal Server Error'
-                    }).code(500)
-                }
-            }
-        }
-    },
-    {
-        method: 'GET',
         path: '/api/cranes',
         options: {
             description: 'get all cranes data',

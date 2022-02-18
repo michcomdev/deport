@@ -19,15 +19,19 @@
         <input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">
     </div>
     <div class="col-md-2 col-xs-12">
-        Estado
+        Estado / Últ. Movimiento
         <select id="searchStatus" class="custom-select noInventory">
             <option value="TODOS">TODOS</option>
             <option value="EN SITIO">EN SITIO</option>
+            <option value="RETIRADO">RETIRADO</option>
+            <option disabled>──────────</option>
             <option value="POR INGRESAR">POR INGRESAR</option>
             <option value="INGRESADO">INGRESADO</option>
             <option value="TRASLADO">TRASLADO</option>
             <option value="POR SALIR">POR SALIR</option>
             <option value="SALIDA">SALIDA</option>
+            <option value="TRASPASO">TRASPASO</option>
+            <option value="DESCONSOLIDADO">DESCONSOLIDADO</option>
         </select>
     </div>
     <div class="col-md-2 col-xs-12">
@@ -56,18 +60,27 @@
                 <button class="btn btn-success btn-block" id="optionCreateMovement">
                     <i class="fas fa-file-import"></i> NUEVO INGRESO
                 </button>
-                <hr>
+                <br>
                 <button class="btn btn-outline-success btn-block" id="optionModMovement" disabled>
                     <i class="fas fa-edit"></i> MODIFICAR
                 </button>
-                <hr>
+                <br>
                 <button class="btn btn-info btn-block" id="optionMovMovement" disabled>
                     <i class="fas fa-trailer"></i> TRASLADAR
                 </button>
-                <hr>
+                <br>
                 <button class="btn btn-primary btn-block" id="optionCloseMovement" disabled>
                     <i class="fas fa-file-export"></i> DAR SALIDA
                 </button>
+                <hr>
+                <button class="btn btn-warning btn-block" id="optionDeconsolidatedMovement" disabled>
+                    <i class="fas fa-trailer"></i><i class="fas fa-angle-double-right"></i><i class="fas fa-truck-loading"></i> DESCONSOLIDADO
+                </button>
+                <hr>
+                <button class="btn btn-primary btn-block" id="optionTransferMovement">
+                    <i class="fas fa-truck-moving"></i><i class="fas fa-angle-double-right"></i><i class="fas fa-truck-moving"></i> TRASPASO
+                </button>
+                
             </div>
             <br>
             <div class="col-md-10 col-xs-12 table-responsive">
@@ -75,11 +88,13 @@
                     <thead>
                         <tr>
                             <th>FECHA</th>
-                            <th>MOVIMIENTO</th>
+                            <th>ÚLT. MOVIMIENTO</th>
+                            <th>ESTADO</th>
                             <th>CLIENTE</th>
                             <th>CONTENEDOR</th>
                             <th>TIPO</th>
                             <th>LARGO</th>
+                            <th>PAÑO</th>
                             <th>UBICACION</th>
                             <th>CONDUCTOR</th>
                             <th>PATENTE</th>
@@ -108,6 +123,21 @@
             </div>
             <div class="modal-body" id="modalMov_body"></div>
             <div class="modal-footer" id="modalMov_footer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="extraModal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalExtra_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalExtra_body"></div>
+            <div class="modal-footer" id="modalExtra_footer"></div>
         </div>
     </div>
 </div>

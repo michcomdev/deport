@@ -514,5 +514,27 @@ export default [
                 })
             }
         }
+    },
+    {
+        method: 'GET',
+        path: '/api/mobile/containersPending',
+        options: {
+            auth: 'jwt',
+            description: 'get all movements data',
+            notes: 'return all data from movements',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let movements = await Containers.find({"movements.movement": "POR INGRESAR"}).populate(['clients', 'containertypes', 'movements.cranes', 'movements.sites', 'services.services'])
+                    return movements
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            }
+        }
     }
 ]

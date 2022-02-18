@@ -422,58 +422,59 @@ async function setPositions(scene){
 
 	const containerList = await getContainerList()
 	
-		
+	
 	for(let i=0;i<containerList.length;i++){
+        if(containerList[i].row!=0){
+            let positionX = mapRows.find(x => x.row === containerList[i].row).positionX
+            let positionZ = mapRows.find(x => x.row === containerList[i].row).positionZ
+            let rotationY = mapRows.find(x => x.row === containerList[i].row).rotationY
+            let orientation = mapRows.find(x => x.row === containerList[i].row).orientation
+            let level = containerList[i].level
+            let position = containerList[i].position
+            let large = containerList[i].large
+            let texture = containerList[i].texture
 
-		let positionX = mapRows.find(x => x.row === containerList[i].row).positionX
-		let positionZ = mapRows.find(x => x.row === containerList[i].row).positionZ
-		let rotationY = mapRows.find(x => x.row === containerList[i].row).rotationY
-		let orientation = mapRows.find(x => x.row === containerList[i].row).orientation
-		let level = containerList[i].level
-		let position = containerList[i].position
-		let large = containerList[i].large
-		let texture = containerList[i].texture
-
-		let material = [
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'1.jpg')}),//Derecha
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'2.jpg')}),//Izquierda
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'3.jpg')}),//Arriba
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'4.jpg')}),//Abajo
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'5.jpg')}),//Frente
-			new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'6.jpg')}),//Atrás
-		]
+            let material = [
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'1.jpg')}),//Derecha
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'2.jpg')}),//Izquierda
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'3.jpg')}),//Arriba
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'4.jpg')}),//Abajo
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'5.jpg')}),//Frente
+                new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true, map: loader.load('/public/img/textures/'+texture+'6.jpg')}),//Atrás
+            ]
 
 
-		if(orientation == 'vertical'){
-			positionZ = positionZ + ((position - 1) * - 2)
-			if(large==40){
-				positionZ -= 1
-			}
-		}else{
-			positionX = positionX + ((position - 1) * - 2)
-			if(large==40){
-				positionX -= 1
-			}
-		}
+            if(orientation == 'vertical'){
+                positionZ = positionZ + ((position - 1) * - 2)
+                if(large==40){
+                    positionZ -= 1
+                }
+            }else{
+                positionX = positionX + ((position - 1) * - 2)
+                if(large==40){
+                    positionX -= 1
+                }
+            }
 
-		let geometry = geometryContainer20
-		if(large==40){
-			geometry = geometryContainer40
-		}
+            let geometry = geometryContainer20
+            if(large==40){
+                geometry = geometryContainer40
+            }
 
-		const container = new THREE.Mesh( geometry, material )
+            const container = new THREE.Mesh( geometry, material )
 
-		container.position.x = positionX
-		container.position.y = (level - 1) * 0.86 //Se suman 0.86 radianes por nivel, partiendo de 0
-		container.position.z = positionZ
-		container.rotation.y = rotationY
+            container.position.x = positionX
+            container.position.y = (level - 1) * 0.86 //Se suman 0.86 radianes por nivel, partiendo de 0
+            container.position.z = positionZ
+            container.rotation.y = rotationY
 
-		containerList[i].id = i+1
-		containerList[i].positions = container.position
-		containerList[i].rotation = container.rotation
-		containerList[i].mesh = container
+            containerList[i].id = i+1
+            containerList[i].positions = container.position
+            containerList[i].rotation = container.rotation
+            containerList[i].mesh = container
 
-		scene.add(container)
+            scene.add(container)
+        }
 	}
     return containerList
 

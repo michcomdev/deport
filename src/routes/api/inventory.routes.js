@@ -115,5 +115,52 @@ export default [
                 }
             }
         }
+    },
+    {
+        method: 'POST',
+        path: '/api/inventorySiteMap',
+        options: {
+            auth: false,
+            description: 'get all inventory data from site',
+            notes: 'return all data from inventory',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+                    let sort = {
+                        'movements.position.row': 'ascending',
+                        'movements.position.position': 'ascending',
+                        'movements.position.level': 'ascending'
+                    }
+                    
+                    let containers = await Containers.find({'movements.sites': payload.id}).populate(['clients','containertypes']).sort(sort)
+                    containers = containers.reduce((acc, el, i) => {
+                        let lastMov = el.movements.length - 1
+                        if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
+                            acc.push({
+                                container: el,
+                                movement: el.movements[lastMov]
+                            })
+                        }
+                
+                        return acc
+                    }, [])
+
+
+                    return containers
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required()
+                })
+            }
+        }
     }
 ]

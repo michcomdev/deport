@@ -1,0 +1,138 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/mapMaintainer/mapMaintainer.css">
+{{/extend}}
+
+<h2 class="text-center">MAPA</h2>
+
+<br>
+
+<div class="container-fluid " style="height: 100%;">
+    <div class="row " style="height: 100%;">
+       
+        <div class="col-md-2" style="height: 100%;">
+            <div class="card bg-light mb-3">
+                <!--<div class="card text-white bg-light mb-3">-->
+                <div class="card-header" style="text-align: center;">OPCIONES</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div id="divOptions" class="col-md-12" style="text-align: center;">
+                            <div class="btn-group" role="group" aria-label="Basic example">
+                                <button id="btnNew" type="button" class="btn btn-success"><i class="fas fa-th"></i>&nbsp;Nuevo</button>
+                                <button id="btnLoad" type="button" class="btn btn-primary"><i class="fas fa-th"></i>&nbsp;Modificar</button>
+                            </div>
+                        </div>
+                        <div id="divCancel" class="col-md-12" style="text-align: center; display: none;">
+                            <button id="btnCancel" type="button" class="btn btn-danger"><i class="fas fa-minus-square"></i>&nbsp;Cancelar</button>
+                        </div>
+                        
+                        <div id="divSites" class="col-md-12" style="text-align: center; display: none;">
+                            <select id="listSites" class="custom-select classStacker">
+                                <option value="0">SELECCIONE...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="divPanel" class="card bg-light mb-3" style="display: none;">
+                <!--<div class="card text-white bg-light mb-3">-->
+                <div class="card-header" style="text-align: center;">PAÑO</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12" style="text-align: center;">
+                            Nombre
+                            <input id="siteName" class="form-control" style="text-align: center;" value="SITIO X">
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            Dimensiones (metros)
+                        </div>
+                        <div class="col-md-6" style="text-align: center;">
+                            Largo
+                            <input id="meterX" class="form-control" type="number" style="text-align: center;" value="100">
+                        </div>
+                        <div class="col-md-6" style="text-align: center;">
+                            Ancho
+                            <input id="meterY" class="form-control" type="number" style="text-align: center;" value="50">
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            (Se ajustarán a lienzo)
+                            <button id="btnCreate" type="button" class="btn btn-primary"><i class="fas fa-th"></i>&nbsp;Crear Lienzo</button>
+                        </div>
+                        
+                        
+                        <div class="col-md-6" style="text-align: center;">
+                            Nombre <br/>Fila
+                            <input id="rowName" class="form-control" style="text-align: center;" value="A">
+                        </div>
+                        <div class="col-md-6" style="text-align: center;">
+                            Largo (en containers 20')
+                            <input id="containerLarge" class="form-control" type="number" style="text-align: center;" value="1">
+                        </div>
+                        <div class="col-md-12" style="text-align: center;">
+                            Orientación
+                            <div class="btn-group" role="group" aria-label="Basic example">
+                                <button id="btnVertical" type="button" class="btn btn-success"><i class="fas fa-ruler-vertical"></i> Vertical</button>
+                                <button id="btnHorizontal" type="button" class="btn btn-success disabled"><i class="fas fa-ruler-horizontal"></i> Horizontal</button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12" style="text-align: center;">
+                            <br/>
+                            <button id="btnAddShape" type="button" class="btn btn-primary"><i class="fas fa-cube"></i>&nbsp;Agregar Objeto</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="divMap" class="col-md-7" style="height: 100%;">
+            <button id="btnContainerView" type="button" class="btn btn-success"><i class="fas fa-cube"></i>&nbsp;Vista Containers</button>
+            
+            <canvas id="wallCanvas" style="border:1px solid #000000; position: absolute; z-index: 0; display: block; margin: 0 auto;"></canvas>
+            <canvas id="myCanvas" style="border:1px solid #000000; position: absolute; z-index: 1; display: block; margin: 0 auto;"></canvas>
+        </div>
+
+
+        <div class="col-md-3" style="height: 100%;">
+            Simbología:
+            <br/>
+            <i class="far fa-square" style="color: #D2D2D2"></i> 1 Cuadro = 4 pies<sup>2</sup> = 1,21 metros<sup>2</sup>
+            <br/>
+            <i class="fas fa-th-large" style="color: #18BC9C"></i> 2x3 Cuadros = Container 20'
+            <br/>
+            <i class="fas fa-th-large" style="color: #18BC9C"></i><i class="fas fa-th-large" style="color: #18BC9C"></i> 2x6 Cuadros = Container 40'
+            <br>
+            <button id="btnSave" type="button" class="btn btn-primary"><i class="fas fa-save"></i>&nbsp;Almacenar Paño</button>
+            <br>
+            <br>
+            <strong>Filas Registradas:</strong>
+            <div id="listRows">
+
+            </div>
+        </div>
+        
+        
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/js/three/tween.umd.js"></script>
+    <script type="module" src="/public/modules/mapMaintainer/mapMaintainer.js"></script>
+    
+{{/extend}}

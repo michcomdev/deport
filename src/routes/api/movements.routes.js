@@ -1,6 +1,7 @@
 import Containers from '../../models/Containers'
 //import Client from '../../models/Client'
 import ContainerTypes from '../../models/ContainerTypes'
+import Drivers from '../../models/Drivers'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -142,7 +143,7 @@ export default [
                     //let containers = await Containers.find()
                     containers = containers.reduce((acc, el, i) => {
                         let lastMov = el.movements.length - 1
-                        if(el.movements[lastMov].movement!='SALIDA'){
+                        if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
                             acc.push({
                                 id: 0,
                                 row: el.movements[lastMov].position.row,
@@ -246,14 +247,24 @@ export default [
                     }
 
                     //let movement = await Movement.find(query)
-                    let containers = await Containers.find(query).populate(['clients','containertypes','sites','cranes','services'])
+                    let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services'])
 
                     if(payload.table){
                         containers = containers.reduce((acc, el, i) => {
 
                             let lastMov = el.movements.length - 1
 
+                            let site = 'N/A'
+                            if(el.movements[lastMov].sites){
+                                site = el.movements[lastMov].sites.name
+                            }
+                            let position = 'N/A'
+                            if(el.movements[lastMov].position.row){
+                                position = el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level
+                            }
+
                             if(status==''){
+                                
                                 acc.push({
                                     id: el._id.toString(),
                                     datetime: el.movements[lastMov].datetime,
@@ -263,13 +274,15 @@ export default [
                                     containerNumber: el.containerNumber,
                                     containerType: el.containertypes.name,
                                     containerLarge: el.containerLarge,
-                                    position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                    driverName: el.movements[lastMov].driverName,
+                                    site: site,
+                                    position: position,
                                     driverName: el.movements[lastMov].driverName,
                                     driverPlate: el.movements[lastMov].driverPlate
                                 })
                             }else{
                                 if(payload.onlyInventory || status=='EN SITIO'){
-                                    if(el.movements[lastMov].movement!='SALIDA'){
+                                    if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
                                         acc.push({
                                             id: el._id.toString(),
                                             datetime: el.movements[lastMov].datetime,
@@ -279,7 +292,25 @@ export default [
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
-                                            position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                            site: site,
+                                            position: position,
+                                            driverName: el.movements[lastMov].driverName,
+                                            driverPlate: el.movements[lastMov].driverPlate
+                                        })
+                                    }
+                                }else if(status=='RETIRADO'){
+                                    if(el.movements[lastMov].movement=='SALIDA' || el.movements[lastMov].movement=='TRASPASO'){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            site: site,
+                                            position: position,
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate
                                         })
@@ -295,7 +326,8 @@ export default [
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
-                                            position: el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level,
+                                            site: site,
+                                            position: position,
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate
                                         })
@@ -374,6 +406,20 @@ export default [
                                 movement.driverSeal = mov.driverSeal
                                 movement.driverName = mov.driverName
                             }
+
+                        }else if(payload.type=='transferIn'){
+                            movement.datetimeOut = mov.datetime
+                            movement.driverPlate = mov.driverPlate
+                            movement.driverGuide = mov.driverGuide
+                            movement.driverSeal = mov.driverSeal
+                            movement.driverName = mov.driverName
+
+                        }else if(payload.type=='transferOut'){
+                            movement.datetimeOut = mov.datetime
+                            movement.driverPlate = mov.driverOutPlate
+                            movement.driverGuide = mov.driverOutGuide
+                            movement.driverSeal = mov.driverOutSeal
+                            movement.driverName = mov.driverOutName
                         }
                     }
 
@@ -477,6 +523,8 @@ export default [
                     }
 
                     const response = await movement.save()
+
+                    setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
 
                     return response
 
@@ -606,6 +654,8 @@ export default [
                     
                     const response = await container.save()
 
+                    setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
+
                     return response
 
                 } catch (error) {
@@ -716,5 +766,226 @@ export default [
                 })
             }
         }
+    },  
+    {
+        method: 'POST',
+        path: '/api/movementSaveTransfer',
+        options: {
+            description: 'create transfer movement',
+            notes: 'create transfer movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload   
+                    let movement = new Containers({
+                        clients: payload.client,
+                        containerNumber: payload.containerNumber,
+                        containertypes: payload.containerType,
+                        containerTexture: payload.containerTexture,
+                        containerLarge: payload.containerLarge,
+                        movements: [{
+                            movement: payload.movement,
+                            datetime: payload.datetime,
+                            driverRUT: payload.driverRUT,
+                            driverName: payload.driverName,
+                            driverPlate: payload.driverPlate,
+                            driverGuide: payload.driverGuide,
+                            driverSeal: payload.driverSeal,
+                            driverOutRUT: payload.driverOutRUT,
+                            driverOutName: payload.driverOutName,
+                            driverOutPlate: payload.driverOutPlate,
+                            driverOutGuide: payload.driverOutGuide,
+                            paymentAdvance: payload.paymentAdvance,
+                            paymentNet: payload.paymentNet,
+                            paymentIVA: payload.paymentIVA,
+                            paymentTotal: payload.paymentTotal,
+                            observation: payload.observation
+                        }],
+                        services: [{
+                            services: payload.services,
+                            paymentType: payload.paymentType,
+                            paymentNumber: payload.paymentNumber,
+                            paymentAdvance: payload.paymentAdvance,
+                            paymentNet: payload.paymentNet,
+                            paymentIVA: payload.paymentIVA,
+                            paymentTotal: payload.paymentTotal
+                        }]
+                    })
+
+                    if(payload.cranes!=0){
+                        movement.movements[0].cranes = payload.cranes
+                    }
+
+                    const response = await movement.save()
+
+                    setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
+                    setDriver(payload.driverOutRUT,payload.driverOutName,payload.driverOutPlate)
+
+                    return response
+
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    movement: Joi.string().optional().allow(''),
+                    datetime: Joi.string().optional().allow(''),
+                    client: Joi.string().optional().allow(''),
+                    containerNumber: Joi.string().optional().allow(''),
+                    containerType: Joi.string().optional().allow(''),
+                    containerTexture: Joi.string().optional().allow(''),
+                    containerLarge: Joi.string().optional().allow(''),
+                    cranes: Joi.string().optional().allow(''),
+                    driverRUT: Joi.string().optional().allow(''),
+                    driverName: Joi.string().optional().allow(''),
+                    driverPlate: Joi.string().optional().allow(''),
+                    driverGuide: Joi.string().optional().allow(''),
+                    driverSeal: Joi.string().optional().allow(''),
+                    driverOutRUT: Joi.string().optional().allow(''),
+                    driverOutName: Joi.string().optional().allow(''),
+                    driverOutPlate: Joi.string().optional().allow(''),
+                    driverOutGuide: Joi.string().optional().allow(''),
+                    services: Joi.string().optional().allow(''),
+                    paymentType: Joi.string().optional().allow(''),
+                    paymentNumber: Joi.string().optional().allow(''),
+                    paymentAdvance: Joi.boolean().optional(),
+                    paymentNet: Joi.number().allow(0).optional(),
+                    paymentIVA: Joi.number().allow(0).optional(),
+                    paymentTotal: Joi.number().allow(0).optional(),
+                    observation: Joi.string().optional().allow('')
+                })
+            }
+        }
+    },    
+    {
+        method: 'POST',
+        path: '/api/movementUpdateTransfer',
+        options: {
+            description: 'modify transfer movement',
+            notes: 'modify transfer movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload  
+                    
+                    let container = await Containers.findById(payload.id)
+                    //let i = payload.movementID
+
+                    console.log("original",container)
+
+                    if(container){
+                        //let i = container.movements.length -1
+                        
+                        container.movements.push({
+                            movement: payload.movement,
+                            datetime: payload.datetime, //Date.now()
+                            driverRUT: payload.driverRUT,
+                            driverName: payload.driverName,
+                            driverPlate: payload.driverPlate,
+                            driverGuide: payload.driverGuide,
+                            driverSeal: payload.driverSeal,
+                            driverOutRUT: payload.driverOutRUT,
+                            driverOutName: payload.driverOutName,
+                            driverOutPlate: payload.driverOutPlate,
+                            driverOutGuide: payload.driverOutGuide,
+                            //container.services: payload.services,
+                            paymentAdvance: payload.paymentAdvance,
+                            paymentNet: payload.paymentNet,
+                            paymentIVA: payload.paymentIVA,
+                            paymentTotal: payload.paymentTotal,
+                            observation: payload.observation
+                        })
+
+                        if(payload.services){
+                            container.services.push({
+                                services: payload.services,
+                                paymentType: payload.paymentType,
+                                paymentNumber: payload.paymentNumber,
+                                paymentAdvance: payload.paymentAdvance,
+                                paymentNet: payload.paymentNet,
+                                paymentIVA: payload.paymentIVA,
+                                paymentTotal: payload.paymentTotal
+                            })
+                        }
+
+                        let lastMov = container.movements.length - 1
+                        if(payload.cranes!=0){
+                            container.movements[lastMov].cranes = payload.cranes
+                        }
+                    }
+
+                    const response = await container.save()
+
+                    setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
+
+                    return response
+
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required(),
+                    movementID: Joi.number().allow(0).optional(),
+                    movement: Joi.string().optional().allow(''),
+                    datetime: Joi.string().optional().allow(''),
+                    client: Joi.string().optional().allow(''),
+                    containerNumber: Joi.string().optional().allow(''),
+                    containerType: Joi.string().optional().allow(''),
+                    containerTexture: Joi.string().optional().allow(''),
+                    containerLarge: Joi.string().optional().allow(''),
+                    cranes: Joi.string().optional().allow(''),
+                    driverRUT: Joi.string().optional().allow(''),
+                    driverName: Joi.string().optional().allow(''),
+                    driverPlate: Joi.string().optional().allow(''),
+                    driverGuide: Joi.string().optional().allow(''),
+                    driverSeal: Joi.string().optional().allow(''),
+                    driverOutRUT: Joi.string().optional().allow(''),
+                    driverOutName: Joi.string().optional().allow(''),
+                    driverOutPlate: Joi.string().optional().allow(''),
+                    driverOutGuide: Joi.string().optional().allow(''),
+                    services: Joi.string().optional().allow(''),
+                    paymentType: Joi.string().optional().allow(''),
+                    paymentNumber: Joi.string().optional().allow(''),
+                    paymentAdvance: Joi.boolean().optional(),
+                    paymentNet: Joi.number().allow(0).optional(),
+                    paymentIVA: Joi.number().allow(0).optional(),
+                    paymentTotal: Joi.number().allow(0).optional(),
+                    observation: Joi.string().optional().allow('')
+                })
+            }
+        }
     }
 ]
+
+//Almacenaje de conductor
+async function setDriver(rut,name,plate){
+
+    let driver = await Drivers.find({rut: rut})
+    if(driver.length==0){
+        let driverNew = new Drivers({
+            rut: rut,
+            name: name,
+            lastPlate: plate
+        })
+
+        await driverNew.save()
+    }else{
+
+        let driverUpdate = await Drivers.findById(driver[0]._id)
+        driverUpdate.name = name
+        driverUpdate.lastPlate = plate
+
+        await driverUpdate.save()
+    }
+}
