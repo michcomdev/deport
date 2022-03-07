@@ -16,6 +16,7 @@ let sites = {}
 let cranes = {}
 
 let siteMap = {}
+let selectedSiteMap = {}
 
 $(document).ready(async function () {
     $('#searchDate').daterangepicker({
@@ -145,12 +146,37 @@ async function setPositionList(editSite, editRow, editPosition, editLevel) {
         }else{
             let positions = siteMap.find(x => x.row === $(this).val()).positions
             for(let i=0; i<positions.length; i++){
-                $("#movementPositionPosition").append(`<option value="${positions[i].position}">${positions[i].position}</option>`)
+                let color = ''
+                if(positions[i].levelOnUse){
+                    if(positions[i].levels.length==positions[i].levelOnUse.length){
+                        color = 'style="color: red"'
+                    }
+                }
+                $("#movementPositionPosition").append(`<option ${color} value="${positions[i].position}">${positions[i].position}</option>`)
             }
 
             //Se toma como referencia las alturas del primer container
             for(let j=0; j<positions[0].levels.length; j++){
                 $("#movementPositionLevel").append(`<option value="${positions[0].levels[j]}">${positions[0].levels[j]}</option>`)
+            }
+        }
+    })
+
+    $('#movementPositionPosition').change(async function () {
+        
+        if($(this).val()==0){
+            $("#movementPositionLevel").val(0)
+        
+        }else{
+            let positions = siteMap.find(x => x.row === $('#movementPositionRow').val()).positions
+
+            let position = positions.find(x => x.position == $(this).val())
+            if(position){
+                if(position.levelOnUse){
+                    for(i=0;i<position.levelOnUse.length;i++){
+                        $('#movementPositionLevel option[value="'+position.levelOnUse[i]+'"]').css('color','red')
+                    }
+                }
             }
         }
     })
@@ -187,7 +213,7 @@ async function setPositionList(editSite, editRow, editPosition, editLevel) {
         
         }else{
             let positions = siteMap.find(x => x.row === $(this).val()).positions
-            console.log("positions",positions)
+            
             for(let i=0; i<positions.length; i++){
                 $("#movementPositionPositionOld").append(`<option value="${positions[i].position}">${positions[i].position}</option>`)
             }
@@ -198,7 +224,6 @@ async function setPositionList(editSite, editRow, editPosition, editLevel) {
             }
         }
     })
-
 }
 
 function loadMovementTable() {
@@ -206,37 +231,38 @@ function loadMovementTable() {
         if($.fn.DataTable.isDataTable('#tableMovements')){
             internals.movements.table.clear().destroy()
         }
+        $.fn.dataTable.moment('DD/MM/YYYY HH:mm') //Se utiliza plugin datetime-moment para datatables
+
         internals.movements.table = $('#tableMovements')
-        .DataTable( {
+        .DataTable({
             dom: 'Bfrtip',
-            buttons: [
-              'excel'
-            ],
+            buttons: ['excel'],
             iDisplayLength: 50,
             oLanguage: {
-              sSearch: 'buscar: '
+                sSearch: 'Buscar: '
             },
             responsive: false,
             order: [[ 0, 'desc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
-          },
-          columns: [
-            { data: 'datetime' },
-            { data: 'movement' },
-            { data: 'status' },
-            { data: 'client' },
-            { data: 'containerNumber' },
-            { data: 'containerType' },
-            { data: 'containerLarge' },
-            { data: 'site' },
-            { data: 'position' },
-            { data: 'driverName' },
-            { data: 'driverPlate' }
-          ],
-          initComplete: function (settings, json) {
-            getMovementsEnabled()
-          }
+            },
+            columns: [
+                { data: 'datetime'},
+                { data: 'movement' },
+                { data: 'status' },
+                { data: 'client' },
+                { data: 'containerNumber' },
+                { data: 'containerType' },
+                { data: 'containerLarge' },
+                { data: 'containerState' },
+                { data: 'site' },
+                { data: 'position' },
+                { data: 'driverName' },
+                { data: 'driverPlate' }
+            ],
+            initComplete: function (settings, json) {
+                getMovementsEnabled()
+            }
         })
 
         $('#tableMovements tbody').off("click")
@@ -263,7 +289,7 @@ function loadMovementTable() {
                 if(movementType=='POR INGRESAR' || movementType=='INGRESADO' || movementType=='TRASLADO'){
                     $('#optionModMovement').addClass('btn-outline-success')
                     $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR')
-                }else if(movementType=='SALIDA'){
+                }else if(movementType=='SALIDA' || movementType=='POR SALIR'){
                     $('#optionModMovement').addClass('btn-outline-primary')
                     $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR SALIDA')
                 }else if(movementType=='DESCONSOLIDADO'){
@@ -329,6 +355,9 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Nuevo Ingreso`)
     $('#modalMov_body').html(createModalBody())
+    
+    setServiceList('ALL',1)
+
     setPositionList()
 
     $('#modalMov_footer').html(`
@@ -340,6 +369,8 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
         </button>
     `)
+
+    $("#btnMap").css('display','none')
     $("#btnHistory").css('display','none')
 
     $('#movementType').val('POR INGRESAR')
@@ -347,7 +378,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
 
     var element = document.getElementById('movementContainerNumber');
     var maskOptions = {
-        mask: 'aaaa-000000-00',
+        mask: 'aaaa-000000-0',
         lazy: false //shows placeholder
     };
     var mask = IMask(element, maskOptions);
@@ -413,12 +444,9 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             observation: $('#movementObservation').val()
         }
 
-        console.log(movementData)
-
         const res = validateMovementData(movementData)
         if(res.ok){
             let saveMovement = await axios.post('/api/movementSave', res.ok)
-            console.log(saveMovement)
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
@@ -474,8 +502,6 @@ $('#optionDeleteMovement').on('click', function () {
                         .row(movementRowSelected)
                         .remove()
                         .draw()
-
-                    // console.log(res.ok)
                 }
             })
         }
@@ -494,6 +520,13 @@ $('#optionModMovement').on('click', async function () {
         $('#movementsModal').modal('show');
         $('#modalMov_title').html(`Modifica Ingreso`)
         $('#modalMov_body').html(createModalBody())
+
+        let service2 = container.services.slice().reverse().find(x => x.serviceNumber===2)
+        if(service2){
+            setServiceList('ALL', 2)
+        }else{
+            setServiceList('ALL', 1)
+        }
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -540,9 +573,13 @@ $('#optionModMovement').on('click', async function () {
         if(container.movements[movementID].cranes){
             $('#movementCrane').val(container.movements[movementID].cranes)
         }
+        selectedSiteMap = 0
         if(container.movements[movementID].sites){
+            selectedSiteMap = container.movements[movementID].sites
             $('#movementSite').val(container.movements[movementID].sites)
             setPositionList(container.movements[movementID].sites,container.movements[movementID].position.row,container.movements[movementID].position.position,container.movements[movementID].position.level)
+        }else{
+            setPositionList()
         }
 
 
@@ -561,13 +598,27 @@ $('#optionModMovement').on('click', async function () {
         $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
         $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
         $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-        $('#movementService').val(container.services[container.services.length-1].services)//MODIFICAR, NO ASOCIADO A MOVIMIENTO
-        $('#movementPaymentType').val(container.services[container.services.length-1].paymentType),
-        $('#movementPaymentNumber').val(container.services[container.services.length-1].paymentNumber),
-        $('#movementPaymentAdvance').prop('checked',container.movements[movementID].paymentAdvance)
-        $('#movementPaymentNet').val(`$ ${dot_separators(container.movements[movementID].paymentNet)}`)
-        $('#movementPaymentIVA').val(`$ ${dot_separators(container.movements[movementID].paymentIVA)}`)
-        $('#movementPaymentTotal').val(`$ ${dot_separators(container.movements[movementID].paymentTotal)}`)
+        
+        /////////SERVICIOS/////////
+        let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+
+        $('#movementService').val(service1.services)
+        $('#movementPaymentType').val(service1.paymentType)
+        $('#movementPaymentNumber').val(service1.paymentNumber)
+        $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
+        $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
+        $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
+        $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
+        if(service2){
+            $('#movement2Service').val(service2.services)
+            $('#movement2PaymentType').val(service2.paymentType)
+            $('#movement2PaymentNumber').val(service2.paymentNumber)
+            $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
+            $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
+            $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
+            $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
+        }
+        /////////////////////////
         $('#movementObservation').val(container.movements[movementID].observation)
 
         $('#movementDriverRUT').on('keyup', function () {
@@ -622,6 +673,20 @@ $('#optionModMovement').on('click', async function () {
                 paymentTotal: total,
                 observation: $('#movementObservation').val()
             }
+            
+            if($('#movement2Service').val()){
+                let net2 = parseInt(replaceAll($('#movement2PaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
+                let iva2 = Math.round(net2 * 0.19)
+                let total2 = parseInt(net2) + parseInt(iva2)
+
+                movementData.services2 = $('#movementService').val()
+                movementData.payment2Type = $('#movementPaymentType').val()
+                movementData.payment2Number = $('#movementPaymentNumber').val()
+                movementData.payment2Advance = $('#movementPaymentAdvance').is(":checked")
+                movementData.payment2Net = net2
+                movementData.payment2IVA = iva2
+                movementData.payment2Total = total2
+            }
 
             const res = validateMovementData(movementData)
             if(res.ok){
@@ -650,6 +715,7 @@ $('#optionModMovement').on('click', async function () {
         $('#movementsModal').modal('show');
         $('#modalMov_title').html(`Modifica Traspaso`)
         $('#modalMov_body').html(createModalBody('TRASPASO'))
+        setServiceList('TRASPASO', 1)
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -706,13 +772,19 @@ $('#optionModMovement').on('click', async function () {
         $('#movementDriverOutName').val(container.movements[movementID].driverOutName)
         $('#movementDriverOutPlate').val(container.movements[movementID].driverOutPlate)
         $('#movementDriverOutGuide').val(container.movements[movementID].driverOutGuide)
-        $('#movementService').val(container.services[container.services.length-1].services)//MODIFICAR, NO ASOCIADO A MOVIMIENTO
-        $('#movementPaymentType').val(container.services[container.services.length-1].paymentType),
-        $('#movementPaymentNumber').val(container.services[container.services.length-1].paymentNumber),
-        $('#movementPaymentAdvance').prop('checked',container.movements[movementID].paymentAdvance)
-        $('#movementPaymentNet').val(`$ ${dot_separators(container.movements[movementID].paymentNet)}`)
-        $('#movementPaymentIVA').val(`$ ${dot_separators(container.movements[movementID].paymentIVA)}`)
-        $('#movementPaymentTotal').val(`$ ${dot_separators(container.movements[movementID].paymentTotal)}`)
+
+        /////////SERVICIOS/////////
+        let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+
+        $('#movementService').val(service1.services)
+        $('#movementPaymentType').val(service1.paymentType)
+        $('#movementPaymentNumber').val(service1.paymentNumber)
+        $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
+        $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
+        $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
+        $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
+        /////////////////////////
+
         $('#movementObservation').val(container.movements[movementID].observation)
 
         $('#movementDriverRUT').on('keyup', function () {
@@ -802,6 +874,12 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Dar Salida`)
     $('#modalMov_body').html(createModalBody())
+    let service2 = container.services.slice().reverse().find(x => x.serviceNumber===2)
+    if(service2){
+        setServiceList('ALL', 2)
+    }else{
+        setServiceList('ALL', 1)
+    }
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -813,7 +891,7 @@ $('#optionCloseMovement').on('click', async function () {
         </button>
     `)
 
-    $('#movementType').val('SALIDA')
+    $('#movementType').val('POR SALIR')
     $('#movementType').prop('disabled',true)
     //$('#movementType option[value="INGRESADO"]').prop('disabled',true)
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
@@ -835,13 +913,27 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-    $('#movementService').val(container.services[container.services.length-1].services) //MODIFICAR, NO ASOCIADO A MOVIMIENTO
-    $('#movementPaymentType').val(container.services[container.services.length-1].paymentType),
-    $('#movementPaymentNumber').val(container.services[container.services.length-1].paymentNumber),
-    $('#movementPaymentAdvance').prop('checked',container.movements[movementID].paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(container.movements[movementID].paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(container.movements[movementID].paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(container.movements[movementID].paymentTotal)}`)
+    /////////SERVICIOS/////////
+    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+    //let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+
+    $('#movementService').val(service1.services)
+    $('#movementPaymentType').val(service1.paymentType)
+    $('#movementPaymentNumber').val(service1.paymentNumber)
+    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
+    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
+    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
+    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
+    if(service2){
+        $('#movement2Service').val(service2.services)
+        $('#movement2PaymentType').val(service2.paymentType)
+        $('#movement2PaymentNumber').val(service2.paymentNumber)
+        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
+        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
+        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
+        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
+    }
+    /////////////////////////
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classOut").prop('disabled',true)
@@ -917,6 +1009,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Traslado de Container`)
     $('#modalMov_body').html(createModalBody('TRASLADO'))
+    setServiceList('ALL', 1)
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -955,13 +1048,27 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-    $('#movementService').val(container.services[container.services.length-1].services) //MODIFICAR, NO ASOCIADO A MOVIMIENTO
-    $('#movementPaymentType').val(container.services[container.services.length-1].paymentType),
-    $('#movementPaymentNumber').val(container.services[container.services.length-1].paymentNumber),
-    $('#movementPaymentAdvance').prop('checked',container.movements[movementID].paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(container.movements[movementID].paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(container.movements[movementID].paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(container.movements[movementID].paymentTotal)}`)
+    /////////SERVICIOS/////////
+    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+    let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+
+    $('#movementService').val(service1.services)
+    $('#movementPaymentType').val(service1.paymentType)
+    $('#movementPaymentNumber').val(service1.paymentNumber)
+    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
+    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
+    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
+    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
+    if(service2){
+        $('#movement2Service').val(service2.services)
+        $('#movement2PaymentType').val(service2.paymentType)
+        $('#movement2PaymentNumber').val(service2.paymentNumber)
+        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
+        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
+        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
+        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
+    }
+    /////////////////////////
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classMove").prop('disabled',true)
@@ -1013,7 +1120,11 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Desconsolidado de Container`)
     $('#modalMov_body').html(createModalBody('DESCONSOLIDADO'))
+    setServiceList('DESCONSOLIDADO', 2)
     setPositionList()
+
+    $("#btnMap").css('display','none')
+    $("#btnHistory").css('display','none')
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -1049,21 +1160,44 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-    //$('#movementService').val(container.services[container.services.length-1].services) //MODIFICAR, NO ASOCIADO A MOVIMIENTO
-    $('#movementPaymentType').val(container.services[container.services.length-1].paymentType),
-    $('#movementPaymentNumber').val(container.services[container.services.length-1].paymentNumber),
-    $('#movementPaymentAdvance').prop('checked',container.movements[movementID].paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(container.movements[movementID].paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(container.movements[movementID].paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(container.movements[movementID].paymentTotal)}`)
+
+    /////////SERVICIOS/////////
+    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
+    //let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1) NO APLICA
+    $('#movementService').val(service1.services)
+    $('#movementPaymentType').val(service1.paymentType)
+    $('#movementPaymentNumber').val(service1.paymentNumber)
+    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
+    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
+    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
+    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
+    
+    /*NO APLICA
+    if(service2){
+        $('#movement2Service').val(service2.services)
+        $('#movement2PaymentType').val(service2.paymentType)
+        $('#movement2PaymentNumber').val(service2.paymentNumber)
+        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
+        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
+        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
+        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
+    }*/
+    /////////////////////////
     $('#movementObservation').val(container.movements[movementID].observation)
 
-    updatePayment($('#movementService')) //Obtiene valor por defecto de traspaso
+    updatePayment('2',$('#movement2Service')) //Obtiene valor por defecto de desconsolidado
 
     $(".classMove").prop('disabled',true)
     $(".classPayment").prop('disabled',false)
+    $(".classDeconsolidated").prop('disabled',false)
     
     $('#saveMovement').on('click', async function () {
+        let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = Math.round(net * 0.19)
+        let total = parseInt(net) + parseInt(iva)
+        let net2 = parseInt(replaceAll($('#movement2PaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva2 = Math.round(net2 * 0.19)
+        let total2 = parseInt(net2) + parseInt(iva2)
 
         let movementData = {
             id: internals.dataRowSelected.id,
@@ -1076,6 +1210,11 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
                 position: parseInt($('#movementPositionPosition').val()),
                 level: parseInt($('#movementPositionLevel').val())
             },
+            driverRUT: $('#movementDriverRUT').val(),
+            driverName: $('#movementDriverName').val(),
+            driverPlate: $('#movementDriverPlate').val(),
+            driverGuide: $('#movementDriverGuide').val(),
+            driverSeal: $('#movementDriverSeal').val(),
             services: $('#movementService').val(),
             paymentType: $('#movementPaymentType').val(),
             paymentNumber: $('#movementPaymentNumber').val(),
@@ -1083,20 +1222,24 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             paymentNet: net,
             paymentIVA: iva,
             paymentTotal: total,
+            services2: $('#movement2Service').val(),
+            payment2Type: $('#movement2PaymentType').val(),
+            payment2Number: $('#movement2PaymentNumber').val(),
+            payment2Advance: $('#movement2PaymentAdvance').is(":checked"),
+            payment2Net: net2,
+            payment2IVA: iva2,
+            payment2Total: total2,
             observation: $('#movementObservation').val()
         }
-
-        console.log(movementData)
-        return
-
         
-        let saveMovement = await axios.post('/api/movementSaveDeconsolidated', movementData)
+        //let saveMovement = await axios.post('/api/movementSaveDeconsolidated', movementData)
+        let saveMovement = await axios.post('/api/movementUpdate', movementData)
         if(saveMovement.data){
             if(saveMovement.data._id){
                 $('#movementsModal').modal('hide')
 
                 $('#modal_title').html(`Almacenado`)
-                $('#modal_body').html(`<h5 class="alert-heading">Datos actualizados correctamente</h5>`)
+                $('#modal_body').html(`<h5 class="alert-heading">Datos almacenados correctamente</h5>`)
                 loadMovementTable()
             }else{
                 $('#modal_title').html(`Error`)
@@ -1114,6 +1257,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
     $('#movementsModal').modal('show');
     $('#modalMov_title').html(`Ingreso de Traspaso`)
     $('#modalMov_body').html(createModalBody('TRASPASO'))
+    setServiceList('TRASPASO', 1)
     
     $('#modalMov_footer').html(`
         <button class="btn btn-dark" data-dismiss="modal">
@@ -1130,7 +1274,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
 
     var element = document.getElementById('movementContainerNumber');
     var maskOptions = {
-        mask: 'aaaa-000000-00',
+        mask: 'aaaa-000000-0000',
         lazy: false //shows placeholder
     };
     var mask = IMask(element, maskOptions);
@@ -1150,7 +1294,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             getDriver(rut,true)
         }
     })
-    updatePayment($('#movementService')) //Obtiene valor por defecto de traspaso
+    updatePayment('',$('#movementService')) //Obtiene valor por defecto de traspaso
     
 
     $('.classStacker').attr('disabled',true)
@@ -1206,12 +1350,9 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             observation: $('#movementObservation').val()
         }
 
-        console.log(movementData)
-
         const res = validateMovementData(movementData)
         if(res.ok){
             let saveMovement = await axios.post('/api/movementSaveTransfer', res.ok)
-            console.log(saveMovement)
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
@@ -1245,7 +1386,7 @@ function validateMovementData(movementData) {
         }else{
             $('#movementClient').css('border', '1px solid #CED4DA')
         }
-        if(movementData.containerNumber==0){
+        if(movementData.containerNumber.includes('_')){
             errorMessage += '<br>Número Container'
             $('#movementContainerNumber').css('border', '1px solid #E74C3C')
         }else{
@@ -1282,6 +1423,36 @@ function validateMovementData(movementData) {
         }else{
             $('#movementDriverPlate').css('border', '1px solid #CED4DA')
         }
+
+        if(movementData.services=='0'){
+            errorMessage += '<br>Servicio'
+            $('#movementService').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementService').css('border', '1px solid #CED4DA')
+        }
+        if(movementData.paymentType=='0'){
+            errorMessage += '<br>Medio de Pago'
+            $('#movementPaymentType').css('border', '1px solid #E74C3C')
+        }else{
+            $('#movementPaymentType').css('border', '1px solid #CED4DA')
+        }
+
+
+        if(movementData.services2){
+            if(movementData.services2=='0'){
+                errorMessage += '<br>Servicio'
+                $('#movementService2').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementService2').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.payment2Type=='0'){
+                errorMessage += '<br>Medio de Pago'
+                $('#movement2PaymentType').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movement2PaymentType').css('border', '1px solid #CED4DA')
+            }
+        }
+
         if(movementData.paymentNet){
             if(!$.isNumeric(movementData.paymentNet)){
                 movementData.paymentNet = 0
@@ -1289,6 +1460,7 @@ function validateMovementData(movementData) {
                 movementData.paymentTotal = 0
             }
         }
+        
 
         if (errorMessage.length===0) {
             return { ok: movementData }
@@ -1313,11 +1485,14 @@ function createModalBody(type){
     let body = `
     <div class="row">
 
-        <div class="col-md-10">
+        <div class="col-md-8">
             <h5>DATOS GENERALES</h5>
             <button class="btn btn-primary" onclick="testing()">Rellenar</button>
         </div>
 
+        <div class="col-md-2">
+            <button id="btnMap" class="btn btn-success" onclick="showMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i>Ver en Mapa</button>
+        </div>
         <div class="col-md-2">
             <button id="btnHistory" class="btn btn-primary" onclick="showHistory()">Historial Mov.</button>
         </div>
@@ -1375,8 +1550,6 @@ function createModalBody(type){
                         <option value="20">20</option>
                         <option value="40">40</option>
                         <option value="40H">40H</option>
-                        <option value="101">101</option>
-                        <option value="105">105</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -1604,23 +1777,23 @@ function createModalBody(type){
                 </div>
                 <div class="col-md-2">
                     RUT
-                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
+                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDeconsolidated">
                 </div>
                 <div class="col-md-3">
                     Nombre
-                    <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input classMove">
+                    <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input classMove classDeconsolidated">
                 </div>
                 <div class="col-md-2">
                     Placa Patente
-                    <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input classMove">
+                    <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input classMove classDeconsolidated">
                 </div>
                 <div class="col-md-2">
                     Guía Despacho
-                    <input id="movementDriverGuide" type="text" placeholder="N°" class="form-control border-input classMove">
+                    <input id="movementDriverGuide" type="text" placeholder="N°" class="form-control border-input classMove classDeconsolidated">
                 </div>
                 <div class="col-md-2">
                     Sello Container
-                    <input id="movementDriverSeal" type="text" placeholder="N°" class="form-control border-input classMove">
+                    <input id="movementDriverSeal" type="text" placeholder="N°" class="form-control border-input classMove classDeconsolidated">
                 </div>`
     }
 
@@ -1628,8 +1801,25 @@ function createModalBody(type){
             <br/ >
             <h5>DATOS DE PAGO</h5>
         </div>
-        <div class="form-check col-md-3">
-            <input class="form-check-input classMove" type="checkbox" value="" id="movementPaymentAdvance">
+        <div class="form-check col-md-12 table-responsive">
+            <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Medio Pago</th>
+                        <th>N° Transacción</th>
+                        <th>Anticipado</th>
+                        <th>Neto</th>
+                        <th>IVA</th>
+                        <th>TOTAL</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tableMovementsBody">
+                    
+                </tbody>
+            </table>`
+            /*<input class="form-check-input classMove" type="checkbox" value="" id="movementPaymentAdvance">
             <label class="form-check-label" for="flexCheckDefault">
                 PAGO ANTICIPADO
             </label>
@@ -1640,7 +1830,7 @@ function createModalBody(type){
                 <option value="0">SELECCIONAR</option>
                 <option value="EFECTIVO">EFECTIVO</option>
                 <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                <option value="REDCOMPRA">REDCOMPRA</option>
+                <option value="TRANSBANK">TRANSBANK</option>
             </select>
             <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
 
@@ -1648,7 +1838,7 @@ function createModalBody(type){
         <div class="col-md-3">
             Servicio`
             if(type=='TRASPASO'){
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
+                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)" disabled>
                     ${                      
                         services.reduce((acc,el)=>{
                             if(el.name=='Traspaso'){
@@ -1659,8 +1849,7 @@ function createModalBody(type){
                     }
                 </select>`
             }else if(type=='DESCONSOLIDADO'){
-                console.log('here')
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
+                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)" disabled>
                     ${                      
                         services.reduce((acc,el)=>{
                             if(el.name=='Desconsolidado'){
@@ -1671,7 +1860,7 @@ function createModalBody(type){
                     }
                 </select>`
             }else{
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)">
+                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)">
                     <option value="0" data-net="0">SELECCIONAR</option>
                     ${                      
                         services.reduce((acc,el)=>{
@@ -1689,10 +1878,8 @@ function createModalBody(type){
             <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment()">
             <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
             <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
-        </div>
-        <br/ >
-
-
+        </div>`*/
+        body += `</div>
         
         <div class="form-group col-md-12">
             <h4 class="card-title">&nbsp;Observaciones</h4>
@@ -1703,6 +1890,109 @@ function createModalBody(type){
 `
     return body
 }
+
+function setServiceList(type,quantity){
+
+    $("#tableMovementsBody").append(`
+        <tr>
+            <td>
+                <select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)">
+                    <option value="0" data-net="0">SELECCIONAR</option>
+                    ${                      
+                        services.reduce((acc,el)=>{
+                            if(type=='ALL' || type=='DESCONSOLIDADO'){
+                                if(el.name!='Traspaso' && el.name!='Desconsolidado'){
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                }
+                            }else if(type=='TRASPASO'){
+                                if(el.name=='Traspaso'){
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                }
+                            }
+                            return acc
+                        },'')
+                    }
+                </select>
+            </td>
+            <td>
+                <select id="movementPaymentType" class="custom-select classMove classPayment">
+                    <option value="0">SELECCIONAR</option>
+                    <option value="EFECTIVO">EFECTIVO</option>
+                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                    <option value="TRANSBANK">TRANSBANK</option>
+                </select>
+            </td>
+            <td>
+                <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+            </td>
+            <td>
+                <input id="movementPaymentAdvance" class="form-check-input classMove" type="checkbox" value="">
+            </td>
+            <td>
+                <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment('')">
+            </td>
+            <td>
+                <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+            </td>
+            <td>
+                <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+            </td>
+            <td>
+                Estado
+            </td>
+            
+        </tr>
+    `)
+
+    if(type=='DESCONSOLIDADO' || quantity==2){
+        $("#tableMovementsBody").append(`
+            <tr>
+                <td>
+                    <select id="movement2Service" class="custom-select classMove classDeconsolidated" onchange="updatePayment('2',this)">
+                        ${                      
+                            services.reduce((acc,el)=>{
+                                if(el.name=='Desconsolidado'){
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'" selected>'+el.name+'</option>'
+                                }
+                                return acc
+                            },'')
+                        }
+                    </select>
+                </td>
+                <td>
+                    <select id="movement2PaymentType" class="custom-select classMove classDeconsolidated classPayment">
+                        <option value="0">SELECCIONAR</option>
+                        <option value="EFECTIVO">EFECTIVO</option>
+                        <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                        <option value="TRANSBANK">TRANSBANK</option>
+                    </select>
+                </td>
+                <td>
+                    <input id="movement2PaymentNumber" type="text" class="form-control border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
+                </td>
+                <td>
+                    <input id="movement2PaymentAdvance" class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
+                </td>
+                <td>
+                    <input id="movement2PaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment('2')">
+                </td>
+                <td>
+                    <input id="movement2PaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                </td>
+                <td>
+                    <input id="movement2PaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                </td>
+                <td>
+                    Estado
+                </td>
+                
+            </tr>
+        `)
+    }
+        
+}
+
+
 
 function getTextureTable(containerTypes){
     let table = '<table id="tableTextures" class="collapse"><tr>'
@@ -1731,13 +2021,12 @@ function changeTexture(by,texture){
     }
 }
 
-async function updatePayment(service) {
-
+async function updatePayment(number,service) {
     if(service){
-        $('#movementPaymentNet').val($(service).find(":selected").attr('data-net'))
+        $('#movement'+number+'PaymentNet').val($(service).find(":selected").attr('data-net'))
     }
 
-    new Cleave('#movementPaymentNet', {
+    new Cleave('#movement'+number+'PaymentNet', {
         prefix: '$ ',
         numeral: true,
         numeralThousandsGroupStyle: 'thousand',
@@ -1747,12 +2036,12 @@ async function updatePayment(service) {
         delimiter: "."
     })
 
-    let net = replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', '')
+    let net = replaceAll($('#movement'+number+'PaymentNet').val(), '.', '').replace('$', '').replace(' ', '')
     let iva = Math.round(net * 0.19)
     let total = parseInt(net) + parseInt(iva)
 
-    $('#movementPaymentIVA').val(`$ ${dot_separators(iva)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(total)}`)
+    $('#movement'+number+'PaymentIVA').val(`$ ${dot_separators(iva)}`)
+    $('#movement'+number+'PaymentTotal').val(`$ ${dot_separators(total)}`)
 }
 
 
@@ -1762,6 +2051,9 @@ async function selectClient(btn) {
         title: 'Seleccione Cliente',
         customClass: 'swal-wide',
         html: `
+            <button class="btn btn-success btn-block" id="createClient" style="max-width: 200px">
+                <i class="fas fa-user-plus"></i> NUEVO CLIENTE
+            </button>
             <div style="max-height: 400px !important; overflow-y: scroll;">
                 <table id="tableSearchClients" class="display nowrap table table-condensed" cellspacing="0">
                     <thead>
@@ -1777,6 +2069,7 @@ async function selectClient(btn) {
         `,
         onBeforeOpen: () => {
             try {
+
                 if($.fn.DataTable.isDataTable('#tableSearchClients')){
                     internals.clients.table.clear().destroy()
                 }
@@ -1788,7 +2081,7 @@ async function selectClient(btn) {
                     ],
                     iDisplayLength: 50,
                     oLanguage: {
-                        sSearch: 'buscar: '
+                        sSearch: 'Buscar: '
                     },
                     lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
                     language: {
@@ -1817,6 +2110,11 @@ async function selectClient(btn) {
                     }
                 })
         
+                $('#createClient').on('click', function () {
+                    createClient()
+                })
+
+
                 $('#tableSearchClients tbody').off("click")
         
                 $('#tableSearchClients tbody').on('click', 'tr', function () {
@@ -1839,7 +2137,6 @@ async function selectClient(btn) {
             try {
                 let clientSelected = internals.clientRowSelected
 
-                console.log("selected", clientSelected)
                 if (clientSelected) {
                     return {
                         ...clientSelected
@@ -1864,6 +2161,153 @@ async function selectClient(btn) {
     }
 }
 
+async function createClient() {
+    
+    $('#modalClient').modal('show')
+
+    $('#clientRUT').on('keyup', function () {
+        let rut = validateRut($(this).val())
+        if(rut){
+            $(this).val(rut)
+        }
+    })
+
+    setTimeout(() => {
+        $('#clientRUT').focus()
+    }, 500)
+
+    $('#saveClient').on('click', async function () {
+        let clientData = {
+            rut: $('#clientRUT').val(),
+            name: $('#clientName').val(),
+            nameFull: $('#clientNameFull').val(),
+            email: $('#clientEmail').val(),
+            contact: $('#clientContact').val(),
+            contactPhone: $('#clientContactPhone').val(),
+            status: $('#clientStatus').val(),
+            credit: $('#clientCredit').is(":checked"),
+            services: {
+                storage: $('#serviceStorage').is(":checked"),
+                deconsolidated: $('#serviceDeconsolidated').is(":checked"),
+                portage: $('#servicePortage').is(":checked"),
+                transport: $('#serviceTransport').is(":checked"),
+            }
+        }
+
+        const res = validateClientData(clientData)
+        if (res.ok) {
+            let saveClient = await axios.post('/api/clientSave', clientData)
+            if(saveClient.data){
+                if(saveClient.data._id){
+                    $('#modalClient').modal('hide')
+
+                    $('#modal_title').html(`Almacenado`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Cliente almacenado correctamente</h5>`)
+                    if($.fn.DataTable.isDataTable('#tableSearchClients')){
+                        internals.clients.table.clear().destroy()
+                    }
+                    internals.clients.table = $('#tableSearchClients')
+                    .DataTable( {
+                        dom: 'Bfrtip',
+                        buttons: [
+                            'excel'
+                        ],
+                        iDisplayLength: 50,
+                        oLanguage: {
+                            sSearch: 'Buscar: '
+                        },
+                        lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
+                        language: {
+                            url: spanishDataTableLang
+                        },
+                        responsive: false,
+                        columnDefs: [//{targets: [1], className: 'dt-right'},
+                                    {targets: [0], className: 'dt-center'}],
+                        order: [[ 0, 'desc' ]],
+                        ordering: true,
+                        rowCallback: function( row, data ) {
+                            //$(row).find('td:eq(1)').html(dot_separators(data.value));
+                            if(data.status=='enabled'){
+                                $(row).find('td:eq(2)').html('Habilitado')
+                            }else{
+                                $(row).find('td:eq(2)').html('Deshabilitado')
+                            }
+                        },
+                        columns: [
+                            { data: 'rut' },
+                            { data: 'name' },
+                            { data: 'status' }
+                        ],
+                        initComplete: function (settings, json) {
+                            getClients()
+                            internals.clients.table.search( clientData.rut ).draw();
+                        }
+                    })
+                
+                }else if(saveClient.data=='created'){
+                    $('#modal_title').html(`Error`)
+                    $('#modal_body').html(`<h5 class="alert-heading">RUT ya registrado, favor corroborar</h5>`)
+                
+                }else{
+                    $('#modal_title').html(`Error`)
+                    $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
+                }
+            }else{
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
+            }
+            $('#modal').modal('show');
+
+        }
+
+    })
+}
+
+function validateClientData(clientData) {
+    let validationCounter = 0
+    let errorMessage = ''
+
+
+    if(validateRut(clientData.rut)){
+        validationCounter++
+        $('#clientRUT').css('border', '1px solid #3498db')
+    } else {
+        errorMessage += `<br>RUT`
+        $('#clientRUT').css('border', '1px solid #e74c3c')
+    }
+
+    if (clientData.name.length > 1) {
+        validationCounter++
+        $('#clientName').css('border', '1px solid #3498db')
+    } else {
+        errorMessage += `<br>Nombre</b>`
+        $('#clientName').css('border', '1px solid #e74c3c')
+    }
+    
+
+    if (isEmail(clientData.email)) {
+        validationCounter++
+        $('#clientEmail').css('border', '1px solid #3498db')
+    } else {
+        errorMessage += `<br>E-Mail`
+        $('#clientEmail').css('border', '1px solid #e74c3c')
+    }
+
+    if (clientData.services.storage || clientData.services.deconsolidated || clientData.services.portage || clientData.services.transport) {
+        validationCounter++
+    } else {
+        errorMessage += `<br>Seleccionar Servicio(s)`
+    }
+
+    if (validationCounter == 4) {
+        return { ok: clientData }
+    } else {
+        toastr.warning('Falta datos:<br>'+errorMessage)
+        return { err: clientData }
+    }
+
+}
+
 async function getClients(){
     let clientData = await axios.get('api/clients')
     if (clientData.data.length > 0) {
@@ -1872,9 +2316,8 @@ async function getClients(){
 }
 
 async function getDriver(rut,out){
-    console.log(rut)
+
     let driver = await axios.post('api/driverSingle', {rut: rut})
-    console.log(driver.data)
     if (driver.data.length > 0) {
         if(out){
             $('#movementDriverOutName').val(driver.data[0].name)
@@ -1891,9 +2334,6 @@ async function showHistory(){
     let containerFullData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let containerFull = containerFullData.data
     let movementActualID = internals.dataRowSelected.movementID
-
-    console.log(containerFull)
-
 
     $('#extraModal').modal('show');
     $('#modalExtra_title').html(`Historial de Container`)
@@ -1948,13 +2388,28 @@ async function showHistory(){
     
 }
 
+
+async function showMap(){
+    
+    await getMap(selectedSiteMap)
+
+
+    $('#modalMap').modal('show');
+    $('#modalMap_title').html(`Ubicación de Container`)
+
+    $('#modalExtra_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
+        </button>
+    `)
+    
+}
+
 async function printVoucher(type,id) {
 
 
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
     let voucher = movement.data
-
-    console.log(voucher)
 
     //TESTING//
     if(!voucher.driverGuide) voucher.driverGuide='0'
@@ -2062,7 +2517,10 @@ async function printVoucher(type,id) {
 
 function testing(){
     $('#movementClient').val('61b88ccdeb77f0bf62cb74b3')
-    $('#movementContainerNumber').val('HASU-751000-1')
+    //$('#movementContainerNumber').val('HASU-751000-1123')
+    let arr = ['MSFU','HASU','BCLU','EUXU','PXCU','TORU']
+    
+    $('#movementContainerNumber').val(arr[Math.floor(Math.random() * arr.length)]+'-'+Math.floor(Math.random() * 1000000)+'-'+Math.floor(Math.random() * 10000));
     $('#imgTexture').prop('src','/public/img/textures/cai.jpg')
     $('#imgTexture').val('cai')
     //$('#movementCrane').val('61d5e3abf5ffd3251426d08e')
@@ -2075,7 +2533,7 @@ function testing(){
     $('#movementDriverPlate').val('FJDJ67')
     $('#movementDriverGuide').val('0')
     $('#movementDriverSeal').val('0')
-    $('#movementPaymentType').val('REDCOMPRA')
+    $('#movementPaymentType').val('TRANSBANK')
     $('#movementPaymentNumber').val('AAA111')
     //$('#movementService').val('61d867aaf5ffd3251426d0cb')
 }

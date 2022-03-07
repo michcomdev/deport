@@ -1,4 +1,4 @@
-var ctx, offsetX, offsetY, WIDTH, HEIGHT, dragok, startX, startY, shapes=[]
+var ctx, ctxWall, offsetX, offsetY, WIDTH, HEIGHT, dragok, startX, startY, shapes=[]
 var listSites = []
 
 var meterX, meterY
@@ -12,8 +12,19 @@ var listContainers = []
 var listInventory
 
 getSites()
-createMap()
+getParametersMap()
+//createMap()
 
+
+
+async function getParametersMap() {
+    let clientsMapData = await axios.get('api/clients')
+    let clientsMap = clientsMapData.data
+
+    for(let i=0; i < clientsMap.length; i++){
+        $("#searchClientMap").append('<option value="'+clientsMap[i]._id+'">'+clientsMap[i].name+'</option>')
+    }
+}
 
 async function getSites() {
     let sitesData = await axios.get('api/sites')
@@ -33,33 +44,7 @@ $('#listSites').on('change', async function () {
 
     if(!$(this).val()==0){
 
-        let siteData = await axios.post('/api/siteSingle', {id: $(this).val()})
-        let site = siteData.data
-
-        $("#siteName").val(site.name)
-        meterX = site.meterX
-        meterY = site.meterY
-
-        await createMap()
-        await getContainerList($(this).val())
-
-        for(let i=0; i<site.rows.length; i++){
-
-            shapes.push({
-                containers: site.rows[i].map2D.containers,
-                x: site.rows[i].map2D.x,
-                y: site.rows[i].map2D.y,
-                width: site.rows[i].map2D.width,
-                height: site.rows[i].map2D.height,
-                orientation: site.rows[i].orientation,
-                isDragging: false,
-                name: site.rows[i].row
-            })
-            
-            if(i+1==site.rows.length){
-                containerView()
-            }
-        }
+        await getMap($(this).val())
 
     }else{
         $("#wallCanvas").attr('width', 0)
@@ -70,6 +55,35 @@ $('#listSites').on('change', async function () {
     }
 
 })
+
+$('#btnSearch').on('click', async function () {
+    if($("#listSites").val()==0){
+        toastr.warning('Debe seleccionar un Paño antes de filtrar')
+    }else{
+        draw()
+        containerView()
+        console.log(listContainers)
+        for(let i=0;i<listContainers.length;i++){
+            if(listContainers[i].containers.length>0){
+                for(let j=0;j<listContainers[i].containers.length;j++){
+                    if(listContainers[i].containers[j].container.clients._id==$("#searchClientMap").val() || listContainers[i].containers[j].container.containerNumber==$("#searchNumber").val()){
+
+                        let s = listContainers[i]
+                        
+                        ctx.strokeStyle = "#18BC9C"
+                        ctx.lineWidth = 4
+                        ctx.strokeRect(s.x1+2, s.y1+2, (s.x2-s.x1)-4, (s.y2-s.y1)-4)
+                        ctx.strokeStyle = "#000"
+                        ctx.lineWidth = 1
+                    }
+                }
+            }
+        }
+
+    }
+})
+
+
 
 async function getContainerList(id){
 	let containerData = await axios.post('api/inventorySiteMap',{id: id})
@@ -128,6 +142,32 @@ async function createMap(){
 
     // call to draw the scene
     draw()
+
+    $('#btnZoomIn').on('click', async function () {
+        ctxWall.canvas.width = ctxWall.canvas.width * 2
+        ctxWall.canvas.height = ctxWall.canvas.height * 2
+        ctxWall.scale(2, 2)
+        wall()
+
+        //ctx.canvas.width = ctx.canvas.width * 2
+        //ctx.canvas.height = ctx.canvas.height * 2
+        ctx.scale(2, 2)
+        draw()
+        containerView()
+    })
+
+    $('#btnZoomOut').on('click', async function () {
+        ctxWall.canvas.width = ctxWall.canvas.width * 0.5
+        ctxWall.canvas.height = ctxWall.canvas.height * 0.5
+        ctxWall.scale(0.5, 0.5)
+        wall()
+
+        ctx.canvas.width = ctx.canvas.width * 0.5
+        ctx.canvas.height = ctx.canvas.height * 0.5
+        ctx.scale(0.5, 0.5)
+        draw()
+        containerView()
+    })
 }
 
 // draw a single rect
@@ -200,7 +240,6 @@ function selectPosition(e){
         var s=listContainers[i]
         // test if the mouse is inside this rect
         if(mx>s.x1 && mx<s.x2 && my>s.y1 && my<s.y2){
-           
             //ctx.strokeRect(contX, contY, contWidth, contHeight)
             
             $("#txtSide5").text(s.row+'_5')
@@ -208,9 +247,17 @@ function selectPosition(e){
             $("#txtSide3").text(s.row+'_3')
             $("#txtSide2").text(s.row+'_2')
             $("#txtSide1").text(s.row+'_1')
+            draw()
+            containerView()
+            ctx.strokeStyle = "#FF0000"
+            ctx.lineWidth = 4
+            ctx.strokeRect(s.x1+2, s.y1+2, (s.x2-s.x1)-4, (s.y2-s.y1)-4)
+            ctx.strokeStyle = "#000"
+            ctx.lineWidth = 1
 
-7
-            console.log(mx,my,s)
+
+
+
             if(s.containers.length>0){
                 if(s.containers[0].container.containerLarge=='20'){
                     $("#sideViewText").html(`<b>UBICACIÓN ${s.row}</b> - Contenedores de 20'`)
@@ -250,7 +297,6 @@ function selectPosition(e){
 function showContainer(i,j){
     let data = listContainers[i].containers[j]
 
-    console.log(data)
     $("#txtDetailClient").text(data.container.clients.name)
     $("#txtDetailNumber").text(data.container.containerNumber)
     $("#txtDetailType").text(data.container.containertypes.name)
@@ -265,28 +311,28 @@ function wall(){
     var x = 0
     var y = 0
 
-    var ctx = c.getContext("2d");
-    ctx.beginPath();
+    ctxWall = c.getContext("2d");
+    ctxWall.beginPath();
 
     /*for(x=0;x<700;x+=7){
         for(y=0;y<700;y+=7){
-            //ctx.rect(20, 20, 150, 100)
-            ctx.rect(x, y, 7, 7)
-            ctx.stroke();
+            //ctxWall.rect(20, 20, 150, 100)
+            ctxWall.rect(x, y, 7, 7)
+            ctxWall.stroke();
         }
     }*/
-    ctx.strokeStyle = "#D2D2D2";
+    ctxWall.strokeStyle = "#D2D2D2";
 
     for(x=0;x<maxX;x+=cubePixels){
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, maxY)
-        ctx.stroke()
+        ctxWall.moveTo(x, 0)
+        ctxWall.lineTo(x, maxY)
+        ctxWall.stroke()
     }
 
     for(y=0;y<maxY;y+=cubePixels){
-        ctx.moveTo(0, y)
-        ctx.lineTo(maxX, y)
-        ctx.stroke()
+        ctxWall.moveTo(0, y)
+        ctxWall.lineTo(maxX, y)
+        ctxWall.stroke()
     }
 }
 
@@ -294,64 +340,6 @@ function deleteRow(rowName){
     shapes.splice(shapes.findIndex(x => x.name === rowName),1)
     draw()
 }
-
-function changeLetter(lastLetter){
-    let letter
-    if(lastLetter=='A') letter='B'
-    else if(lastLetter=='B') letter='C'
-    else if(lastLetter=='C') letter='D'
-    else if(lastLetter=='D') letter='E'
-    else if(lastLetter=='E') letter='F'
-    else if(lastLetter=='F') letter='G'
-    else if(lastLetter=='G') letter='H'
-    else if(lastLetter=='H') letter='I'
-    else if(lastLetter=='I') letter='J'
-    else if(lastLetter=='J') letter='K'
-    else if(lastLetter=='K') letter='L'
-    else if(lastLetter=='L') letter='M'
-    else if(lastLetter=='M') letter='N'
-    else if(lastLetter=='N') letter='O'
-    else if(lastLetter=='O') letter='P'
-    else if(lastLetter=='P') letter='Q'
-    else if(lastLetter=='Q') letter='R'
-    else if(lastLetter=='R') letter='S'
-    else if(lastLetter=='S') letter='T'
-    else if(lastLetter=='T') letter='U'
-    else if(lastLetter=='U') letter='V'
-    else if(lastLetter=='V') letter='W'
-    else if(lastLetter=='W') letter='X'
-    else if(lastLetter=='X') letter='Y'
-    else if(lastLetter=='Y') letter='Z'
-    else if(lastLetter=='Z') letter='AA'
-    else if(lastLetter=='AA') letter='BB'
-    else if(lastLetter=='BB') letter='CC'
-    else if(lastLetter=='CC') letter='DD'
-    else if(lastLetter=='DD') letter='EE'
-    else if(lastLetter=='EE') letter='FF'
-    else if(lastLetter=='FF') letter='GG'
-    else if(lastLetter=='GG') letter='HH'
-    else if(lastLetter=='HH') letter='II'
-    else if(lastLetter=='II') letter='JJ'
-    else if(lastLetter=='JJ') letter='KK'
-    else if(lastLetter=='KK') letter='LL'
-    else if(lastLetter=='LL') letter='MM'
-    else if(lastLetter=='MM') letter='NN'
-    else if(lastLetter=='NN') letter='OO'
-    else if(lastLetter=='OO') letter='PP'
-    else if(lastLetter=='PP') letter='QQ'
-    else if(lastLetter=='QQ') letter='RR'
-    else if(lastLetter=='RR') letter='SS'
-    else if(lastLetter=='SS') letter='TT'
-    else if(lastLetter=='TT') letter='UU'
-    else if(lastLetter=='UU') letter='VV'
-    else if(lastLetter=='VV') letter='WW'
-    else if(lastLetter=='WW') letter='XX'
-    else if(lastLetter=='XX') letter='YY'
-    else if(lastLetter=='YY') letter='ZZ'
-
-    return letter
-}
-
 
 function containerView(){
     var canvas=document.getElementById("myCanvas")
@@ -362,11 +350,13 @@ function containerView(){
     for(let i=0;i<shapes.length;i++){
 
         let k = shapes[i].containers
+        if(shapes[i].orientationNumber=='up' || shapes[i].orientationNumber=='left'){
+            k = 1
+        }
         for(let j=0; j<shapes[i].containers; j++){
 
             let containers = listInventory.filter(x => x.movement.position.row === shapes[i].name && x.movement.position.position === k)
-            console.log(shapes[i].name + k)
-
+            
             if(containers.length==0 || containers[0].container.containerLarge=='20'){
 
                 ctx.fillStyle = colors[containers.length]
@@ -392,7 +382,11 @@ function containerView(){
                 ctx.textBaseline = "middle"
                 ctx.fillStyle = colorsLetter[containers.length]
                 ctx.fillText(name, contX+(contWidth/2) , contY  + (contHeight/2))
-                k--
+                if(shapes[i].orientationNumber=='up' || shapes[i].orientationNumber=='left'){
+                    k++
+                }else{
+                    k--
+                }
 
                 listContainers.push({
                     row: name,
@@ -411,25 +405,38 @@ function containerView(){
                 let contWidth = shapes[i].width * cubePixels
                 let contHeight = shapes[i].height * cubePixels
                 let name = shapes[i].name + k
-
                 if(shapes[i].orientation=='vertical'){
-                    contY +=  (j * (contHeight/shapes[i].containers)) - contHeight/shapes[i].containers
+                    if(shapes[i].orientationNumber=='up'){
+                        contY +=  (j * (contHeight/shapes[i].containers))
+                        j++
+                        k++
+                    }else{
+                        contY +=  (j * (contHeight/shapes[i].containers)) - contHeight/shapes[i].containers
+                    }
                     contHeight = contHeight/shapes[i].containers * 2
                 }else{
-                    contX +=  (j * (contWidth/shapes[i].containers)) -  contWidth/shapes[i].containers
+                    if(shapes[i].orientationNumber=='left'){
+                        contX +=  (j * (contWidth/shapes[i].containers))
+                        j++
+                        k++
+                    }else{
+                        contX +=  (j * (contWidth/shapes[i].containers)) -  contWidth/shapes[i].containers
+                    }
                     contWidth = contWidth/shapes[i].containers * 2
                 }
-                console.log(contX, contY, contWidth, contHeight)
                 ctx.fillRect(contX, contY, contWidth, contHeight)
                 ctx.strokeRect(contX, contY, contWidth, contHeight)
-                //ctx.fillRect(shapes[i].x, shapes[i].y + ( j * shapes[i].height), shapes[i].width, shapes[i].height/shapes[i].containers)
-                
+
                 ctx.font = cubePixels+"px Arial"
                 ctx.textAlign = "center" 
                 ctx.textBaseline = "middle"
                 ctx.fillStyle = colorsLetter[containers.length]
                 ctx.fillText(name, contX+(contWidth/2) , contY  + (contHeight/2))
-                k--
+                if(shapes[i].orientationNumber=='up' || shapes[i].orientationNumber=='left'){
+                    k++
+                }else{
+                    k--
+                }
 
                 listContainers.push({
                     row: name,
@@ -445,25 +452,34 @@ function containerView(){
 
 }
 
-//const mapRows = await getMap()
+async function getMap(siteID){
 
-function loadContainer(){
-    let list = '<option value="0">Seleccione Container</option>'
+	let siteData = await axios.post('/api/siteSingle', {id: siteID})
+    let site = siteData.data
+    
+    $("#siteName").val(site.name)
+    meterX = site.meterX
+    meterY = site.meterY
 
-    for(let i=0;i<containerList.length;i++){
-        list += '<option value="'+containerList[i].id+'">'+containerList[i].row+containerList[i].position+'_'+containerList[i].level+'</option>'
+    await createMap()
+    await getContainerList(siteID)
+
+    for(let i=0; i<site.rows.length; i++){
+
+        shapes.push({
+            containers: site.rows[i].map2D.containers,
+            x: site.rows[i].map2D.x,
+            y: site.rows[i].map2D.y,
+            width: site.rows[i].map2D.width,
+            height: site.rows[i].map2D.height,
+            orientation: site.rows[i].orientation,
+            orientationNumber: site.rows[i].orientationNumber,
+            isDragging: false,
+            name: site.rows[i].row
+        })
+        
+        if(i+1==site.rows.length){
+            containerView()
+        }
     }
-
-    document.querySelector('#listContainer').innerHTML = list
-}
-
-//loadContainer()
-
-
-async function getMap(){
-
-	let mapsData = await axios.get('api/maps')
-    let maps = mapsData.data
-
-	return maps
 }

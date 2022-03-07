@@ -211,26 +211,29 @@ export default [
                     //let movement = await Movement.find(query)
                     let containers = await Containers.find(query).populate(['clients', 'containertypes', 'movements.sites', 'movements.cranes', 'services.services'])
 
-                    if (payload.table) {
-                        containers = containers.reduce((acc, el) => {
+                    containers = containers.reduce((acc, el) => {
+                        
+                        let lastMov = el.movements.length - 1
 
-                            acc.push({
-                                id: el._id.toString(),
-                                datetime: el.datetime,
-                                movement: el.movement,
-                                client: el.clients.name,
-                                containerInitials: el.containerInitials,
-                                containerNumber: el.containerNumber,
-                                containerType: el.containertypes.name,
-                                containerLarge: el.containerLarge,
-                                position: el.position.row + el.position.position + '_' + el.position.level,
-                                driverName: el.driverName,
-                                driverPlate: el.driverPlate
-                            })
+                        if(el.movements[lastMov].movement=='SALIDA'){
 
-                            return acc
-                        }, [])
-                    }
+                            let i=1
+                            while (i<=el.movements.length) {
+                                if(el.movements[lastMov-i].movement!='SALIDA'){
+                                    el.movements[lastMov].driverRUT = el.movements[lastMov-i].driverRUT
+                                    el.movements[lastMov].driverName = el.movements[lastMov-i].driverName
+                                    el.movements[lastMov].driverPlate = el.movements[lastMov-i].driverPlate
+                                    i = el.movements.length+1
+                                }else{
+                                    i++
+                                }
+                            }
+                        }
+
+                        acc.push(el)
+                        
+                        return acc
+                    }, [])
 
                     return containers
 
@@ -349,19 +352,18 @@ export default [
 
                     console.log('original', container)
 
-                    if (container) {
+                    if(container){
                         //let i = container.movements.length -1
-
+                        
                         container.movements.push({
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
-                            code: payload.code,
-                            cranes: payload.cranes,
-                            sites: payload.sites,
                             position: payload.position,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
+                            driverGuide: payload.driverGuide,
+                            driverSeal: payload.driverSeal,
                             //container.services: payload.services,
                             paymentAdvance: payload.paymentAdvance,
                             paymentNet: payload.paymentNet,
@@ -370,11 +372,26 @@ export default [
                             observation: payload.observation
                         })
 
-                        if (payload.services) {
+                        if(payload.services){
                             container.services.push({
-                                services: payload.services
+                                services: payload.services,
+                                paymentType: payload.paymentType,
+                                paymentNumber: payload.paymentNumber,
+                                paymentAdvance: payload.paymentAdvance,
+                                paymentNet: payload.paymentNet,
+                                paymentIVA: payload.paymentIVA,
+                                paymentTotal: payload.paymentTotal
                             })
                         }
+
+                        let lastMov = container.movements.length - 1
+                        if(payload.cranes!=0){
+                            container.movements[lastMov].cranes = payload.cranes
+                        }
+                        if(payload.sites!=0){
+                            container.movements[lastMov].sites = payload.sites
+                        }
+    
                     }
 
                     console.log('after', container)
@@ -444,6 +461,53 @@ export default [
                     paymentNet: Joi.number().allow(0).optional(),
                     paymentIVA: Joi.number().allow(0).optional(),
                     paymentTotal: Joi.number().allow(0).optional(),
+                    observation: Joi.string().optional().allow('')
+                })
+            }
+        }
+    },
+    {
+        method: 'POST',
+        path: '/api/mobile/movementOut',
+        options: {
+            auth: 'jwt',
+            description: 'modify movement',
+            notes: 'modify movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+
+                    let container = await Containers.findById(payload.id)
+
+                    if(container){
+                        
+                        container.movements.push({
+                            movement: payload.movement,
+                            datetime: Date.now(), //payload.datetime,
+                            cranes: payload.cranes,
+                            observation: payload.observation
+                        })
+    
+                    }
+
+                    const response = await container.save()
+
+                    return response
+
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required(),
+                    movement: Joi.string().optional().allow(''),
+                    cranes: Joi.string().optional().allow(''),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -534,6 +598,74 @@ export default [
                         error: 'Internal Server Error'
                     }).code(500)
                 }
+            }
+        }
+    },
+    {
+        method: 'GET',
+        path: '/api/mobile/containersPendingOut',
+        options: {
+            auth: 'jwt',
+            description: 'get all movements data',
+            notes: 'return all data from movements',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let movements = await Containers.find({"movements.movement": "POR SALIR"}).populate(['clients', 'containertypes', 'movements.cranes', 'movements.sites', 'services.services'])
+                    return movements
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            }
+        }
+    },
+    {
+        method: 'POST',
+        path: '/api/mobile/inventorySiteMap',
+        options: {
+            auth: 'jwt',
+            description: 'get all inventory data from site',
+            notes: 'return all data from inventory',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+                    let sort = {
+                        'movements.position.row': 'ascending',
+                        'movements.position.position': 'ascending',
+                        'movements.position.level': 'ascending'
+                    }
+                    
+                    let containers = await Containers.find({'movements.sites': payload.id}).populate(['movements.sites','clients','containertypes','movements.cranes']).sort(sort)
+                    containers = containers.reduce((acc, el, i) => {
+                        let lastMov = el.movements.length - 1
+                        if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
+                            acc.push({
+                                container: el,
+                                movement: el.movements[lastMov]
+                            })
+                        }
+
+                        return acc
+                    }, [])
+
+                    return containers
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required()
+                })
             }
         }
     }

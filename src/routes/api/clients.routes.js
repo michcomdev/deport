@@ -65,13 +65,27 @@ export default [
             handler: async (request, h) => {
                 try {
 
-                    let payload = request.payload   
+                    let payload = request.payload
+
+                    let clients = await Client.find({
+                        _id: { $ne: payload.id },
+                        rut: payload.rut
+                    })
+                    if(clients.length>0){
+                        return 'created'
+                    }
+
                     let client = await Client.findById(payload.id)
 
                     client.rut = payload.rut
                     client.name = payload.name
+                    client.nameFull = payload.nameFull
                     client.email = payload.email
+                    client.contact = payload.contact
+                    client.contactPhone = payload.contactPhone
                     client.status = payload.status
+                    client.credit = payload.credit
+                    client.services = payload.services
 
                     const response = await client.save()
 
@@ -90,8 +104,18 @@ export default [
                     id: Joi.string().optional().allow(''),
                     rut: Joi.string().optional().allow(''),
                     name: Joi.string().optional().allow(''),
+                    nameFull: Joi.string().optional().allow(''),
                     email: Joi.string().optional().allow(''),
-                    status: Joi.string().optional().allow('')
+                    contact: Joi.string().optional().allow(''),
+                    contactPhone: Joi.string().optional().allow(''),
+                    status: Joi.string().optional().allow(''),
+                    credit: Joi.boolean().required(),
+                    services: Joi.object().keys({
+                        storage: Joi.boolean().required(),
+                        deconsolidated: Joi.boolean().required(),
+                        portage: Joi.boolean().required(),
+                        transport: Joi.boolean().required()
+                    }),
                 })
             }
         }
@@ -106,20 +130,25 @@ export default [
             handler: async (request, h) => {
                 try {
 
-
                     let payload = request.payload   
-                    
-                    /*let clients = await Client.find({rut: payload.rut})
-                    if(clients){
-                        return false
-                    }*/
+
+                    let clients = await Client.find({rut: payload.rut})
+
+                    if(clients.length>0){
+                        return 'created'
+                    }
 
                     let client = new Client({
                         rut: payload.rut,
                         name: payload.name,
+                        nameFull: payload.nameFull,
                         email: payload.email,
+                        contact: payload.contact,
+                        contactPhone: payload.contactPhone,
                         status: payload.status,
-                        debt: 'SIN DEUDA'
+                        debt: 'SIN DEUDA',
+                        credit: payload.credit,
+                        services: payload.services
                     })
 
                     const response = await client.save()
@@ -138,8 +167,18 @@ export default [
                 payload: Joi.object().keys({
                     rut: Joi.string().optional().allow(''),
                     name: Joi.string().optional().allow(''),
+                    nameFull: Joi.string().optional().allow(''),
                     email: Joi.string().optional().allow(''),
-                    status: Joi.string().optional().allow('')
+                    contact: Joi.string().optional().allow(''),
+                    contactPhone: Joi.string().optional().allow(''),
+                    status: Joi.string().optional().allow(''),
+                    credit: Joi.boolean().required(),
+                    services: Joi.object().keys({
+                        storage: Joi.boolean().required(),
+                        deconsolidated: Joi.boolean().required(),
+                        portage: Joi.boolean().required(),
+                        transport: Joi.boolean().required()
+                    }),
                 })
             }
         }

@@ -66,7 +66,7 @@ function chargeMovementTable() {
             ],
             iDisplayLength: 50,
             oLanguage: {
-              sSearch: 'buscar: '
+              sSearch: 'Buscar: '
             },
             responsive: false,
             order: [[ 0, 'desc' ]],

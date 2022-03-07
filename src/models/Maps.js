@@ -6,6 +6,7 @@ const mapSchema = new Schema({
     sites: { type: Schema.Types.ObjectId, ref: 'containertypes' },
     row: { type: String },
     orientation: { type: String },
+    orientationNumber: { type: String },
     positionX: { type: Number},
     positionY: { type: Number},
     positionZ: { type: Number},

@@ -68,12 +68,12 @@ $('#btnContainerView').on('click', function () {
         containerView(true)
         $(this).removeClass('btn-success')
         $(this).addClass('btn-danger')
-        $(this).html('<i class="fas fa-cube"></i>&nbsp;Volver a Edición</button>')
+        $(this).html('<i class="fas fa-cube"></i>&nbsp;Volver a Edición')
     }else{
         containerView(false)
         $(this).removeClass('btn-danger')
         $(this).addClass('btn-success')
-        $(this).html('<i class="fas fa-cube"></i>&nbsp;Vista Containers</button>')
+        $(this).html('<i class="fas fa-cube"></i>&nbsp;Vista Containers')
     }
 })
 
@@ -93,7 +93,7 @@ $('#listSites').on('change', async function () {
         await createMap()
 
         for(let i=0; i<site.rows.length; i++){
-            addShape(site.rows[i].orientation, site.rows[i].map2D.containers, site.rows[i].row, site.rows[i].map2D.x, site.rows[i].map2D.y)
+            addShape(site.rows[i].orientation,site.rows[i].orientationNumber, site.rows[i].map2D.containers, site.rows[i].row, site.rows[i].map2D.x, site.rows[i].map2D.y)
         }
     }else{
         $("#wallCanvas").attr('width', 0)
@@ -121,21 +121,57 @@ $("#btnAddShape").on('click', function(){
     }
 
     let orientation = 'vertical'
+    let orientationNumber = 'down'
     if($("#btnVertical").hasClass('disabled')){
         orientation = 'horizontal'
+        if($("#btnHoriLeftRight").hasClass('disabled')){
+            orientationNumber = 'right'
+        }else{
+            orientationNumber = 'left'
+        }
+    }else{
+        if($("#btnVertDownUp").hasClass('disabled')){
+            orientationNumber = 'up'
+        }
     }
 
-    addShape(orientation,$("#containerLarge").val(),$("#rowName").val(),0,0)
+    addShape(orientation,orientationNumber,$("#containerLarge").val(),$("#rowName").val(),0,0)
 })
 
 $("#btnVertical").on('click', function(){
     $("#btnVertical").removeClass('disabled')
     $("#btnHorizontal").addClass('disabled')
+
+    $("#groupVertical").css('display','block')
+    $("#groupHorizontal").css('display','none')
+
 })
 
 $("#btnHorizontal").on('click', function(){
     $("#btnHorizontal").removeClass('disabled')
     $("#btnVertical").addClass('disabled')
+
+    $("#groupHorizontal").css('display','block')
+    $("#groupVertical").css('display','none')
+})
+
+
+$("#btnVertDownUp").on('click', function(){
+    $("#btnVertDownUp").removeClass('disabled')
+    $("#btnVertUpDown").addClass('disabled')
+})
+$("#btnVertUpDown").on('click', function(){
+    $("#btnVertUpDown").removeClass('disabled')
+    $("#btnVertDownUp").addClass('disabled')
+})
+
+$("#btnHoriRightLeft").on('click', function(){
+    $("#btnHoriRightLeft").removeClass('disabled')
+    $("#btnHoriLeftRight").addClass('disabled')
+})
+$("#btnHoriLeftRight").on('click', function(){
+    $("#btnHoriLeftRight").removeClass('disabled')
+    $("#btnHoriRightLeft").addClass('disabled')
 })
 
 $("#btnSave").on('click', async function(){
@@ -167,6 +203,7 @@ $("#btnSave").on('click', async function(){
                 name: el.name,
                 containers: el.containers,
                 orientation: el.orientation,
+                orientationNumber: el.orientationNumber,
                 positionX: 0,
                 positionY: 0,
                 positionZ: 0,
@@ -298,11 +335,29 @@ function rect(r) {
     ctx.fillStyle=r.fill
     ctx.fillRect(r_x,r_y,r_width,r_height)
 
-    ctx.font= (cubePixels*1.5) +"px Arial";
-    ctx.textAlign="center"; 
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#FFF";
+    ctx.font= (cubePixels*1.5) +"px Arial"
+    ctx.textAlign="center" 
+    ctx.textBaseline = "middle"
+    ctx.fillStyle = "#FFF"
     ctx.fillText(r.name, r_x+(r_width/2) ,r_y+(r_height/2))
+
+
+    if(r.orientationNumber=='down'){
+        ctx.textBaseline = "alphabetic"
+        ctx.fillText(String.fromCharCode(9650), r_x+(r_width/2) ,r_y+r_height)
+    
+    }else if(r.orientationNumber=='up'){
+        ctx.textBaseline="top"
+        ctx.fillText(String.fromCharCode(9660), r_x+(r_width/2) ,r_y)
+    
+    }else if(r.orientationNumber=='left'){
+        ctx.textAlign="left" 
+        ctx.fillText(String.fromCharCode(9654), r_x ,r_y+(r_height/2))
+    
+    }else if(r.orientationNumber=='right'){
+        ctx.textAlign="right" 
+        ctx.fillText(String.fromCharCode(9664), r_x+r_width ,r_y+(r_height/2))
+    }
 }
 
 
@@ -456,11 +511,11 @@ function myMove(e){
         }
 
         // redraw the scene with the new rect positions
-        draw();
+        draw()
 
         // reset the starting mouse position for the next mousemove
-        startX=mx;
-        startY=my;
+        startX=mx
+        startY=my
 
     }
 }
@@ -468,12 +523,12 @@ function myMove(e){
 
 function wall(){
 
-    var c = document.getElementById("wallCanvas");
+    var c = document.getElementById("wallCanvas")
     var x = 0
     var y = 0
 
-    var ctx = c.getContext("2d");
-    ctx.beginPath();
+    var ctx = c.getContext("2d")
+    ctx.beginPath()
 
     /*for(x=0;x<700;x+=7){
         for(y=0;y<700;y+=7){
@@ -498,7 +553,7 @@ function wall(){
 }
 
 
-function addShape(orientation,containerLarge,name,x,y){
+function addShape(orientation,orientationNumber,containerLarge,name,x,y){
 
     let shapeWidth = 2
     let shapeHeight = 2
@@ -526,6 +581,7 @@ function addShape(orientation,containerLarge,name,x,y){
         width: shapeWidth,
         height: shapeHeight,
         orientation: orientation.toLowerCase(),
+        orientationNumber: orientationNumber,
         fill: colors[colorCount],
         fill2: colorsSecondary[colorCount],
         isDragging: false,
@@ -635,8 +691,11 @@ function containerView(type){
         clear()
         console.log(shapes)
         for(let i=0;i<shapes.length;i++){
-
+            
             let k = shapes[i].containers
+            if(shapes[i].orientationNumber=='up' || shapes[i].orientationNumber=='left'){
+                k = 1
+            }
             for(let j=0; j<shapes[i].containers; j++){
                 
                 if(i%2==0){
@@ -670,12 +729,18 @@ function containerView(type){
                 ctx.fillRect(contX, contY, contWidth, contHeight)
                 //ctx.fillRect(shapes[i].x, shapes[i].y + ( j * shapes[i].height), shapes[i].width, shapes[i].height/shapes[i].containers)
                 
-                ctx.font=cubePixels+"px Arial";
-                ctx.textAlign="center"; 
-                ctx.textBaseline = "middle";
-                ctx.fillStyle = "#FFF";
+                ctx.font=cubePixels+"px Arial"
+                ctx.textAlign="center" 
+                ctx.textBaseline = "middle"
+                ctx.fillStyle = "#FFF"
                 ctx.fillText(name, contX+(contWidth/2) , contY  + (contHeight/2))
-                k--
+                
+                if(shapes[i].orientationNumber=='up' || shapes[i].orientationNumber=='left'){
+                    k++
+                }else{
+                    k--
+                }
+                
             }
         }
 

@@ -247,10 +247,20 @@ export default [
                     }
 
                     //let movement = await Movement.find(query)
-                    let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services'])
+                    let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
 
                     if(payload.table){
                         containers = containers.reduce((acc, el, i) => {
+
+                            /////SERVICIOS/////
+                            let lastSrv = el.services.length - 1
+                            let containerState = 'N/A'
+                            if(el.services[lastSrv].services.name=='Almacenamiento Full'){
+                                containerState = 'LLENO'
+                            }else if(el.services[lastSrv].services.name=='Almacenamiento Vacío' || el.services[lastSrv].services.name=='Desconsolidado'){
+                                containerState = 'VACÍO'
+                            }
+
 
                             let lastMov = el.movements.length - 1
 
@@ -263,23 +273,76 @@ export default [
                                 position = el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level
                             }
 
+                            if(el.movements[lastMov].movement=='SALIDA'){
+                                if(site=='N/A'){
+                                    if(el.movements[lastMov-1].sites){
+                                        site = el.movements[lastMov-1].sites.name
+                                    }
+                                }
+
+                                if(position=='N/A'){
+                                    if(el.movements[lastMov-1].position.row){
+                                        position = el.movements[lastMov-1].position.row + el.movements[lastMov-1].position.position + '_' + el.movements[lastMov-1].position.level
+                                    }
+                                }
+                            }
+
                             if(status==''){
-                                
-                                acc.push({
-                                    id: el._id.toString(),
-                                    datetime: el.movements[lastMov].datetime,
-                                    movementID: lastMov,
-                                    movement: el.movements[lastMov].movement,
-                                    client: el.clients.name,
-                                    containerNumber: el.containerNumber,
-                                    containerType: el.containertypes.name,
-                                    containerLarge: el.containerLarge,
-                                    driverName: el.movements[lastMov].driverName,
-                                    site: site,
-                                    position: position,
-                                    driverName: el.movements[lastMov].driverName,
-                                    driverPlate: el.movements[lastMov].driverPlate
-                                })
+                                if(payload.onlyInventory){
+                                    if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            containerState: containerState,
+                                            driverName: el.movements[lastMov].driverName,
+                                            site: site,
+                                            position: position,
+                                            driverName: el.movements[lastMov].driverName,
+                                            driverPlate: el.movements[lastMov].driverPlate
+                                        })
+                                    }
+                                }else{
+                                    if(el.movements[lastMov].movement=='SALIDA'){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            containerState: containerState,
+                                            site: site,
+                                            position: position,
+                                            driverName: el.movements[lastMov-1].driverName,
+                                            driverPlate: el.movements[lastMov-1].driverPlate
+                                        })
+                                    }else{
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            containerState: containerState,
+                                            driverName: el.movements[lastMov].driverName,
+                                            site: site,
+                                            position: position,
+                                            driverName: el.movements[lastMov].driverName,
+                                            driverPlate: el.movements[lastMov].driverPlate
+                                        })
+                                    }
+                                }
                             }else{
                                 if(payload.onlyInventory || status=='EN SITIO'){
                                     if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
@@ -292,6 +355,7 @@ export default [
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
+                                            containerState: containerState,
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
@@ -299,7 +363,7 @@ export default [
                                         })
                                     }
                                 }else if(status=='RETIRADO'){
-                                    if(el.movements[lastMov].movement=='SALIDA' || el.movements[lastMov].movement=='TRASPASO'){
+                                    if(el.movements[lastMov].movement=='SALIDA'){
                                         acc.push({
                                             id: el._id.toString(),
                                             datetime: el.movements[lastMov].datetime,
@@ -309,6 +373,24 @@ export default [
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
+                                            containerState: containerState,
+                                            site: site,
+                                            position: position,
+                                            driverName: el.movements[lastMov-1].driverName,
+                                            driverPlate: el.movements[lastMov-1].driverPlate
+                                        })
+
+                                    }else if(el.movements[lastMov].movement=='TRASPASO'){
+                                        acc.push({
+                                            id: el._id.toString(),
+                                            datetime: el.movements[lastMov].datetime,
+                                            movementID: lastMov,
+                                            movement: el.movements[lastMov].movement,
+                                            client: el.clients.name,
+                                            containerNumber: el.containerNumber,
+                                            containerType: el.containertypes.name,
+                                            containerLarge: el.containerLarge,
+                                            containerState: containerState,
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
@@ -326,6 +408,7 @@ export default [
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
+                                            containerState: containerState,
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
@@ -505,6 +588,7 @@ export default [
                             observation: payload.observation
                         }],
                         services: [{
+                            serviceNumber: 1,
                             services: payload.services,
                             paymentType: payload.paymentType,
                             paymentNumber: payload.paymentNumber,
@@ -607,6 +691,7 @@ export default [
 
                         if(payload.services){
                             container.services.push({
+                                serviceNumber: 1,
                                 services: payload.services,
                                 paymentType: payload.paymentType,
                                 paymentNumber: payload.paymentNumber,
@@ -614,6 +699,19 @@ export default [
                                 paymentNet: payload.paymentNet,
                                 paymentIVA: payload.paymentIVA,
                                 paymentTotal: payload.paymentTotal
+                            })
+                        }
+
+                        if(payload.services2){
+                            container.services.push({
+                                serviceNumber: 2,
+                                services: payload.services2,
+                                paymentType: payload.payment2Type,
+                                paymentNumber: payload.payment2Number,
+                                paymentAdvance: payload.payment2Advance,
+                                paymentNet: payload.payment2Net,
+                                paymentIVA: payload.payment2IVA,
+                                paymentTotal: payload.payment2Total
                             })
                         }
 
@@ -696,6 +794,13 @@ export default [
                     paymentNet: Joi.number().allow(0).optional(),
                     paymentIVA: Joi.number().allow(0).optional(),
                     paymentTotal: Joi.number().allow(0).optional(),
+                    services2: Joi.string().optional().allow(''),
+                    payment2Type: Joi.string().optional().allow(''),
+                    payment2Number: Joi.string().optional().allow(''),
+                    payment2Advance: Joi.boolean().optional(),
+                    payment2Net: Joi.number().allow(0).optional(),
+                    payment2IVA: Joi.number().allow(0).optional(),
+                    payment2Total: Joi.number().allow(0).optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }

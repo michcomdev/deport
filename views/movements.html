@@ -40,7 +40,7 @@
     </div>
     <div class="form-check col-md-2  col-xs-12">
         <br/>
-        <input class="form-check-input classMove" type="checkbox" value="" id="searchInventory">
+        <input class="form-check-input" type="checkbox" value="" id="searchInventory">
         <label class="form-check-label" for="flexCheckDefault">
             Sólo en inventario
         </label>
@@ -58,7 +58,7 @@
             <div class="col-md-2 col-xs-12">
                 <br>
                 <button class="btn btn-success btn-block" id="optionCreateMovement">
-                    <i class="fas fa-file-import"></i> NUEVO INGRESO
+                    <i class="fas fa-file-import"></i> LLEGADA
                 </button>
                 <br>
                 <button class="btn btn-outline-success btn-block" id="optionModMovement" disabled>
@@ -66,7 +66,7 @@
                 </button>
                 <br>
                 <button class="btn btn-info btn-block" id="optionMovMovement" disabled>
-                    <i class="fas fa-trailer"></i> TRASLADAR
+                    <i class="fas fa-trailer"></i> MOV. INTERNO
                 </button>
                 <br>
                 <button class="btn btn-primary btn-block" id="optionCloseMovement" disabled>
@@ -94,6 +94,7 @@
                             <th>CONTENEDOR</th>
                             <th>TIPO</th>
                             <th>LARGO</th>
+                            <th>ESTADO</th>
                             <th>PAÑO</th>
                             <th>UBICACION</th>
                             <th>CONDUCTOR</th>
@@ -142,7 +143,27 @@
     </div>
 </div>
 
-<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+<div class="modal fade" id="modalMap"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalMap_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalMap_body">
+                <div id="divMap" style="width: 1000px; height: 600px;">
+                    <canvas id="wallCanvas" width="100" height="100" style="border:1px solid #000000; position: absolute; z-index: 0; display: block; margin: 0 auto;"></canvas>
+                    <canvas id="myCanvas" width="100" height="100" style="border:1px solid #000000; position: absolute; z-index: 1; display: block; margin: 0 auto;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer" id="modalMap_footer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false" style="z-index: 1080">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -156,7 +177,88 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalClient" role="dialog" aria-labelledby="modal" style="z-index: 1070">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalClient_title">Nuevo Cliente</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalClient_body">
+                <div class="row">
+                    <div class="col-md-4" style="margin-top:10px;">
+                        RUT
+                        <input id="clientRUT" type="text" class="form-control border-input">
+                    </div>
+                    <div class="col-md-8" style="margin-top:10px;">
+                        Nombre (o nombre de fantasía SII)
+                        <input id="clientName" type="text" class="form-control border-input">
+                    </div>
+    
+                    <div class="col-md-12" style="margin-top:10px;">
+                        <br/>
+                        Nombre Facturación (nombre completo SII)
+                        <input id="clientNameFull" type="text" class="form-control border-input">
+                    </div>
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Correo Electrónico
+                        <input id="clientEmail" type="text" class="form-control border-input">
+                    </div>
+    
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Nombre Contacto
+                        <input id="clientContact" type="text" class="form-control border-input">
+                    </div>
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Teléfono Contacto
+                        <input id="clientContactPhone" type="text" class="form-control border-input">
+                    </div>
+    
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Estado
+                        <select id="clientStatus" class="custom-select">
+                            <option value="enabled">HABILITADO</option>
+                            <option value="disabled">DESHABILITADO</option>
+                        </select>
+                    </div>
+    
+    
+    
+                    <div class="col-md-8" style="margin-top:10px;">
+                        <br/>
+                        Cliente con Crédito
+                        <input type="checkbox" id="clientCredit">
+                    </div>
+    
+                    <div class="col-md-4" style="margin-top:10px;">
+                        <br/>
+                        Servicios
+                        <br/><input type="checkbox" id="serviceStorage" checked> Almacenamiento
+                        <br/><input type="checkbox" id="serviceDeconsolidated"> Desconsolidado
+                        <br/><input type="checkbox" id="servicePortage"> Porteo
+                        <br/><input type="checkbox" id="serviceTransport"> Transporte
+                    </div>
+    
+                </div>
+            </div>
+            <div class="modal-footer" id="modalClient_footer">
+                <button class="btn btn-dark" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+        
+                <button class="btn btn-primary" id="saveClient">
+                    <i class="fas fa-check"></i> Almacenar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{#extend "js"}}
     <script src="/public/modules/default/logoImg.js"></script>
     <script src="/public/modules/movements/movements.js"></script>
+    <script src="/public/modules/map2D/map2D.js"></script>
 {{/extend}}

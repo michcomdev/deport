@@ -142,10 +142,9 @@ export default [
                                 movement: el.movements[lastMov]
                             })
                         }
-                
+
                         return acc
                     }, [])
-
 
                     return containers
                 } catch (error) {

@@ -81,7 +81,7 @@ function chargeMovementTable() {
             ],
             iDisplayLength: 50,
             oLanguage: {
-              sSearch: 'buscar: '
+              sSearch: 'Buscar: '
             },
             language: {
                 url: spanishDataTableLang
@@ -157,7 +157,7 @@ async function getMovementsEnabled() {
         
     } else {
         console.log('vacio', movementData);
-        toastr.warning('No se hay containers asociados')
+        toastr.warning('No hay containers asociados')
         
     }
 }
@@ -186,7 +186,7 @@ async function loadSingleContainer(id){
             ],
             iDisplayLength: 50,
             oLanguage: {
-              sSearch: 'buscar: '
+              sSearch: 'Buscar: '
             },
             language: {
                 url: spanishDataTableLang

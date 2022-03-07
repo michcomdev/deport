@@ -36,6 +36,7 @@ const containerSchema = new Schema({
         observation: { type: String }
     }],
     services: [{
+        serviceNumber: { type: Number },
         services: { type: Schema.Types.ObjectId, ref: 'services' },
         paymentType: { type: String },
         paymentNumber: { type: String },

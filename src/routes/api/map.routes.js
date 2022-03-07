@@ -1,5 +1,6 @@
 import Sites from '../../models/Sites'
 import Maps from '../../models/Maps'
+import Containers from '../../models/Containers'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -41,6 +42,42 @@ export default [
                     let sites = await Sites.findById(payload.id).lean()
 
                     let rows = await Maps.find({sites: payload.id}).lean().sort({'row': 'ascending'})
+
+
+                    //Ubicaciones utilizadas
+                    let sort = {
+                        'movements.position.row': 'ascending',
+                        'movements.position.position': 'ascending',
+                        'movements.position.level': 'ascending'
+                    }
+                    //console.log('rows', rows)
+
+                    //let positions = siteMap.find(x => x.row === $(this).val()).positions
+
+
+                    let containers = await Containers.find({'movements.sites': payload.id}).populate(['clients','containertypes']).sort(sort)
+                    containers = containers.reduce((acc, el, i) => {
+                        let lastMov = el.movements.length - 1
+                        if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
+                            
+                            if(rows.find(x => x.row === el.movements[lastMov].position.row)){
+                                let array = rows.find(x => x.row === el.movements[lastMov].position.row).positions
+                                let obj = array.find(x => x.position === el.movements[lastMov].position.position)
+
+                                if(!obj.levelOnUse){
+                                    obj.levelOnUse = [el.movements[lastMov].position.level]
+                                }else{
+                                    if(!obj.levelOnUse.includes(el.movements[lastMov].position.level)){
+                                        obj.levelOnUse.push(el.movements[lastMov].position.level)
+                                    }
+                                }
+
+                            }
+                        }
+
+                        return acc
+                    }, [])
+
                     sites.rows = rows
 
                     return sites
@@ -100,6 +137,7 @@ export default [
                             sites: payload.id,
                             row: payload.maps[i].name,
                             orientation: payload.maps[i].orientation,
+                            orientationNumber: payload.maps[i].orientationNumber,
                             positionX: payload.maps[i].positionX,
                             positionY: payload.maps[i].positionY,
                             positionZ: payload.maps[i].positionZ,
@@ -139,6 +177,7 @@ export default [
                         name: Joi.string().optional().allow(''),
                         containers: Joi.number().allow(0).allow(''),
                         orientation: Joi.string().optional().allow(''),
+                        orientationNumber: Joi.string().optional().allow(''),
                         positionX: Joi.number().allow(0).allow(''),
                         positionY: Joi.number().allow(0).allow(''),
                         positionZ: Joi.number().allow(0).allow(''),
@@ -190,6 +229,7 @@ export default [
                             sites: response._id,
                             row: payload.maps[i].name,
                             orientation: payload.maps[i].orientation,
+                            orientationNumber: payload.maps[i].orientationNumber,
                             positionX: payload.maps[i].positionX,
                             positionY: payload.maps[i].positionY,
                             positionZ: payload.maps[i].positionZ,
@@ -229,6 +269,7 @@ export default [
                         name: Joi.string().optional().allow(''),
                         containers: Joi.number().allow(0).allow(''),
                         orientation: Joi.string().optional().allow(''),
+                        orientationNumber: Joi.string().optional().allow(''),
                         positionX: Joi.number().allow(0).allow(''),
                         positionY: Joi.number().allow(0).allow(''),
                         positionZ: Joi.number().allow(0).allow(''),
