@@ -44,6 +44,12 @@ $(document).ready(async function () {
     $("#search").on('click', function(){
         loadMovementTable()
     })
+
+    $('body').on('hidden.bs.modal', function () { //Evita pérdida de scroll modal
+        if($('.modal').length > 0){
+            $('body').addClass('modal-open')
+        }
+    });
 })
 
 async function getParameters() {
@@ -1556,7 +1562,7 @@ function createModalBody(type){
                     Tipo
                     <select id="movementContainerType" class="custom-select classOut classMove" onchange="changeTexture('type')">
                         <option value="61d70f00f5ffd3251426d0a5" data-texture="cai">GENÉRICO</option>
-                        ${                      
+                        ${
                             containerTypes.reduce((acc,el)=>{
                                 acc += '<option value="'+el._id+'" data-texture="'+el.texture+'">'+el.name+'</option>'
                                 return acc
@@ -1566,7 +1572,7 @@ function createModalBody(type){
                 </div>`
     if(type!='TRASPASO'){
 
-        body += `<div class="form-check col-md-2">
+        body += `<div class="form-check col-md-2" style="text-align: center;">
                     <br/>
                     <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
                     <label class="form-check-label" for="flexCheckDefault">
@@ -1686,7 +1692,7 @@ function createModalBody(type){
     
         
     }else{
-        body += `<div class="form-check col-md-2">
+        body += `<div class="form-check col-md-2" style="text-align: center;">
                     <br/>
                     <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
                     <label class="form-check-label" for="flexCheckDefault">
@@ -1797,9 +1803,15 @@ function createModalBody(type){
                 </div>`
     }
 
-    body += `<div class="col-md-12">
+    body += `<div class="col-md-4">
             <br/ >
             <h5>DATOS DE PAGO</h5>
+        </div>
+        <div class="col-md-4">
+            <br/ >
+            <button class="btn btn-primary" onclick="addService()"><i class="fas fa-plus"></i> Agregar</button>
+        </div>
+        <div class="col-md-4">
         </div>
         <div class="form-check col-md-12 table-responsive">
             <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0" width="100%">
@@ -2164,6 +2176,7 @@ async function selectClient(btn) {
 async function createClient() {
     
     $('#modalClient').modal('show')
+    $('#modalClient_body').html(setModalClient())
 
     $('#clientRUT').on('keyup', function () {
         let rut = validateRut($(this).val())
@@ -2238,9 +2251,19 @@ async function createClient() {
                             { data: 'name' },
                             { data: 'status' }
                         ],
-                        initComplete: function (settings, json) {
+                        initComplete: async function (settings, json) {
                             getClients()
-                            internals.clients.table.search( clientData.rut ).draw();
+                            internals.clients.table.search( clientData.rut ).draw()
+
+                            let clientsData = await axios.get('api/clients')
+                            clients = clientsData.data
+
+                            $("#searchClient").append('<option value="0">TODOS</option>')
+                            $("#movementClient").append('<option value="0">SELECCIONE...</option>')
+                            for(let i=0; i < clients.length; i++){
+                                $("#movementClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
+                                $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
+                            }
                         }
                     })
                 
@@ -2261,6 +2284,67 @@ async function createClient() {
         }
 
     })
+}
+
+function setModalClient(){
+
+    return `
+            <div class="row">
+                <div class="col-md-4" style="margin-top:10px;">
+                    RUT
+                    <input id="clientRUT" type="text" class="form-control border-input">
+                </div>
+                <div class="col-md-8" style="margin-top:10px;">
+                    Nombre (o nombre de fantasía SII)
+                    <input id="clientName" type="text" class="form-control border-input">
+                </div>
+
+                <div class="col-md-12" style="margin-top:10px;">
+                    <br/>
+                    Nombre Facturación (nombre completo SII)
+                    <input id="clientNameFull" type="text" class="form-control border-input">
+                </div>
+                <div class="col-md-4" style="margin-top:10px;">
+                    Correo Electrónico
+                    <input id="clientEmail" type="text" class="form-control border-input">
+                </div>
+
+                <div class="col-md-4" style="margin-top:10px;">
+                    Nombre Contacto
+                    <input id="clientContact" type="text" class="form-control border-input">
+                </div>
+                <div class="col-md-4" style="margin-top:10px;">
+                    Teléfono Contacto
+                    <input id="clientContactPhone" type="text" class="form-control border-input">
+                </div>
+
+                <div class="col-md-4" style="margin-top:10px;">
+                    Estado
+                    <select id="clientStatus" class="custom-select">
+                        <option value="enabled">HABILITADO</option>
+                        <option value="disabled">DESHABILITADO</option>
+                    </select>
+                </div>
+
+
+
+                <div class="col-md-8" style="margin-top:10px;">
+                    <br/>
+                    Cliente con Crédito
+                    <input type="checkbox" id="clientCredit">
+                </div>
+
+                <div class="col-md-4" style="margin-top:10px;">
+                    <br/>
+                    Servicios
+                    <br/><input type="checkbox" id="serviceStorage" checked> Almacenamiento
+                    <br/><input type="checkbox" id="serviceDeconsolidated"> Desconsolidado
+                    <br/><input type="checkbox" id="servicePortage"> Porteo
+                    <br/><input type="checkbox" id="serviceTransport"> Transporte
+                </div>
+
+            </div>
+        `
 }
 
 function validateClientData(clientData) {
@@ -2513,6 +2597,10 @@ async function printVoucher(type,id) {
     doc.autoPrint();
     window.open(doc.output('bloburl'), '_blank');
     //doc.save(`Nota de venta ${internals.newSale.number}.pdf`)
+}
+
+function addService(){
+    console.log('here')
 }
 
 function testing(){
