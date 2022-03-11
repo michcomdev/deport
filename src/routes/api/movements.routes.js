@@ -183,7 +183,7 @@ export default [
                     let movement = await Movement.findOne({
                         _id: new mongo.ObjectID(payload.id)
                     }).lean()*/
-                    let movement = await Containers.findById(payload.id)
+                    let movement = await Containers.findById(payload.id).populate(['services.services'])
                     
 
                     return movement
@@ -253,14 +253,12 @@ export default [
                         containers = containers.reduce((acc, el, i) => {
 
                             /////SERVICIOS/////
-                            let lastSrv = el.services.length - 1
                             let containerState = 'N/A'
-                            if(el.services[lastSrv].services.name=='Almacenamiento Full'){
-                                containerState = 'LLENO'
-                            }else if(el.services[lastSrv].services.name=='Almacenamiento Vacío' || el.services[lastSrv].services.name=='Desconsolidado'){
+                            if(el.services.find(x => x.services.name == 'Almacenamiento Vacío') || el.services.find(x => x.services.name == 'Desconsolidado')){
                                 containerState = 'VACÍO'
+                            }else if(el.services.find(x => x.services.name == 'Almacenamiento Full')){
+                                containerState = 'LLENO'
                             }
-
 
                             let lastMov = el.movements.length - 1
 
@@ -458,16 +456,12 @@ export default [
 
                     let container = await Containers.findById(payload.id).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
                     
-
-                    console.log(container)
                     let movement = {
                         containerNumber: container.containerNumber,
                         containerLarge: container.containerLarge,
                         clientRUT: container.clients.rut,
                         clientName: container.clients.name
                     }
-
-                    console.log('movement',movement)
 
                     for(let i=0;i<container.movements.length;i++){
                         let mov = container.movements[i]
@@ -587,16 +581,7 @@ export default [
                             paymentTotal: payload.paymentTotal,
                             observation: payload.observation
                         }],
-                        services: [{
-                            serviceNumber: 1,
-                            services: payload.services,
-                            paymentType: payload.paymentType,
-                            paymentNumber: payload.paymentNumber,
-                            paymentAdvance: payload.paymentAdvance,
-                            paymentNet: payload.paymentNet,
-                            paymentIVA: payload.paymentIVA,
-                            paymentTotal: payload.paymentTotal
-                        }]
+                        services: payload.services
                     })
 
                     if(payload.cranes!=0){
@@ -641,13 +626,15 @@ export default [
                     driverPlate: Joi.string().optional().allow(''),
                     driverGuide: Joi.string().optional().allow(''),
                     driverSeal: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
-                    paymentType: Joi.string().optional().allow(''),
-                    paymentNumber: Joi.string().optional().allow(''),
-                    paymentAdvance: Joi.boolean().optional(),
-                    paymentNet: Joi.number().allow(0).optional(),
-                    paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
+                    services: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        paymentType: Joi.string().optional().allow(''),
+                        paymentNumber: Joi.string().optional().allow(''),
+                        paymentAdvance: Joi.boolean().optional(),
+                        paymentNet: Joi.number().allow(0).optional(),
+                        paymentIVA: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional()
+                    })),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -667,10 +654,24 @@ export default [
                     let container = await Containers.findById(payload.id)
                     //let i = payload.movementID
 
-                    console.log("original",container)
-
                     if(container){
                         //let i = container.movements.length -1
+
+                        if(payload.client){
+                            container.clients = payload.client
+                        }
+                        if(payload.containerNumber){
+                            container.containerNumber = payload.containerNumber
+                        }
+                        if(payload.containerType){
+                            container.containertypes = payload.containerType
+                        }
+                        if(payload.containerTexture){
+                            container.containerTexture = payload.containerTexture
+                        }
+                        if(payload.containerLarge){
+                            container.containerLarge = payload.containerLarge
+                        }
                         
                         container.movements.push({
                             movement: payload.movement,
@@ -690,29 +691,7 @@ export default [
                         })
 
                         if(payload.services){
-                            container.services.push({
-                                serviceNumber: 1,
-                                services: payload.services,
-                                paymentType: payload.paymentType,
-                                paymentNumber: payload.paymentNumber,
-                                paymentAdvance: payload.paymentAdvance,
-                                paymentNet: payload.paymentNet,
-                                paymentIVA: payload.paymentIVA,
-                                paymentTotal: payload.paymentTotal
-                            })
-                        }
-
-                        if(payload.services2){
-                            container.services.push({
-                                serviceNumber: 2,
-                                services: payload.services2,
-                                paymentType: payload.payment2Type,
-                                paymentNumber: payload.payment2Number,
-                                paymentAdvance: payload.payment2Advance,
-                                paymentNet: payload.payment2Net,
-                                paymentIVA: payload.payment2IVA,
-                                paymentTotal: payload.payment2Total
-                            })
+                            container.services = payload.services
                         }
 
                         let lastMov = container.movements.length - 1
@@ -724,31 +703,6 @@ export default [
                         }
     
                     }
-
-                    console.log("after",container)
-
-
-                    /*if (container) {
-                        container.movements[i].movement = payload.movement,
-                        container.movements[i].datetime = payload.datetime,
-                        container.clients = payload.client,
-                        container.containerNumber = payload.containerNumber,
-                        container.containertypes = payload.containerType,
-                        container.containerTexture = payload.containerTexture,
-                        container.containerLarge = payload.containerLarge,
-                        container.movements[i].cranes = payload.cranes,
-                        container.movements[i].sites = payload.sites,
-                        container.movements[i].position = payload.position,
-                        container.movements[i].driverRUT = payload.driverRUT,
-                        container.movements[i].driverName = payload.driverName,
-                        container.movements[i].driverPlate = payload.driverPlate,
-                        //container.services = payload.services,
-                        container.movements[i].paymentAdvance = payload.paymentAdvance,
-                        container.movements[i].paymentNet = payload.paymentNet,
-                        container.movements[i].paymentIVA = payload.paymentIVA,
-                        container.movements[i].paymentTotal = payload.paymentTotal,
-                        container.movements[i].observation = payload.observation
-                    }*/
                     
                     const response = await container.save()
 
@@ -787,20 +741,15 @@ export default [
                     driverPlate: Joi.string().optional().allow(''),
                     driverGuide: Joi.string().optional().allow(''),
                     driverSeal: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
-                    paymentType: Joi.string().optional().allow(''),
-                    paymentNumber: Joi.string().optional().allow(''),
-                    paymentAdvance: Joi.boolean().optional(),
-                    paymentNet: Joi.number().allow(0).optional(),
-                    paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
-                    services2: Joi.string().optional().allow(''),
-                    payment2Type: Joi.string().optional().allow(''),
-                    payment2Number: Joi.string().optional().allow(''),
-                    payment2Advance: Joi.boolean().optional(),
-                    payment2Net: Joi.number().allow(0).optional(),
-                    payment2IVA: Joi.number().allow(0).optional(),
-                    payment2Total: Joi.number().allow(0).optional(),
+                    services: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        paymentType: Joi.string().optional().allow(''),
+                        paymentNumber: Joi.string().optional().allow(''),
+                        paymentAdvance: Joi.boolean().optional(),
+                        paymentNet: Joi.number().allow(0).optional(),
+                        paymentIVA: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional()
+                    })),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -906,15 +855,7 @@ export default [
                             paymentTotal: payload.paymentTotal,
                             observation: payload.observation
                         }],
-                        services: [{
-                            services: payload.services,
-                            paymentType: payload.paymentType,
-                            paymentNumber: payload.paymentNumber,
-                            paymentAdvance: payload.paymentAdvance,
-                            paymentNet: payload.paymentNet,
-                            paymentIVA: payload.paymentIVA,
-                            paymentTotal: payload.paymentTotal
-                        }]
+                        services: payload.services
                     })
 
                     if(payload.cranes!=0){
@@ -955,13 +896,15 @@ export default [
                     driverOutName: Joi.string().optional().allow(''),
                     driverOutPlate: Joi.string().optional().allow(''),
                     driverOutGuide: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
-                    paymentType: Joi.string().optional().allow(''),
-                    paymentNumber: Joi.string().optional().allow(''),
-                    paymentAdvance: Joi.boolean().optional(),
-                    paymentNet: Joi.number().allow(0).optional(),
-                    paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
+                    services: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        paymentType: Joi.string().optional().allow(''),
+                        paymentNumber: Joi.string().optional().allow(''),
+                        paymentAdvance: Joi.boolean().optional(),
+                        paymentNet: Joi.number().allow(0).optional(),
+                        paymentIVA: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional()
+                    })),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -980,8 +923,6 @@ export default [
                     
                     let container = await Containers.findById(payload.id)
                     //let i = payload.movementID
-
-                    console.log("original",container)
 
                     if(container){
                         //let i = container.movements.length -1

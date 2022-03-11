@@ -49,7 +49,7 @@ $(document).ready(async function () {
         if($('.modal').length > 0){
             $('body').addClass('modal-open')
         }
-    });
+    })
 })
 
 async function getParameters() {
@@ -285,7 +285,7 @@ function loadMovementTable() {
                 $('#optionMovMovement').prop('disabled', true)
                 $('#optionDeconsolidatedMovement').prop('disabled', true)
             } else {
-                internals.movements.table.$('tr.selected').removeClass('selected');
+                internals.movements.table.$('tr.selected').removeClass('selected')
                 $(this).addClass('selected')
                 internals.dataRowSelected = internals.movements.table.row($(this)).data()
                 $('#optionModMovement').prop('disabled', false)
@@ -358,11 +358,11 @@ async function getMovementsEnabled() {
 }
 
 $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
-    $('#movementsModal').modal('show');
-    $('#modalMov_title').html(`Nuevo Ingreso`)
+    $('#movementsModal').modal('show')
+    $('#modalMov_title').html(`Llegada`)
     $('#modalMov_body').html(createModalBody())
     
-    setServiceList('ALL',1)
+    setServiceList('ALL')
 
     setPositionList()
 
@@ -382,12 +382,12 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementType').val('POR INGRESAR')
     $('#movementType').prop('disabled',true)
 
-    var element = document.getElementById('movementContainerNumber');
+    var element = document.getElementById('movementContainerNumber')
     var maskOptions = {
         mask: 'aaaa-000000-0',
         lazy: false //shows placeholder
     };
-    var mask = IMask(element, maskOptions);
+    var mask = IMask(element, maskOptions)
 
     $('#movementDriverRUT').on('keyup', function () {
         let rut = validateRut($(this).val())
@@ -410,15 +410,40 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
 
     $('#saveMovement').on('click', async function () {
 
-        let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = Math.round(net * 0.19)
-        let total = parseInt(net) + parseInt(iva)
+        //let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
+        //let iva = Math.round(net * 0.19)
+        //let total = parseInt(net) + parseInt(iva)
 
         let movement = $('#movementType').val()
 
         if($('#movementCrane').val()!=0 && $('#movementCrane').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0){
             movement = 'INGRESADO'
         }
+
+        //Servicios
+        let services = []
+        $("#tableServicesBody > tr").each(function() {
+            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = Math.round(net * 0.19)
+            let total = parseInt(net) + parseInt(iva)
+            
+            if(!$.isNumeric(net)){
+                net = 0
+                iva = 0
+                total = 0
+            }
+
+            services.push({
+                services: $($($(this).children()[0]).children()[0]).val(),
+                paymentType: $($($(this).children()[1]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                paymentNet: net,
+                paymentIVA: iva,
+                paymentTotal: total,
+            })
+        })
+        
     
         let movementData = {
             movement: movement,
@@ -440,16 +465,19 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             driverPlate: $('#movementDriverPlate').val(),
             driverGuide: $('#movementDriverGuide').val(),
             driverSeal: $('#movementDriverSeal').val(),
-            services: $('#movementService').val(),
+            /*services: $('#movementService').val(),
             paymentType: $('#movementPaymentType').val(),
             paymentNumber: $('#movementPaymentNumber').val(),
             paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
             paymentNet: net,
             paymentIVA: iva,
-            paymentTotal: total,
+            paymentTotal: total,*/
+            services: services,
             observation: $('#movementObservation').val()
         }
 
+
+        console.log(movementData)
         const res = validateMovementData(movementData)
         if(res.ok){
             let saveMovement = await axios.post('/api/movementSave', res.ok)
@@ -468,7 +496,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-            $('#modal').modal('show');
+            $('#modal').modal('show')
         }
 
     })
@@ -523,16 +551,10 @@ $('#optionModMovement').on('click', async function () {
 
     if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA' || container.movements[movementID].movement=='DESCONSOLIDADO'){
 
-        $('#movementsModal').modal('show');
+        $('#movementsModal').modal('show')
         $('#modalMov_title').html(`Modifica Ingreso`)
         $('#modalMov_body').html(createModalBody())
-
-        let service2 = container.services.slice().reverse().find(x => x.serviceNumber===2)
-        if(service2){
-            setServiceList('ALL', 2)
-        }else{
-            setServiceList('ALL', 1)
-        }
+        setServiceList('ALL', container.services)
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -605,26 +627,6 @@ $('#optionModMovement').on('click', async function () {
         $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
         $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
         
-        /////////SERVICIOS/////////
-        let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-
-        $('#movementService').val(service1.services)
-        $('#movementPaymentType').val(service1.paymentType)
-        $('#movementPaymentNumber').val(service1.paymentNumber)
-        $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
-        $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
-        $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
-        $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
-        if(service2){
-            $('#movement2Service').val(service2.services)
-            $('#movement2PaymentType').val(service2.paymentType)
-            $('#movement2PaymentNumber').val(service2.paymentNumber)
-            $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
-            $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
-            $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
-            $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
-        }
-        /////////////////////////
         $('#movementObservation').val(container.movements[movementID].observation)
 
         $('#movementDriverRUT').on('keyup', function () {
@@ -638,15 +640,35 @@ $('#optionModMovement').on('click', async function () {
         
         $('#saveMovement').on('click', async function () {
 
-            let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
-            let total = parseInt(net) + parseInt(iva)
-
             let movement = $('#movementType').val()
 
             if($('#movementCrane').val()!=0 && $('#movementCrane').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0){
                 movement = 'INGRESADO'
             }
+
+            //Servicios
+            let services = []
+            $("#tableServicesBody > tr").each(function() {
+                let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                let iva = Math.round(net * 0.19)
+                let total = parseInt(net) + parseInt(iva)
+                
+                if(!$.isNumeric(net)){
+                    net = 0
+                    iva = 0
+                    total = 0
+                }
+
+                services.push({
+                    services: $($($(this).children()[0]).children()[0]).val(),
+                    paymentType: $($($(this).children()[1]).children()[0]).val(),
+                    paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                    paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                    paymentNet: net,
+                    paymentIVA: iva,
+                    paymentTotal: total,
+                })
+            })
 
             let movementData = {
                 id: internals.dataRowSelected.id,
@@ -670,30 +692,10 @@ $('#optionModMovement').on('click', async function () {
                 driverPlate: $('#movementDriverPlate').val(),
                 driverGuide: $('#movementDriverGuide').val(),
                 driverSeal: $('#movementDriverSeal').val(),
-                services: $('#movementService').val(),
-                paymentType: $('#movementPaymentType').val(),
-                paymentNumber: $('#movementPaymentNumber').val(),
-                paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-                paymentNet: net,
-                paymentIVA: iva,
-                paymentTotal: total,
+                services: services,
                 observation: $('#movementObservation').val()
             }
-            
-            if($('#movement2Service').val()){
-                let net2 = parseInt(replaceAll($('#movement2PaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-                let iva2 = Math.round(net2 * 0.19)
-                let total2 = parseInt(net2) + parseInt(iva2)
-
-                movementData.services2 = $('#movementService').val()
-                movementData.payment2Type = $('#movementPaymentType').val()
-                movementData.payment2Number = $('#movementPaymentNumber').val()
-                movementData.payment2Advance = $('#movementPaymentAdvance').is(":checked")
-                movementData.payment2Net = net2
-                movementData.payment2IVA = iva2
-                movementData.payment2Total = total2
-            }
-
+            console.log('update',movementData)
             const res = validateMovementData(movementData)
             if(res.ok){
                 let saveMovement = await axios.post('/api/movementUpdate', res.ok)
@@ -712,16 +714,15 @@ $('#optionModMovement').on('click', async function () {
                     $('#modal_title').html(`Error`)
                     $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
                 }
-                $('#modal').modal('show');
+                $('#modal').modal('show')
             }
         })
 
     }else if(container.movements[movementID].movement=='TRASPASO'){
 
-        $('#movementsModal').modal('show');
+        $('#movementsModal').modal('show')
         $('#modalMov_title').html(`Modifica Traspaso`)
         $('#modalMov_body').html(createModalBody('TRASPASO'))
-        setServiceList('TRASPASO', 1)
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -780,16 +781,9 @@ $('#optionModMovement').on('click', async function () {
         $('#movementDriverOutGuide').val(container.movements[movementID].driverOutGuide)
 
         /////////SERVICIOS/////////
-        let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
 
-        $('#movementService').val(service1.services)
-        $('#movementPaymentType').val(service1.paymentType)
-        $('#movementPaymentNumber').val(service1.paymentNumber)
-        $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
-        $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
-        $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
-        $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
-        /////////////////////////
+        setServiceList('TRASPASO', container.services)
+
 
         $('#movementObservation').val(container.movements[movementID].observation)
 
@@ -864,7 +858,7 @@ $('#optionModMovement').on('click', async function () {
                     $('#modal_title').html(`Error`)
                     $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
                 }
-                $('#modal').modal('show');
+                $('#modal').modal('show')
             }
         })
         
@@ -877,16 +871,12 @@ $('#optionCloseMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
-    $('#movementsModal').modal('show');
+    $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Dar Salida`)
     $('#modalMov_body').html(createModalBody())
-    let service2 = container.services.slice().reverse().find(x => x.serviceNumber===2)
-    if(service2){
-        setServiceList('ALL', 2)
-    }else{
-        setServiceList('ALL', 1)
-    }
 
+    setServiceList('ALL', container.services)
+    
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
             <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
@@ -919,36 +909,36 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-    /////////SERVICIOS/////////
-    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-    //let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-
-    $('#movementService').val(service1.services)
-    $('#movementPaymentType').val(service1.paymentType)
-    $('#movementPaymentNumber').val(service1.paymentNumber)
-    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
-    if(service2){
-        $('#movement2Service').val(service2.services)
-        $('#movement2PaymentType').val(service2.paymentType)
-        $('#movement2PaymentNumber').val(service2.paymentNumber)
-        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
-        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
-        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
-        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
-    }
-    /////////////////////////
+    
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classOut").prop('disabled',true)
 
     
     $('#saveMovement').on('click', async function () {
-        let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = Math.round(net * 0.19)
-        let total = parseInt(net) + parseInt(iva)
+        //Servicios
+        let services = []
+        $("#tableServicesBody > tr").each(function() {
+            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = Math.round(net * 0.19)
+            let total = parseInt(net) + parseInt(iva)
+            
+            if(!$.isNumeric(net)){
+                net = 0
+                iva = 0
+                total = 0
+            }
+
+            services.push({
+                services: $($($(this).children()[0]).children()[0]).val(),
+                paymentType: $($($(this).children()[1]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                paymentNet: net,
+                paymentIVA: iva,
+                paymentTotal: total,
+            })
+        })
 
         let movementData = {
             id: internals.dataRowSelected.id,
@@ -971,13 +961,7 @@ $('#optionCloseMovement').on('click', async function () {
             driverPlate: $('#movementDriverPlate').val(),
             driverGuide: $('#movementDriverGuide').val(),
             driverSeal: $('#movementDriverSeal').val(),
-            //services: $('#movementService').val(),
-            //paymentType: $('#movementPaymentType').val(),
-            //paymentNumber: $('#movementPaymentNumber').val(),
-            paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: net,
-            paymentIVA: iva,
-            paymentTotal: total,
+            services: services,
             observation: $('#movementObservation').val()
         }
 
@@ -1000,7 +984,7 @@ $('#optionCloseMovement').on('click', async function () {
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-            $('#modal').modal('show');
+            $('#modal').modal('show')
         }
     })
 })
@@ -1012,10 +996,10 @@ $('#optionMovMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
-    $('#movementsModal').modal('show');
-    $('#modalMov_title').html(`Traslado de Container`)
+    $('#movementsModal').modal('show')
+    $('#modalMov_title').html(`Movimiento interno Container`)
     $('#modalMov_body').html(createModalBody('TRASLADO'))
-    setServiceList('ALL', 1)
+    setServiceList('ALL', container.services)
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -1054,27 +1038,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
-    /////////SERVICIOS/////////
-    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-    let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-
-    $('#movementService').val(service1.services)
-    $('#movementPaymentType').val(service1.paymentType)
-    $('#movementPaymentNumber').val(service1.paymentNumber)
-    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
-    if(service2){
-        $('#movement2Service').val(service2.services)
-        $('#movement2PaymentType').val(service2.paymentType)
-        $('#movement2PaymentNumber').val(service2.paymentNumber)
-        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
-        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
-        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
-        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
-    }
-    /////////////////////////
+   
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classMove").prop('disabled',true)
@@ -1112,7 +1076,7 @@ $('#optionMovMovement').on('click', async function () {
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
         }
-        $('#modal').modal('show');
+        $('#modal').modal('show')
     })
 })
 
@@ -1123,10 +1087,10 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
-    $('#movementsModal').modal('show');
+    $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Desconsolidado de Container`)
     $('#modalMov_body').html(createModalBody('DESCONSOLIDADO'))
-    setServiceList('DESCONSOLIDADO', 2)
+    setServiceList('DESCONSOLIDADO', container.services)
     setPositionList()
 
     $("#btnMap").css('display','none')
@@ -1167,43 +1131,39 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
 
-    /////////SERVICIOS/////////
-    let service1 = container.services.slice().reverse().find(x => x.serviceNumber===1)
-    //let service2 = container.services.slice().reverse().find(x => x.serviceNumber===1) NO APLICA
-    $('#movementService').val(service1.services)
-    $('#movementPaymentType').val(service1.paymentType)
-    $('#movementPaymentNumber').val(service1.paymentNumber)
-    $('#movementPaymentAdvance').prop('checked',service1.paymentAdvance)
-    $('#movementPaymentNet').val(`$ ${dot_separators(service1.paymentNet)}`)
-    $('#movementPaymentIVA').val(`$ ${dot_separators(service1.paymentIVA)}`)
-    $('#movementPaymentTotal').val(`$ ${dot_separators(service1.paymentTotal)}`)
-    
-    /*NO APLICA
-    if(service2){
-        $('#movement2Service').val(service2.services)
-        $('#movement2PaymentType').val(service2.paymentType)
-        $('#movement2PaymentNumber').val(service2.paymentNumber)
-        $('#movement2PaymentAdvance').prop('checked',service2.paymentAdvance)
-        $('#movement2PaymentNet').val(`$ ${dot_separators(service2.paymentNet)}`)
-        $('#movement2PaymentIVA').val(`$ ${dot_separators(service2.paymentIVA)}`)
-        $('#movement2PaymentTotal').val(`$ ${dot_separators(service2.paymentTotal)}`)
-    }*/
-    /////////////////////////
     $('#movementObservation').val(container.movements[movementID].observation)
 
-    updatePayment('2',$('#movement2Service')) //Obtiene valor por defecto de desconsolidado
+    updatePayment($($($('#tableServicesBody').children().last()).children()[0]).children()[0]) //Obtiene valor por defecto de desconsolidado
 
     $(".classMove").prop('disabled',true)
     $(".classPayment").prop('disabled',false)
     $(".classDeconsolidated").prop('disabled',false)
     
     $('#saveMovement').on('click', async function () {
-        let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = Math.round(net * 0.19)
-        let total = parseInt(net) + parseInt(iva)
-        let net2 = parseInt(replaceAll($('#movement2PaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva2 = Math.round(net2 * 0.19)
-        let total2 = parseInt(net2) + parseInt(iva2)
+
+        //Servicios
+        let services = []
+        $("#tableServicesBody > tr").each(function() {
+            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = Math.round(net * 0.19)
+            let total = parseInt(net) + parseInt(iva)
+            
+            if(!$.isNumeric(net)){
+                net = 0
+                iva = 0
+                total = 0
+            }
+
+            services.push({
+                services: $($($(this).children()[0]).children()[0]).val(),
+                paymentType: $($($(this).children()[1]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                paymentNet: net,
+                paymentIVA: iva,
+                paymentTotal: total,
+            })
+        })
 
         let movementData = {
             id: internals.dataRowSelected.id,
@@ -1221,20 +1181,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             driverPlate: $('#movementDriverPlate').val(),
             driverGuide: $('#movementDriverGuide').val(),
             driverSeal: $('#movementDriverSeal').val(),
-            services: $('#movementService').val(),
-            paymentType: $('#movementPaymentType').val(),
-            paymentNumber: $('#movementPaymentNumber').val(),
-            paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: net,
-            paymentIVA: iva,
-            paymentTotal: total,
-            services2: $('#movement2Service').val(),
-            payment2Type: $('#movement2PaymentType').val(),
-            payment2Number: $('#movement2PaymentNumber').val(),
-            payment2Advance: $('#movement2PaymentAdvance').is(":checked"),
-            payment2Net: net2,
-            payment2IVA: iva2,
-            payment2Total: total2,
+            services: services,
             observation: $('#movementObservation').val()
         }
         
@@ -1255,15 +1202,15 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
         }
-        $('#modal').modal('show');
+        $('#modal').modal('show')
     })
 })
 
 $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
-    $('#movementsModal').modal('show');
+    $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Ingreso de Traspaso`)
     $('#modalMov_body').html(createModalBody('TRASPASO'))
-    setServiceList('TRASPASO', 1)
+    setServiceList('TRASPASO')
     
     $('#modalMov_footer').html(`
         <button class="btn btn-dark" data-dismiss="modal">
@@ -1278,12 +1225,12 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
     $('#movementType').val('TRASPASO')
     $('#movementType').prop('disabled',true)
 
-    var element = document.getElementById('movementContainerNumber');
+    var element = document.getElementById('movementContainerNumber')
     var maskOptions = {
         mask: 'aaaa-000000-0000',
         lazy: false //shows placeholder
     };
-    var mask = IMask(element, maskOptions);
+    var mask = IMask(element, maskOptions)
 
     $('#movementDriverRUT').on('keyup', function () {
         let rut = validateRut($(this).val())
@@ -1300,7 +1247,8 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             getDriver(rut,true)
         }
     })
-    updatePayment('',$('#movementService')) //Obtiene valor por defecto de traspaso
+    updatePayment($($($('#tableServicesBody').children().last()).children()[0]).children()[0]) //Obtiene valor por defecto de desconsolidado
+
     
 
     $('.classStacker').attr('disabled',true)
@@ -1316,12 +1264,32 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
 
     $('#saveMovement').on('click', async function () {
 
-        let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = Math.round(net * 0.19)
-        let total = parseInt(net) + parseInt(iva)
-
         let movement = $('#movementType').val()
-    
+
+        //Servicios
+        let services = []
+        $("#tableServicesBody > tr").each(function() {
+            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = Math.round(net * 0.19)
+            let total = parseInt(net) + parseInt(iva)
+            
+            if(!$.isNumeric(net)){
+                net = 0
+                iva = 0
+                total = 0
+            }
+
+            services.push({
+                services: $($($(this).children()[0]).children()[0]).val(),
+                paymentType: $($($(this).children()[1]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                paymentNet: net,
+                paymentIVA: iva,
+                paymentTotal: total,
+            })
+        })
+
         let movementData = {
             movement: movement,
             datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
@@ -1331,12 +1299,6 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             containerTexture: $('#imgTexture').val(),
             containerLarge: $('#movementContainerLarge').val(),
             cranes: $('#movementCrane').val(),
-            /*sites: $('#movementSite').val(),
-            position: {
-                row: $('#movementPositionRow').val(),
-                position: parseInt($('#movementPositionPosition').val()),
-                level: parseInt($('#movementPositionLevel').val())
-            },*/
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
@@ -1346,13 +1308,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             driverOutName: $('#movementDriverOutName').val(),
             driverOutPlate: $('#movementDriverOutPlate').val(),
             driverOutGuide: $('#movementDriverOutGuide').val(),
-            services: $('#movementService').val(),
-            paymentType: $('#movementPaymentType').val(),
-            paymentNumber: $('#movementPaymentNumber').val(),
-            paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-            paymentNet: net,
-            paymentIVA: iva,
-            paymentTotal: total,
+            services: services,
             observation: $('#movementObservation').val()
         }
 
@@ -1374,7 +1330,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-            $('#modal').modal('show');
+            $('#modal').modal('show')
         }
 
     })
@@ -1430,53 +1386,28 @@ function validateMovementData(movementData) {
             $('#movementDriverPlate').css('border', '1px solid #CED4DA')
         }
 
-        if(movementData.services=='0'){
+        if(movementData.services.find(x => x.services === '0')){
             errorMessage += '<br>Servicio'
             $('#movementService').css('border', '1px solid #E74C3C')
         }else{
             $('#movementService').css('border', '1px solid #CED4DA')
         }
-        if(movementData.paymentType=='0'){
+        if(movementData.services.find(x => x.paymentType === '0')){
             errorMessage += '<br>Medio de Pago'
             $('#movementPaymentType').css('border', '1px solid #E74C3C')
         }else{
             $('#movementPaymentType').css('border', '1px solid #CED4DA')
         }
 
-
-        if(movementData.services2){
-            if(movementData.services2=='0'){
-                errorMessage += '<br>Servicio'
-                $('#movementService2').css('border', '1px solid #E74C3C')
-            }else{
-                $('#movementService2').css('border', '1px solid #CED4DA')
-            }
-            if(movementData.payment2Type=='0'){
-                errorMessage += '<br>Medio de Pago'
-                $('#movement2PaymentType').css('border', '1px solid #E74C3C')
-            }else{
-                $('#movement2PaymentType').css('border', '1px solid #CED4DA')
-            }
-        }
-
-        if(movementData.paymentNet){
-            if(!$.isNumeric(movementData.paymentNet)){
-                movementData.paymentNet = 0
-                movementData.paymentIVA = 0
-                movementData.paymentTotal = 0
-            }
-        }
-        
-
         if (errorMessage.length===0) {
             return { ok: movementData }
             //resolve({ ok: movementData })
         } else {
             $(document).on('hidden.bs.modal', '.modal', function () { //Soluciona problema de scroll
-                $('.modal:visible').length && $(document.body).addClass('modal-open');
-           });
+                $('.modal:visible').length && $(document.body).addClass('modal-open')
+           })
 
-            $('#modal').modal('show');
+            $('#modal').modal('show')
             $('#modal_title').html(`Error al almacenar Ingreso`)
             $('#modal_body').html(`<h5 class="alert-heading">Falta ingresar los siguientes datos:</h5>
                                         <p class="mb-0">${errorMessage}</p>`)
@@ -1491,18 +1422,7 @@ function createModalBody(type){
     let body = `
     <div class="row">
 
-        <div class="col-md-8">
-            <h5>DATOS GENERALES</h5>
-            <button class="btn btn-primary" onclick="testing()">Rellenar</button>
-        </div>
-
-        <div class="col-md-2">
-            <button id="btnMap" class="btn btn-success" onclick="showMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i>Ver en Mapa</button>
-        </div>
-        <div class="col-md-2">
-            <button id="btnHistory" class="btn btn-primary" onclick="showHistory()">Historial Mov.</button>
-        </div>
-        <div class="col-md-2">
+        <div class="col-md-2" style="display: none;">
             Movimiento
             <select id="movementType" class="custom-select classMove">
                 <option value="POR INGRESAR">POR INGRESAR</option>
@@ -1514,385 +1434,434 @@ function createModalBody(type){
                 <option value="DESCONSOLIDADO">DESCONSOLIDADO</option>
             </select>
         </div>
-        <div class="col-md-2">
-            Fecha
-            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
-        </div>
-        <div class="col-md-2">
-            Hora
-            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
-        </div>
-        <div class="col-md-5">
-            Cliente
-            <select id="movementClient" class="custom-select classOut classMove">
-                <option value="0">SELECCIONE...</option>
-                ${                      
-                    clients.reduce((acc,el)=>{
-                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                        return acc
-                    },'')
-                }
-            </select>
-        </div>
-        <div class="col-md-1">
-            <br/>
-            <button class="btn btn-dark classOut classMove" onclick="selectClient()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
-        </div>
 
-        <div class="col-md-12">
-            <br/>
-            <h5>DATOS CONTAINER</h5>
+
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>DATOS GENERALES</h6>
+                            <button class="btn btn-primary" onclick="testing()">Rellenar</button>
+                        </div>
+
+                        <div class="col-md-4">
+                            <button id="btnMap" class="btn btn-success" onclick="showMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i>Ver en Mapa</button>
+                        </div>
+                        <div class="col-md-4">
+                            <button id="btnHistory" class="btn btn-primary" onclick="showHistory()">Historial Mov.</button>
+                        </div>
+
+                        <div class="col-md-5">
+                            Fecha
+                            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
+                        </div>
+                        <div class="col-md-3">
+                            Hora
+                            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
+                        </div>
+                        <div class="col-md-10">
+                            Cliente
+                            <select id="movementClient" class="custom-select classOut classMove">
+                                <option value="0">SELECCIONE...</option>
+                                ${                      
+                                    clients.reduce((acc,el)=>{
+                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <br/>
+                            <button class="btn btn-dark classOut classMove" onclick="selectClient()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+        <div class="col-md-8">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6>DATOS CONTAINER</h6>
+                        </div>
 
-        <div class="col-md-9">
-            <div class="row">
-                <div class="col-md-7">
-                    Número Container
-                    <input id="movementContainerNumber" type="text" placeholder="Ej: 126170-0" class="form-control border-input classOut classMove">
-                </div>
-                <div class="col-md-2">
-                    Largo
-                    <select id="movementContainerLarge" class="custom-select classOut classMove">
-                        <option value="20">20</option>
-                        <option value="40">40</option>
-                        <option value="40H">40H</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    Tipo
-                    <select id="movementContainerType" class="custom-select classOut classMove" onchange="changeTexture('type')">
-                        <option value="61d70f00f5ffd3251426d0a5" data-texture="cai">GENÉRICO</option>
-                        ${
-                            containerTypes.reduce((acc,el)=>{
-                                acc += '<option value="'+el._id+'" data-texture="'+el.texture+'">'+el.name+'</option>'
-                                return acc
-                            },'')
-                        }
-                    </select>
-                </div>`
-    if(type!='TRASPASO'){
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-7">
+                                    Número Container
+                                    <input id="movementContainerNumber" type="text" placeholder="Ej: 126170-0" class="form-control border-input classOut classMove">
+                                </div>
+                                <div class="col-md-2">
+                                    Largo
+                                    <select id="movementContainerLarge" class="custom-select classOut classMove">
+                                        <option value="20">20</option>
+                                        <option value="40">40</option>
+                                        <option value="40H">40H</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    Tipo
+                                    <select id="movementContainerType" class="custom-select classOut classMove" onchange="changeTexture('type')">
+                                        <option value="61d70f00f5ffd3251426d0a5" data-texture="cai">GENÉRICO</option>
+                                        ${
+                                            containerTypes.reduce((acc,el)=>{
+                                                acc += '<option value="'+el._id+'" data-texture="'+el.texture+'">'+el.name+'</option>'
+                                                return acc
+                                            },'')
+                                        }
+                                    </select>
+                                </div>`
+        if(type!='TRASPASO'){
 
-        body += `<div class="form-check col-md-2" style="text-align: center;">
-                    <br/>
-                    <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
-                    <label class="form-check-label" for="flexCheckDefault">
-                        Ingresa Stacker
-                    </label>
-                </div>
-                <div class="col-md-2">
-                    Grúa
-                    <select id="movementCrane" class="custom-select classStacker">
-                        <option value="0">SELECCIONE...</option>
-                        ${                      
-                            cranes.reduce((acc,el)=>{
-                                acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                return acc
-                            },'')
-                        }
-                    </select>
-                </div>`
-        if(type=='TRASLADO' || type=='DESCONSOLIDADO'){
-            body += `<div class="col-md-2" style="text-align: center">
-                        Paño
-                        <select id="movementSiteOld" class="custom-select classMove">
+            body += `<div class="form-check col-md-2" style="text-align: center;">
+                        <br/>
+                        <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Ingresa Stacker
+                        </label>
+                    </div>
+                    <div class="col-md-2">
+                        Grúa
+                        <select id="movementCrane" class="custom-select classStacker">
                             <option value="0">SELECCIONE...</option>
                             ${                      
-                                sites.reduce((acc,el)=>{
+                                cranes.reduce((acc,el)=>{
                                     acc += '<option value="'+el._id+'">'+el.name+'</option>'
                                     return acc
                                 },'')
                             }
-                        </select>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="col-md-2" style="text-align: center">
-                        Fila
-                        <select id="movementPositionRowOld" class="custom-select classMove">
-                            <option value="0">SEL</option>
-                        </select>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="col-md-2" style="text-align: center">
-                        Posición
-                        <select id="movementPositionPositionOld" class="custom-select classMove">
-                            <option value="0">SEL</option>   
-                        </select>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="col-md-2" style="text-align: center">
-                        Altura
-                        <select id="movementPositionLevelOld" class="custom-select classMove" style="text-align: center">
-                            <option value="0">SEL</option>  
-                        </select>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-
-                    <div class="col-md-4">
-                    </div>
-                    <div class="col-md-2">
-                        <select id="movementSite" class="custom-select classOut">
-                            <option value="0">SELECCIONE...</option>
-                            ${                      
-                                sites.reduce((acc,el)=>{
-                                    acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                    return acc
-                                },'')
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select id="movementPositionRow" class="custom-select classOut">
-                            <option value="0">SEL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select id="movementPositionPosition" class="custom-select classOut">
-                            <option value="0">SEL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select id="movementPositionLevel" class="custom-select classOut">
-                            <option value="0">SEL</option>
                         </select>
                     </div>`
+            if(type=='TRASLADO' || type=='DESCONSOLIDADO'){
+                body += `<div class="col-md-2" style="text-align: center">
+                            Paño
+                            <select id="movementSiteOld" class="custom-select classMove">
+                                <option value="0">SELECCIONE...</option>
+                                ${                      
+                                    sites.reduce((acc,el)=>{
+                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="col-md-2" style="text-align: center">
+                            Fila
+                            <select id="movementPositionRowOld" class="custom-select classMove">
+                                <option value="0">SEL</option>
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="col-md-2" style="text-align: center">
+                            Posición
+                            <select id="movementPositionPositionOld" class="custom-select classMove">
+                                <option value="0">SEL</option>   
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="col-md-2" style="text-align: center">
+                            Altura
+                            <select id="movementPositionLevelOld" class="custom-select classMove" style="text-align: center">
+                                <option value="0">SEL</option>  
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
 
-        }else{
-            body += `<div class="col-md-2">
-                        Paño
-                        <select id="movementSite" class="custom-select classOut classStacker">
-                            <option value="0">SELECCIONE...</option>
-                            ${                      
-                                sites.reduce((acc,el)=>{
-                                    acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                    return acc
-                                },'')
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        Fila
-                        <select id="movementPositionRow" class="custom-select classOut classStacker">
-                            <option value="0">SEL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        Posición
-                        <select id="movementPositionPosition" class="custom-select classOut classStacker">
-                            <option value="0">SEL</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        Altura
-                        <select id="movementPositionLevel" class="custom-select classOut classStacker">
-                            <option value="0">SEL</option>
-                        </select>
-                    </div>`
-        
-        }
-    
-        
-    }else{
-        body += `<div class="form-check col-md-2" style="text-align: center;">
-                    <br/>
-                    <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
-                    <label class="form-check-label" for="flexCheckDefault">
-                        Ingresa Stacker
-                    </label>
-                </div>
-                <div class="col-md-3">
-                    Grúa
-                    <select id="movementCrane" class="custom-select classStacker">
-                        <option value="0">SELECCIONE...</option>
-                        ${                      
-                            cranes.reduce((acc,el)=>{
-                                acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                return acc
-                            },'')
-                        }
-                    </select>
-                </div>
-                <div class="form-check col-md-7">
-                </div>`
-    }
+                        <div class="col-md-4">
+                        </div>
+                        <div class="col-md-2">
+                            <select id="movementSite" class="custom-select classOut">
+                                <option value="0">SELECCIONE...</option>
+                                ${                      
+                                    sites.reduce((acc,el)=>{
+                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="movementPositionRow" class="custom-select classOut">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="movementPositionPosition" class="custom-select classOut">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="movementPositionLevel" class="custom-select classOut">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>`
 
-    body += `</div>
-            </div>`
-
-    body += `<div class="col-md-3">
-            Color
-            <br/>
-            <button class="btn btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
-            <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="${containerTypes[0].texture}">
-
-            ${ getTextureTable(containerTypes)}
-            
-        </div>`
-        
-    if(type=='TRASPASO'){
-        body += `<div class="col-md-12">
-                    <br/ >
-                    <h5>DATOS DE CONDUCTORES</h5>
-                </div>
-                <div class="col-md-1">
-                    Conductor Entrada
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    RUT
-                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="col-md-3" style="text-align: center">
-                    Nombre
-                    <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input classMove">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    Placa Patente
-                    <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input classMove">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    Guía Despacho
-                    <input id="movementDriverGuide" type="text" placeholder="N°" class="form-control border-input classMove">
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="col-md-2">
-                    Sello Container
-                    <input id="movementDriverSeal" type="text" placeholder="N°" class="form-control border-input classMove">
-                </div>
-
-                <div class="col-md-1">
-                    Conductor Salida
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
-                </div>
-                <div class="col-md-3" style="text-align: center">
-                    <input id="movementDriverOutName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input classMove">
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    <input id="movementDriverOutPlate" type="text" placeholder="ABCD12" class="form-control border-input classMove">
-                </div>
-                <div class="col-md-2" style="text-align: center">
-                    <input id="movementDriverOutGuide" type="text" placeholder="N°" class="form-control border-input classMove">
-                </div>`
-    }else{
-        body += `<div class="col-md-12">
-                    <br/ >
-                    <h5>DATOS DE CONDUCTOR</h5>
-                </div>
-                <div class="col-md-2">
-                    RUT
-                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDeconsolidated">
-                </div>
-                <div class="col-md-3">
-                    Nombre
-                    <input id="movementDriverName" type="text" placeholder="JUANITO PEREZ" class="form-control border-input classMove classDeconsolidated">
-                </div>
-                <div class="col-md-2">
-                    Placa Patente
-                    <input id="movementDriverPlate" type="text" placeholder="ABCD12" class="form-control border-input classMove classDeconsolidated">
-                </div>
-                <div class="col-md-2">
-                    Guía Despacho
-                    <input id="movementDriverGuide" type="text" placeholder="N°" class="form-control border-input classMove classDeconsolidated">
-                </div>
-                <div class="col-md-2">
-                    Sello Container
-                    <input id="movementDriverSeal" type="text" placeholder="N°" class="form-control border-input classMove classDeconsolidated">
-                </div>`
-    }
-
-    body += `<div class="col-md-4">
-            <br/ >
-            <h5>DATOS DE PAGO</h5>
-        </div>
-        <div class="col-md-4">
-            <br/ >
-            <button class="btn btn-primary" onclick="addService()"><i class="fas fa-plus"></i> Agregar</button>
-        </div>
-        <div class="col-md-4">
-        </div>
-        <div class="form-check col-md-12 table-responsive">
-            <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0" width="100%">
-                <thead>
-                    <tr>
-                        <th>Servicio</th>
-                        <th>Medio Pago</th>
-                        <th>N° Transacción</th>
-                        <th>Anticipado</th>
-                        <th>Neto</th>
-                        <th>IVA</th>
-                        <th>TOTAL</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="tableMovementsBody">
-                    
-                </tbody>
-            </table>`
-            /*<input class="form-check-input classMove" type="checkbox" value="" id="movementPaymentAdvance">
-            <label class="form-check-label" for="flexCheckDefault">
-                PAGO ANTICIPADO
-            </label>
-        </div>
-        <div class="col-md-3">
-            Tipo de Pago
-            <select id="movementPaymentType" class="custom-select classMove classPayment">
-                <option value="0">SELECCIONAR</option>
-                <option value="EFECTIVO">EFECTIVO</option>
-                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                <option value="TRANSBANK">TRANSBANK</option>
-            </select>
-            <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
-
-        </div>
-        <div class="col-md-3">
-            Servicio`
-            if(type=='TRASPASO'){
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)" disabled>
-                    ${                      
-                        services.reduce((acc,el)=>{
-                            if(el.name=='Traspaso'){
-                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                            }
-                            return acc
-                        },'')
-                    }
-                </select>`
-            }else if(type=='DESCONSOLIDADO'){
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)" disabled>
-                    ${                      
-                        services.reduce((acc,el)=>{
-                            if(el.name=='Desconsolidado'){
-                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                            }
-                            return acc
-                        },'')
-                    }
-                </select>`
             }else{
-                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)">
-                    <option value="0" data-net="0">SELECCIONAR</option>
-                    ${                      
-                        services.reduce((acc,el)=>{
-                            if(el.name!='Traspaso'){
-                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                            }
-                            return acc
-                        },'')
-                    }
-                </select>`
+                body += `<div class="col-md-2">
+                            Paño
+                            <select id="movementSite" class="custom-select classOut classStacker">
+                                <option value="0">SELECCIONE...</option>
+                                ${                      
+                                    sites.reduce((acc,el)=>{
+                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            Fila
+                            <select id="movementPositionRow" class="custom-select classOut classStacker">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            Posición
+                            <select id="movementPositionPosition" class="custom-select classOut classStacker">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            Altura
+                            <select id="movementPositionLevel" class="custom-select classOut classStacker">
+                                <option value="0">SEL</option>
+                            </select>
+                        </div>`
+            
             }
-        body += `</div>
-        <div class="col-md-3">
-            VALOR
-            <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment()">
-            <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
-            <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
-        </div>`*/
-        body += `</div>
         
+            
+        }else{
+            body += `<div class="form-check col-md-2" style="text-align: center;">
+                        <br/>
+                        <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Ingresa Stacker
+                        </label>
+                    </div>
+                    <div class="col-md-3">
+                        Grúa
+                        <select id="movementCrane" class="custom-select classStacker">
+                            <option value="0">SELECCIONE...</option>
+                            ${                      
+                                cranes.reduce((acc,el)=>{
+                                    acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                    return acc
+                                },'')
+                            }
+                        </select>
+                    </div>
+                    <div class="form-check col-md-7">
+                    </div>`
+        }
+
+            body += `</div>
+                </div>`
+
+            body += `<div class="col-md-3">
+                    Color
+                    <br/>
+                    <button class="btn btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
+                    <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="${containerTypes[0].texture}">
+
+                    ${ getTextureTable(containerTypes)}
+                
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body">
+                <div class="row">`
+                if(type=='TRASPASO'){
+                    body += `<div class="col-md-12">
+                                <h6>DATOS DE CONDUCTORES</h6>
+                            </div>
+                            <div class="col-md-12">
+                                Conductor Entrada
+                            </div>
+                            <div class="col-md-5" style="text-align: center">
+                                RUT
+                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-7" style="text-align: center">
+                                Nombre
+                                <input id="movementDriverName" type="text" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-4" style="text-align: center">
+                                Placa Patente
+                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-4" style="text-align: center">
+                                Guía Despacho
+                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-4">
+                                Sello Container
+                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove">
+                            </div>
+
+                            <div class="col-md-12">
+                                Conductor Salida
+                            </div>
+                            <div class="col-md-5" style="text-align: center">
+                                RUT
+                                <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-7" style="text-align: center">
+                                Nombre
+                                <input id="movementDriverOutName" type="text" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-4" style="text-align: center">
+                                Placa Patente
+                                <input id="movementDriverOutPlate" type="text" class="form-control border-input classMove">
+                            </div>
+                            <div class="col-md-4" style="text-align: center">
+                                Guía Despacho
+                                <input id="movementDriverOutGuide" type="text" class="form-control border-input classMove">
+                            </div>`
+                }else{
+                    body += `<div class="col-md-12">
+                                <h6>DATOS DE CONDUCTOR</h6>
+                            </div>
+                            <div class="col-md-5">
+                                RUT
+                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDeconsolidated">
+                            </div>
+                            <div class="col-md-7">
+                                Nombre
+                                <input id="movementDriverName" type="text" class="form-control border-input classMove classDeconsolidated">
+                            </div>
+                            <div class="col-md-4">
+                                Placa Patente
+                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove classDeconsolidated">
+                            </div>
+                            <div class="col-md-4">
+                                Guía Despacho
+                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove classDeconsolidated">
+                            </div>
+                            <div class="col-md-4">
+                                Sello Container
+                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove classDeconsolidated">
+                            </div>`
+                }
+
+    body += `       </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6>DATOS DE PAGO</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <br/ >
+                            <button id="btnServicePortage" class="btn btn-info" onclick="addService(this,'PORTEO')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>
+                        </div>
+                        <div class="col-md-3">
+                            <br/ >
+                            <button id="btnServiceTransport" class="btn btn-info" onclick="addService(this,'TRANSPORTE')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>
+                        </div>
+                        <div class="col-md-3">
+                        </div>
+
+                        <div class="form-check col-md-12 table-responsive">
+                            <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Medio Pago</th>
+                                        <th>N° Transacción</th>
+                                        <th>Neto</th>
+                                        <th>IVA</th>
+                                        <th>TOTAL</th>
+                                        <th>Pago Anticipado</th>
+                                        <th>Quitar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableServicesBody">
+                                    
+                                </tbody>
+                            </table>`
+                            /*<input class="form-check-input classMove" type="checkbox" value="" id="movementPaymentAdvance">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                PAGO ANTICIPADO
+                            </label>
+                        </div>
+                        <div class="col-md-3">
+                            Tipo de Pago
+                            <select id="movementPaymentType" class="custom-select classMove classPayment">
+                                <option value="0">SELECCIONAR</option>
+                                <option value="EFECTIVO">EFECTIVO</option>
+                                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                <option value="TRANSBANK">TRANSBANK</option>
+                            </select>
+                            <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+
+                        </div>
+                        <div class="col-md-3">
+                            Servicio`
+                            if(type=='TRASPASO'){
+                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
+                                    ${                      
+                                        services.reduce((acc,el)=>{
+                                            if(el.name=='Traspaso'){
+                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                            }
+                                            return acc
+                                        },'')
+                                    }
+                                </select>`
+                            }else if(type=='DESCONSOLIDADO'){
+                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
+                                    ${                      
+                                        services.reduce((acc,el)=>{
+                                            if(el.name=='Desconsolidado'){
+                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                            }
+                                            return acc
+                                        },'')
+                                    }
+                                </select>`
+                            }else{
+                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)">
+                                    <option value="0" data-net="0">SELECCIONAR</option>
+                                    ${                      
+                                        services.reduce((acc,el)=>{
+                                            if(el.name!='Traspaso'){
+                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                            }
+                                            return acc
+                                        },'')
+                                    }
+                                </select>`
+                            }
+                        body += `</div>
+                        <div class="col-md-3">
+                            VALOR
+                            <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                            <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                            <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                        </div>`*/
+                    body += `</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
         <div class="form-group col-md-12">
             <h4 class="card-title">&nbsp;Observaciones</h4>
             <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control" rows="5"></textarea>
@@ -1903,14 +1872,19 @@ function createModalBody(type){
     return body
 }
 
-function setServiceList(type,quantity){
+function setServiceList(type,array){
 
-    $("#tableMovementsBody").append(`
+    let firstSelect = ''
+    if(type!='TRASPASO'){
+        firstSelect = '<option value="0" data-net="0">SELECCIONAR</option>'
+    }
+
+    $("#tableServicesBody").append(`
         <tr>
             <td>
-                <select id="movementService" class="custom-select classMove" onchange="updatePayment('',this)">
-                    <option value="0" data-net="0">SELECCIONAR</option>
-                    ${                      
+                <select class="custom-select classMove" onchange="updatePayment(this)">
+                    ${firstSelect}
+                    ${
                         services.reduce((acc,el)=>{
                             if(type=='ALL' || type=='DESCONSOLIDADO'){
                                 if(el.name!='Traspaso' && el.name!='Desconsolidado'){
@@ -1927,40 +1901,97 @@ function setServiceList(type,quantity){
                 </select>
             </td>
             <td>
-                <select id="movementPaymentType" class="custom-select classMove classPayment">
+                <select class="custom-select classMove classPayment">
                     <option value="0">SELECCIONAR</option>
                     <option value="EFECTIVO">EFECTIVO</option>
                     <option value="TRANSFERENCIA">TRANSFERENCIA</option>
                     <option value="TRANSBANK">TRANSBANK</option>
+                    <option value="CRÉDITO">CRÉDITO</option>
                 </select>
             </td>
             <td>
-                <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
             </td>
             <td>
-                <input id="movementPaymentAdvance" class="form-check-input classMove" type="checkbox" value="">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment('')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
             </td>
             <td>
-                <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+            </td>
+            <td style="text-align: center;">
+                <input class="form-check-input classMove" type="checkbox" value="">
             </td>
             <td>
-                <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
             </td>
-            <td>
-                Estado
-            </td>
-            
         </tr>
     `)
 
-    if(type=='DESCONSOLIDADO' || quantity==2){
-        $("#tableMovementsBody").append(`
+    if(array){
+        if(array.length>1){
+            for(let i=1; i<array.length;i++){
+
+                console.log(array[i])
+                let trClass = ''
+                if(array[i].services.name=='Porteo'){
+                    trClass = 'table-primary'
+                }else if(array[i].services.name=='Transporte'){
+                    trClass = 'table-info'
+                }
+
+                $("#tableServicesBody").append(`
+                    <tr class="${trClass}">
+                        <td>
+                            <select class="custom-select classMove" onchange="updatePayment(this)">
+                                ${
+                                    services.reduce((acc,el)=>{
+                                        if(el._id==array[i].services._id){
+                                            acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                        }
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="custom-select classMove classPayment">
+                                <option value="0">SELECCIONAR</option>
+                                <option value="EFECTIVO">EFECTIVO</option>
+                                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                <option value="TRANSBANK">TRANSBANK</option>
+                                <option value="CRÉDITO">CRÉDITO</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                        </td>
+                        <td>
+                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                        </td>
+                        <td>
+                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                        </td>
+                        <td>
+                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                        </td>
+                        <td style="text-align: center;">
+                            <input class="form-check-input classMove" type="checkbox" value="">
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
+                `)
+            }
+        }
+    }
+
+    if(type=='DESCONSOLIDADO'){
+        $("#tableServicesBody").append(`
             <tr>
                 <td>
-                    <select id="movement2Service" class="custom-select classMove classDeconsolidated" onchange="updatePayment('2',this)">
+                    <select class="custom-select classMove classDeconsolidated" onchange="updatePayment(this)">
                         ${                      
                             services.reduce((acc,el)=>{
                                 if(el.name=='Desconsolidado'){
@@ -1972,7 +2003,7 @@ function setServiceList(type,quantity){
                     </select>
                 </td>
                 <td>
-                    <select id="movement2PaymentType" class="custom-select classMove classDeconsolidated classPayment">
+                    <select class="custom-select classMove classDeconsolidated classPayment">
                         <option value="0">SELECCIONAR</option>
                         <option value="EFECTIVO">EFECTIVO</option>
                         <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -1980,28 +2011,39 @@ function setServiceList(type,quantity){
                     </select>
                 </td>
                 <td>
-                    <input id="movement2PaymentNumber" type="text" class="form-control border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
+                    <input type="text" class="form-control border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
                 </td>
                 <td>
-                    <input id="movement2PaymentAdvance" class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this)">
                 </td>
                 <td>
-                    <input id="movement2PaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment('2')">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
                 </td>
                 <td>
-                    <input id="movement2PaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                </td>
+                <td style="text-align: center;">
+                    <input class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
                 </td>
                 <td>
-                    <input id="movement2PaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
                 </td>
-                <td>
-                    Estado
-                </td>
-                
             </tr>
         `)
     }
-        
+
+    if(array){
+        for(let j=0; j<array.length;j++){
+            let row = $('#tableServicesBody').children()[j]
+            $($($(row).children()[0]).children()[0]).val(array[j].services._id)
+            $($($(row).children()[1]).children()[0]).val(array[j].paymentType)
+            $($($(row).children()[2]).children()[0]).val(array[j].paymentNumber)
+            $($($(row).children()[3]).children()[0]).val(`$ ${dot_separators(array[j].paymentNet)}`)
+            $($($(row).children()[4]).children()[0]).val(`$ ${dot_separators(array[j].paymentIVA)}`)
+            $($($(row).children()[5]).children()[0]).val(`$ ${dot_separators(array[j].paymentTotal)}`)
+            $($($(row).children()[6]).children()[0]).prop('checked',array[j].paymentAdvance)
+        }
+    }
+   
 }
 
 
@@ -2033,12 +2075,13 @@ function changeTexture(by,texture){
     }
 }
 
-async function updatePayment(number,service) {
-    if(service){
-        $('#movement'+number+'PaymentNet').val($(service).find(":selected").attr('data-net'))
+async function updatePayment(input) {
+    
+    if($($(input).children()[0]).html()){//Si se selecciona un servicio
+        $($($(input).parent().parent().children()[3]).children()[0]).val($(input).find(":selected").attr('data-net'))
     }
 
-    new Cleave('#movement'+number+'PaymentNet', {
+    new Cleave($($(input).parent().parent().children()[3]).children()[0], {
         prefix: '$ ',
         numeral: true,
         numeralThousandsGroupStyle: 'thousand',
@@ -2048,12 +2091,12 @@ async function updatePayment(number,service) {
         delimiter: "."
     })
 
-    let net = replaceAll($('#movement'+number+'PaymentNet').val(), '.', '').replace('$', '').replace(' ', '')
+    let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
     let iva = Math.round(net * 0.19)
     let total = parseInt(net) + parseInt(iva)
 
-    $('#movement'+number+'PaymentIVA').val(`$ ${dot_separators(iva)}`)
-    $('#movement'+number+'PaymentTotal').val(`$ ${dot_separators(total)}`)
+    $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
+    $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
 }
 
 
@@ -2105,7 +2148,7 @@ async function selectClient(btn) {
                     order: [[ 0, 'desc' ]],
                     ordering: true,
                     rowCallback: function( row, data ) {
-                        //$(row).find('td:eq(1)').html(dot_separators(data.value));
+                        //$(row).find('td:eq(1)').html(dot_separators(data.value))
                         if(data.status=='enabled'){
                             $(row).find('td:eq(2)').html('Habilitado')
                         }else{
@@ -2133,8 +2176,8 @@ async function selectClient(btn) {
                     if ($(this).hasClass('selected')) {
                         $(this).removeClass('selected')
                     } else {
-                        internals.clients.table.$('tr.selected').removeClass('selected');
-                        $(this).addClass('selected');
+                        internals.clients.table.$('tr.selected').removeClass('selected')
+                        $(this).addClass('selected')
                         internals.clientRowSelected = internals.clients.table.row($(this)).data()
                     }
                 })
@@ -2239,7 +2282,7 @@ async function createClient() {
                         order: [[ 0, 'desc' ]],
                         ordering: true,
                         rowCallback: function( row, data ) {
-                            //$(row).find('td:eq(1)').html(dot_separators(data.value));
+                            //$(row).find('td:eq(1)').html(dot_separators(data.value))
                             if(data.status=='enabled'){
                                 $(row).find('td:eq(2)').html('Habilitado')
                             }else{
@@ -2279,7 +2322,7 @@ async function createClient() {
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-            $('#modal').modal('show');
+            $('#modal').modal('show')
 
         }
 
@@ -2419,7 +2462,7 @@ async function showHistory(){
     let containerFull = containerFullData.data
     let movementActualID = internals.dataRowSelected.movementID
 
-    $('#extraModal').modal('show');
+    $('#extraModal').modal('show')
     $('#modalExtra_title').html(`Historial de Container`)
 
     let history = ''
@@ -2478,7 +2521,7 @@ async function showMap(){
     await getMap(selectedSiteMap)
 
 
-    $('#modalMap').modal('show');
+    $('#modalMap').modal('show')
     $('#modalMap_title').html(`Ubicación de Container`)
 
     $('#modalExtra_footer').html(`
@@ -2507,10 +2550,10 @@ async function printVoucher(type,id) {
 
     doc.setFontSize(10)
 
-    doc.addImage(logoImg, 'PNG', pdfX, pdfY, 120, 60)
+    doc.addImage(logoImg, 'PNG', 90, pdfY, 120, 60, 'center')
     pdfY += 60
-    doc.text(`DEPÓSITO CONTENEDORES DDMC LTDA.`, pdfX, pdfY + 20)
-    doc.text(`Los Aromos 451 Aguas Buenas - San Antonio`, pdfX, pdfY + 30)
+    doc.text(`DEPÓSITO CONTENEDORES DDMC LTDA.`, doc.internal.pageSize.width/2, pdfY + 20, 'center')
+    doc.text(`Los Aromos 451 Aguas Buenas - San Antonio`, doc.internal.pageSize.width/2, pdfY + 30, 'center')
 
     doc.setFontSize(12)
     doc.setFontType('bold')
@@ -2538,7 +2581,7 @@ async function printVoucher(type,id) {
     doc.text(`Guía`, pdfX, pdfY + 55)
     doc.text(`Sello`, pdfX, pdfY + 65)
     doc.text(`Conductor`, pdfX, pdfY + 75)
-    doc.text(`RUT`, pdfX, pdfY + 85)
+    doc.text(`Cliente RUT`, pdfX, pdfY + 85)
     doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 95)
     doc.text(`Ubicación`, pdfX, pdfY + 105)
 
@@ -2553,8 +2596,9 @@ async function printVoucher(type,id) {
     doc.text(voucher.driverPlate, pdfX + 75, pdfY + 45)
     doc.text(voucher.driverGuide, pdfX + 75, pdfY + 55)
     doc.text(voucher.driverSeal, pdfX + 75, pdfY + 65)
-    doc.text(voucher.clientRUT, pdfX + 75, pdfY + 75)
-    doc.text(voucher.clientName, pdfX + 75, pdfY + 85)
+    doc.text(voucher.driverName, pdfX + 75, pdfY + 75)
+    doc.text(voucher.clientRUT, pdfX + 75, pdfY + 85)
+    doc.text(voucher.clientName, pdfX + 75, pdfY + 95)
     doc.text('', pdfX + 75, pdfY + 105)
 
 
@@ -2591,26 +2635,106 @@ async function printVoucher(type,id) {
     var subtotalvar =  dot_separators(internals.newSale.total) 
     var textWidth = doc.getStringUnitWidth(subtotalvar) * doc.internal.getFontSize() / doc.internal.scaleFactor;
     var textOffset = doc.internal.pageSize.width - textWidth - 50;
-    doc.text(textOffset, pdfY + 60, subtotalvar);
+    doc.text(textOffset, pdfY + 60, subtotalvar)
 */
 
-    doc.autoPrint();
-    window.open(doc.output('bloburl'), '_blank');
+    doc.autoPrint()
+    window.open(doc.output('bloburl'), '_blank')
     //doc.save(`Nota de venta ${internals.newSale.number}.pdf`)
 }
 
-function addService(){
-    console.log('here')
+function addService(btn,type){
+
+    let trClass = ''
+    let btnService = $(btn).attr('id')
+    $(btn).attr('disabled',true)
+    if(type=='PORTEO'){
+        trClass = 'table-primary'
+    }else if(type=='TRANSPORTE'){
+        trClass = 'table-info'
+    }
+
+    /*Mapa tr servicios
+    - Servicio
+    - Medio Pago
+    - N° Transacción
+    - Neto
+    - IVA
+    - Total
+    - Anticipo
+    - Botón quitar
+    */
+
+    $("#tableServicesBody").append(`
+        <tr class="${trClass}">
+            <td>
+                <select class="custom-select classMove" onchange="updatePayment(this)">
+                    ${
+                        services.reduce((acc,el)=>{
+                            if(type=='PORTEO'){
+                                if(el.name=='Porteo'){
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                }
+                            }else if(type=='TRANSPORTE'){
+                                if(el.name=='Transporte'){
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                }
+                            }
+                            return acc
+                        },'')
+                    }
+                </select>
+            </td>
+            <td>
+                <select class="custom-select classMove classPayment">
+                    <option value="0">SELECCIONAR</option>
+                    <option value="EFECTIVO">EFECTIVO</option>
+                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                    <option value="TRANSBANK">TRANSBANK</option>
+                    <option value="CRÉDITO">CRÉDITO</option>
+                </select>
+            </td>
+            <td>
+                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+            </td>
+            <td style="text-align: center;">
+                <input class="form-check-input classMove" type="checkbox" value="">
+            </td>
+            <td>
+                <button class="btn btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Buscar Cliente"><i class="fas fa-times"></i></button>
+            </td>
+        </tr>
+    `)
+}
+
+function deleteService(btnRow, btn){
+    $(btnRow).parent().parent().remove()
+    $('#'+btn).removeAttr('disabled')
 }
 
 function testing(){
-    $('#movementClient').val('61b88ccdeb77f0bf62cb74b3')
+    let arrClient = ['61b88ccdeb77f0bf62cb74b3','61d5af56986222a3aedcf652','61e8356c6d5f012fc4920b58','61e83634605fed158ca1721a','62265580be54f73ba4a3a2ca','62265f305d41216a90857de5']
+    $('#movementClient').val(arrClient[Math.floor(Math.random() * arrClient.length)])
     //$('#movementContainerNumber').val('HASU-751000-1123')
     let arr = ['MSFU','HASU','BCLU','EUXU','PXCU','TORU']
-    
-    $('#movementContainerNumber').val(arr[Math.floor(Math.random() * arr.length)]+'-'+Math.floor(Math.random() * 1000000)+'-'+Math.floor(Math.random() * 10000));
-    $('#imgTexture').prop('src','/public/img/textures/cai.jpg')
-    $('#imgTexture').val('cai')
+    $('#movementContainerNumber').val(arr[Math.floor(Math.random() * arr.length)]+'-'+Math.floor(Math.random() * 1000000)+'-'+Math.floor(Math.random() * 10))
+
+    let arrContainerType = ['61d70f00f5ffd3251426d0a5','61d5b2df986222a3aedcf657','61d5b339986222a3aedcf659','61d5b33e986222a3aedcf65a','61d5b341986222a3aedcf65b','61d5b37d986222a3aedcf65c']
+    $('#movementContainerType').val(arrContainerType[Math.floor(Math.random() * arrContainerType.length)])
+
+    let arrTexture = ['cai','hp','ma','blu','gre','blu']
+    let texture = arrTexture[Math.floor(Math.random() * arrTexture.length)]
+    $('#imgTexture').prop('src','/public/img/textures/'+texture+'.jpg')
+    $('#imgTexture').val(texture)
     //$('#movementCrane').val('61d5e3abf5ffd3251426d08e')
     //$('#movementSite').val('61d5e360f5ffd3251426d08a')
     //$('#movementPositionRow').val('B')
@@ -2619,9 +2743,9 @@ function testing(){
     $('#movementDriverRUT').val('6-K')
     $('#movementDriverName').val('KEN BLOCK')
     $('#movementDriverPlate').val('FJDJ67')
-    $('#movementDriverGuide').val('0')
-    $('#movementDriverSeal').val('0')
+    $('#movementDriverGuide').val(Math.floor(Math.random() * 1000))
+    $('#movementDriverSeal').val(Math.floor(Math.random() * 10000))
     $('#movementPaymentType').val('TRANSBANK')
     $('#movementPaymentNumber').val('AAA111')
-    //$('#movementService').val('61d867aaf5ffd3251426d0cb')
+    $('#movementService').val('61d867aaf5ffd3251426d0cb')
 }

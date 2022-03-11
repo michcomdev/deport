@@ -38,6 +38,7 @@ const containerSchema = new Schema({
     services: [{
         serviceNumber: { type: Number },
         services: { type: Schema.Types.ObjectId, ref: 'services' },
+        date: { type: Date },
         paymentType: { type: String },
         paymentNumber: { type: String },
         paymentAdvance: { type: Boolean },
