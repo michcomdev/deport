@@ -35,10 +35,17 @@
         </select>
     </div>
     <div class="col-md-2 col-xs-12">
-        Movimiento Desde - Hasta
+        Fecha Desde - Hasta
         <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input noInventory">
     </div>
-    <div class="form-check col-md-2  col-xs-12">
+    <div class="form-check col-md-1  col-xs-12">
+        <br/>
+        <input class="form-check-input" type="checkbox" value="" id="searchDateOut">
+        <label class="form-check-label" for="flexCheckDefault">
+            Filtrar por fecha salida
+        </label>
+    </div>
+    <div class="form-check col-md-1  col-xs-12">
         <br/>
         <input class="form-check-input" type="checkbox" value="" id="searchInventory">
         <label class="form-check-label" for="flexCheckDefault">
@@ -87,7 +94,9 @@
                 <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                     <thead>
                         <tr>
-                            <th>FECHA</th>
+                            <th>FECHA INGRESO</th>
+                            <th>FECHA SALIDA</th>
+                            <th>DÍAS EXTRA</th>
                             <th>ÚLT. MOVIMIENTO</th>
                             <th>ESTADO</th>
                             <th>CLIENTE</th>
@@ -118,6 +127,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="modalMov_title"></h4>
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-8">
+                        </div>
+                        <div class="col-md-2">
+                            <button id="btnMap" class="btn btn-success" onclick="showMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i>Ver en Mapa</button>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="btnHistory" class="btn btn-primary" onclick="showHistory()">Historial Mov.</button>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>

@@ -250,10 +250,13 @@ function loadMovementTable() {
             responsive: false,
             order: [[ 0, 'desc' ]],
             ordering: true,
+            columnDefs: [{targets: [0,1,2,8,11], className: 'dt-center'}],
             rowCallback: function( row, data ) {
             },
             columns: [
                 { data: 'datetime'},
+                { data: 'datetimeOut'},
+                { data: 'extraDays'},
                 { data: 'movement' },
                 { data: 'status' },
                 { data: 'client' },
@@ -333,6 +336,7 @@ async function getMovementsEnabled() {
         status: $("#searchStatus").val(),
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
+        dateOut: $("#searchDateOut").prop('checked'),
         onlyInventory: $("#searchInventory").prop('checked')
     }
 
@@ -340,7 +344,29 @@ async function getMovementsEnabled() {
     
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
+
+            el.extraDays = 0
+
+            if(Date.parse(el.datetimeOut)){
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
+                if(el.extraDays<=5){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= 5
+                }
+                el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
+            }else{
+                el.extraDays = moment().diff(moment(el.datetime), 'days')
+                if(el.extraDays<=5){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= 5
+                }
+            }
             el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
+            
+
+
             el.status = 'EN SITIO'
             if(el.movement=='SALIDA' || el.movement=='TRASPASO'){
                 el.status = 'RETIRADO'
@@ -441,9 +467,9 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total,
+                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
-        })
-        
+        })        
     
         let movementData = {
             movement: movement,
@@ -553,7 +579,7 @@ $('#optionModMovement').on('click', async function () {
 
         $('#movementsModal').modal('show')
         $('#modalMov_title').html(`Modifica Ingreso`)
-        $('#modalMov_body').html(createModalBody())
+        $('#modalMov_body').html(createModalBody(container.movements[movementID].movement))
         setServiceList('ALL', container.services)
 
         $('#modalMov_footer').html(`
@@ -621,11 +647,25 @@ $('#optionModMovement').on('click', async function () {
         }
 
         
-        $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
-        $('#movementDriverName').val(container.movements[movementID].driverName)
-        $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
-        $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
-        $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
+        if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            /*$('#movementDriverRUT').val(container.movements[movementID].driverRUT)
+            $('#movementDriverName').val(container.movements[movementID].driverName)
+            $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
+            $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
+            $('#movementDriverSeal').val(container.movements[movementID].driverSeal)*/
+
+            $('#movementDriverOutRUT').val(container.movements[movementID].driverRUT)
+            $('#movementDriverOutName').val(container.movements[movementID].driverName)
+            $('#movementDriverOutPlate').val(container.movements[movementID].driverPlate)
+            $('#movementDriverOutGuide').val(container.movements[movementID].driverGuide)
+            $('#movementDriverOutSeal').val(container.movements[movementID].driverSeal)
+        }else{
+            $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
+            $('#movementDriverName').val(container.movements[movementID].driverName)
+            $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
+            $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
+            $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
+        }
         
         $('#movementObservation').val(container.movements[movementID].observation)
 
@@ -667,6 +707,7 @@ $('#optionModMovement').on('click', async function () {
                     paymentNet: net,
                     paymentIVA: iva,
                     paymentTotal: total,
+                    date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
                 })
             })
 
@@ -806,9 +847,30 @@ $('#optionModMovement').on('click', async function () {
         
         $('#saveMovement').on('click', async function () {
 
-            let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
-            let total = parseInt(net) + parseInt(iva)
+             //Servicios
+             let services = []
+             $("#tableServicesBody > tr").each(function() {
+                 let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                 let iva = Math.round(net * 0.19)
+                 let total = parseInt(net) + parseInt(iva)
+                 
+                 if(!$.isNumeric(net)){
+                     net = 0
+                     iva = 0
+                     total = 0
+                 }
+ 
+                 services.push({
+                     services: $($($(this).children()[0]).children()[0]).val(),
+                     paymentType: $($($(this).children()[1]).children()[0]).val(),
+                     paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                     paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                     paymentNet: net,
+                     paymentIVA: iva,
+                     paymentTotal: total,
+                     date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                 })
+             })
 
             let movementData = {
                 id: internals.dataRowSelected.id,
@@ -837,6 +899,7 @@ $('#optionModMovement').on('click', async function () {
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total,
+                services: services,
                 observation: $('#movementObservation').val()
             }
 
@@ -873,7 +936,7 @@ $('#optionCloseMovement').on('click', async function () {
 
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Dar Salida`)
-    $('#modalMov_body').html(createModalBody())
+    $('#modalMov_body').html(createModalBody('POR SALIR'))
 
     setServiceList('ALL', container.services)
     
@@ -909,6 +972,9 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
+    $('.classDriverIn').prop('disabled',true)
+
+    
     
     $('#movementObservation').val(container.movements[movementID].observation)
 
@@ -937,6 +1003,7 @@ $('#optionCloseMovement').on('click', async function () {
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total,
+                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
 
@@ -956,11 +1023,11 @@ $('#optionCloseMovement').on('click', async function () {
                 position: parseInt($('#movementPositionPosition').val()),
                 level: parseInt($('#movementPositionLevel').val())
             },
-            driverRUT: $('#movementDriverRUT').val(),
-            driverName: $('#movementDriverName').val(),
-            driverPlate: $('#movementDriverPlate').val(),
-            driverGuide: $('#movementDriverGuide').val(),
-            driverSeal: $('#movementDriverSeal').val(),
+            driverRUT: $('#movementDriverOutRUT').val(),
+            driverName: $('#movementDriverOutName').val(),
+            driverPlate: $('#movementDriverOutPlate').val(),
+            driverGuide: $('#movementDriverOutGuide').val(),
+            driverSeal: $('#movementDriverOutSeal').val(),
             services: services,
             observation: $('#movementObservation').val()
         }
@@ -1162,6 +1229,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total,
+                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
 
@@ -1287,6 +1355,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total,
+                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
 
@@ -1443,13 +1512,6 @@ function createModalBody(type){
                         <div class="col-md-4">
                             <h6>DATOS GENERALES</h6>
                             <button class="btn btn-primary" onclick="testing()">Rellenar</button>
-                        </div>
-
-                        <div class="col-md-4">
-                            <button id="btnMap" class="btn btn-success" onclick="showMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i>Ver en Mapa</button>
-                        </div>
-                        <div class="col-md-4">
-                            <button id="btnHistory" class="btn btn-primary" onclick="showHistory()">Historial Mov.</button>
                         </div>
 
                         <div class="col-md-5">
@@ -1683,7 +1745,7 @@ function createModalBody(type){
         <div class="card border-primary">
             <div class="card-body">
                 <div class="row">`
-                if(type=='TRASPASO'){
+                if(type=='TRASPASO' || type=='POR SALIR' || type=='SALIDA'){
                     body += `<div class="col-md-12">
                                 <h6>DATOS DE CONDUCTORES</h6>
                             </div>
@@ -1692,26 +1754,27 @@ function createModalBody(type){
                             </div>
                             <div class="col-md-5" style="text-align: center">
                                 RUT
-                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
+                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-7" style="text-align: center">
                                 Nombre
-                                <input id="movementDriverName" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverName" type="text" class="form-control border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Placa Patente
-                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Guía Despacho
-                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-4">
                                 Sello Container
-                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove classDriverIn">
                             </div>
 
                             <div class="col-md-12">
+                                <br/>
                                 Conductor Salida
                             </div>
                             <div class="col-md-5" style="text-align: center">
@@ -1730,6 +1793,13 @@ function createModalBody(type){
                                 Guía Despacho
                                 <input id="movementDriverOutGuide" type="text" class="form-control border-input classMove">
                             </div>`
+                    if(type=='POR SALIR' || type=='SALIDA'){
+                        body += `
+                                <div class="col-md-4">
+                                    Sello Container
+                                    <input id="movementDriverOutSeal" type="text" class="form-control border-input classMove classDriverIn">
+                                </div>`
+                    }
                 }else{
                     body += `<div class="col-md-12">
                                 <h6>DATOS DE CONDUCTOR</h6>
@@ -1756,6 +1826,8 @@ function createModalBody(type){
                             </div>`
                 }
 
+                console.log(type)
+
     body += `       </div>
                 </div>
             </div>
@@ -1769,11 +1841,11 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-3">
                             <br/ >
-                            <button id="btnServicePortage" class="btn btn-info" onclick="addService(this,'PORTEO')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA') ? '<button id="btnServicePortage" class="btn btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
                         </div>
                         <div class="col-md-3">
                             <br/ >
-                            <button id="btnServiceTransport" class="btn btn-info" onclick="addService(this,'TRANSPORTE')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA') ? '<button id="btnServiceTransport" class="btn btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
                         </div>
                         <div class="col-md-3">
                         </div>
@@ -1789,6 +1861,7 @@ function createModalBody(type){
                                         <th>IVA</th>
                                         <th>TOTAL</th>
                                         <th>Pago Anticipado</th>
+                                        <th>Fecha Pago</th>
                                         <th>Quitar</th>
                                     </tr>
                                 </thead>
@@ -1916,13 +1989,16 @@ function setServiceList(type,array){
                 <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
             </td>
             <td style="text-align: center;">
                 <input class="form-check-input classMove" type="checkbox" value="">
+            </td>
+            <td style="text-align: center;">
+                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
             </td>
             <td>
             </td>
@@ -1971,13 +2047,16 @@ function setServiceList(type,array){
                             <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
                         </td>
                         <td>
-                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
                         </td>
                         <td>
                             <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
                         </td>
                         <td style="text-align: center;">
                             <input class="form-check-input classMove" type="checkbox" value="">
+                        </td>
+                        <td style="text-align: center;">
+                            <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
                         </td>
                         <td>
                         </td>
@@ -2017,7 +2096,7 @@ function setServiceList(type,array){
                     <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this)">
                 </td>
                 <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this,'iva')">
                 </td>
                 <td>
                     <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
@@ -2025,11 +2104,27 @@ function setServiceList(type,array){
                 <td style="text-align: center;">
                     <input class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
                 </td>
+                <td style="text-align: center;">
+                    <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+                </td>
                 <td>
                 </td>
             </tr>
         `)
     }
+
+    
+    $('.classServiceDate').daterangepicker({
+        opens: 'left',
+        locale: dateRangePickerDefaultLocale,
+        singleDatePicker: true,
+        autoApply: true
+    }, function(start, end, label) {
+        //internals.initDate = start.format('YYYY-MM-DD')
+        //internals.endDate = end.format('YYYY-MM-DD')
+    })
+
+    console.log(array)
 
     if(array){
         for(let j=0; j<array.length;j++){
@@ -2041,11 +2136,12 @@ function setServiceList(type,array){
             $($($(row).children()[4]).children()[0]).val(`$ ${dot_separators(array[j].paymentIVA)}`)
             $($($(row).children()[5]).children()[0]).val(`$ ${dot_separators(array[j].paymentTotal)}`)
             $($($(row).children()[6]).children()[0]).prop('checked',array[j].paymentAdvance)
+            if(array[j].date){
+                $($($(row).children()[7]).children()[0]).val(moment.utc(array[j].date).format('DD/MM/YYYY'))
+            }
         }
     }
-   
 }
-
 
 
 function getTextureTable(containerTypes){
@@ -2075,7 +2171,7 @@ function changeTexture(by,texture){
     }
 }
 
-async function updatePayment(input) {
+async function updatePayment(input,iva) {
     
     if($($(input).children()[0]).html()){//Si se selecciona un servicio
         $($($(input).parent().parent().children()[3]).children()[0]).val($(input).find(":selected").attr('data-net'))
@@ -2091,12 +2187,21 @@ async function updatePayment(input) {
         delimiter: "."
     })
 
-    let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
-    let iva = Math.round(net * 0.19)
-    let total = parseInt(net) + parseInt(iva)
+    if(!iva){
+        let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let iva = Math.round(net * 0.19)
+        let total = parseInt(net) + parseInt(iva)
 
-    $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
-    $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
+        $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
+        $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
+    }else{
+        let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let iva = replaceAll($($($(input).parent().parent().children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let total = parseInt(net) + parseInt(iva)
+
+        $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
+        $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
+    }
 }
 
 
@@ -2538,6 +2643,8 @@ async function printVoucher(type,id) {
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
     let voucher = movement.data
 
+    console.log('voucher',voucher)
+
     //TESTING//
     if(!voucher.driverGuide) voucher.driverGuide='0'
     if(!voucher.driverSeal) voucher.driverSeal='0'
@@ -2582,8 +2689,11 @@ async function printVoucher(type,id) {
     doc.text(`Sello`, pdfX, pdfY + 65)
     doc.text(`Conductor`, pdfX, pdfY + 75)
     doc.text(`Cliente RUT`, pdfX, pdfY + 85)
+    doc.text(`Cliente`, pdfX, pdfY + 95)
+    doc.setFontType('bold')
     doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 95)
-    doc.text(`Ubicación`, pdfX, pdfY + 105)
+    doc.setFontType('normal')
+    //doc.text(`Ubicación`, pdfX, pdfY + 105)
 
     doc.text(voucher.containerLarge, pdfX + 75, pdfY + 15)
     doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 75, pdfY + 25)
@@ -2598,8 +2708,10 @@ async function printVoucher(type,id) {
     doc.text(voucher.driverSeal, pdfX + 75, pdfY + 65)
     doc.text(voucher.driverName, pdfX + 75, pdfY + 75)
     doc.text(voucher.clientRUT, pdfX + 75, pdfY + 85)
-    doc.text(voucher.clientName, pdfX + 75, pdfY + 95)
-    doc.text('', pdfX + 75, pdfY + 105)
+
+    
+    //doc.text(voucher.clientName.toUpperCase(), pdfX + 75, pdfY + 95)
+    //doc.text('', pdfX + 75, pdfY + 105)
 
 
     //doc.text(pdfX + 230, pdfY + 30, `Estado: ${internals.newSale.status}`, { align: 'center' }) // status right
@@ -2701,13 +2813,16 @@ function addService(btn,type){
                 <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,,'iva')">
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
             </td>
             <td style="text-align: center;">
                 <input class="form-check-input classMove" type="checkbox" value="">
+            </td>
+            <td style="text-align: center;">
+                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
             </td>
             <td>
                 <button class="btn btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Buscar Cliente"><i class="fas fa-times"></i></button>

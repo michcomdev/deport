@@ -285,12 +285,26 @@ export default [
                                 }
                             }
 
+                            let datetimeIn = '-'
+                            let datetimeOut = '-'
+                            if(el.movements[lastMov].movement=='SALIDA' || el.movements[lastMov].movement=='POR SALIR'){
+                                datetimeIn = el.movements[0].datetime //Modificar por último "ingreso"
+                                datetimeOut = el.movements[lastMov].datetime
+                            }else if(el.movements[lastMov].movement=='TRASPASO'){
+                                datetimeIn = el.movements[lastMov].datetime
+                                datetimeOut = el.movements[lastMov].datetime
+                            }else{
+                                datetimeIn = el.movements[lastMov].datetime
+                                datetimeOut = '-' //Modificar por 5 días y/o +extras
+                            }
+
                             if(status==''){
                                 if(payload.onlyInventory){
                                     if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -309,7 +323,8 @@ export default [
                                     if(el.movements[lastMov].movement=='SALIDA'){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -325,7 +340,8 @@ export default [
                                     }else{
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -346,7 +362,8 @@ export default [
                                     if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -364,7 +381,8 @@ export default [
                                     if(el.movements[lastMov].movement=='SALIDA'){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -381,7 +399,8 @@ export default [
                                     }else if(el.movements[lastMov].movement=='TRASPASO'){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -399,7 +418,8 @@ export default [
                                     if(el.movements[lastMov].movement==status){
                                         acc.push({
                                             id: el._id.toString(),
-                                            datetime: el.movements[lastMov].datetime,
+                                            datetime: datetimeIn,
+                                            datetimeOut: datetimeOut,
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
@@ -438,6 +458,7 @@ export default [
                     status: Joi.string().optional().allow(''),
                     startDate: Joi.string().required(),
                     endDate: Joi.string().required(),
+                    dateOut: Joi.boolean().required(),
                     onlyInventory: Joi.boolean().required()
                 })
             }
@@ -633,7 +654,9 @@ export default [
                         paymentAdvance: Joi.boolean().optional(),
                         paymentNet: Joi.number().allow(0).optional(),
                         paymentIVA: Joi.number().allow(0).optional(),
-                        paymentTotal: Joi.number().allow(0).optional()
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        date: Joi.string().optional().allow('')
                     })),
                     observation: Joi.string().optional().allow('')
                 })
@@ -748,7 +771,8 @@ export default [
                         paymentAdvance: Joi.boolean().optional(),
                         paymentNet: Joi.number().allow(0).optional(),
                         paymentIVA: Joi.number().allow(0).optional(),
-                        paymentTotal: Joi.number().allow(0).optional()
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        date: Joi.string().optional().allow('')
                     })),
                     observation: Joi.string().optional().allow('')
                 })
@@ -903,7 +927,8 @@ export default [
                         paymentAdvance: Joi.boolean().optional(),
                         paymentNet: Joi.number().allow(0).optional(),
                         paymentIVA: Joi.number().allow(0).optional(),
-                        paymentTotal: Joi.number().allow(0).optional()
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        date: Joi.string().optional().allow('')
                     })),
                     observation: Joi.string().optional().allow('')
                 })
@@ -940,15 +965,16 @@ export default [
                             driverOutPlate: payload.driverOutPlate,
                             driverOutGuide: payload.driverOutGuide,
                             //container.services: payload.services,
-                            paymentAdvance: payload.paymentAdvance,
-                            paymentNet: payload.paymentNet,
-                            paymentIVA: payload.paymentIVA,
-                            paymentTotal: payload.paymentTotal,
+                            //paymentAdvance: payload.paymentAdvance,
+                            //paymentNet: payload.paymentNet,
+                            //paymentIVA: payload.paymentIVA,
+                            //paymentTotal: payload.paymentTotal,
                             observation: payload.observation
                         })
 
                         if(payload.services){
-                            container.services.push({
+                            container.services = payload.services
+                            /*container.services.push({
                                 services: payload.services,
                                 paymentType: payload.paymentType,
                                 paymentNumber: payload.paymentNumber,
@@ -956,7 +982,7 @@ export default [
                                 paymentNet: payload.paymentNet,
                                 paymentIVA: payload.paymentIVA,
                                 paymentTotal: payload.paymentTotal
-                            })
+                            })*/
                         }
 
                         let lastMov = container.movements.length - 1
@@ -1000,13 +1026,24 @@ export default [
                     driverOutName: Joi.string().optional().allow(''),
                     driverOutPlate: Joi.string().optional().allow(''),
                     driverOutGuide: Joi.string().optional().allow(''),
-                    services: Joi.string().optional().allow(''),
+                    services: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        paymentType: Joi.string().optional().allow(''),
+                        paymentNumber: Joi.string().optional().allow(''),
+                        paymentAdvance: Joi.boolean().optional(),
+                        paymentNet: Joi.number().allow(0).optional(),
+                        paymentIVA: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        date: Joi.string().optional().allow('')
+                    })),
+                    /*services: Joi.string().optional().allow(''),
                     paymentType: Joi.string().optional().allow(''),
                     paymentNumber: Joi.string().optional().allow(''),
                     paymentAdvance: Joi.boolean().optional(),
                     paymentNet: Joi.number().allow(0).optional(),
                     paymentIVA: Joi.number().allow(0).optional(),
-                    paymentTotal: Joi.number().allow(0).optional(),
+                    paymentTotal: Joi.number().allow(0).optional(),*/
                     observation: Joi.string().optional().allow('')
                 })
             }

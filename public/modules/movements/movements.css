@@ -216,3 +216,19 @@
 .modal .modal-body {
     overflow-y: auto;
 }
+
+#tableServices {
+    font-size: 13px;
+}
+
+#movementsModal input{
+    font-size: 13px;
+}
+
+#movementsModal select{
+    font-size: 13px;
+}
+
+#tableMovements {
+    font-size: 13px;
+}
