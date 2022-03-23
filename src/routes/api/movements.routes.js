@@ -1,4 +1,5 @@
 import Containers from '../../models/Containers'
+import Parameters from '../../models/Parameters'
 //import Client from '../../models/Client'
 import ContainerTypes from '../../models/ContainerTypes'
 import Drivers from '../../models/Drivers'
@@ -483,12 +484,25 @@ export default [
                         clientRUT: container.clients.rut,
                         clientName: container.clients.name
                     }
+                    if(container.numberIn){
+                        movement.numberIn = container.numberIn
+                    }
+                    if(container.numberOut){
+                        movement.numberOut = container.numberOut
+                    }
+                    if(container.transferIn){
+                        movement.transferIn = container.transferIn
+                    }
+                    if(container.transferOut){
+                        movement.transferOut = container.transferOut
+                    }
 
                     for(let i=0;i<container.movements.length;i++){
                         let mov = container.movements[i]
                         if(payload.type=='in'){
                             if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
                                 movement.datetimeIn = mov.datetime
+                                movement.driverRUT = mov.driverRUT
                                 movement.driverPlate = mov.driverPlate
                                 movement.driverGuide = mov.driverGuide
                                 movement.driverSeal = mov.driverSeal
@@ -499,6 +513,7 @@ export default [
                                 movement.datetimeIn = mov.datetime
                             }else if(mov.movement=='POR SALIR' || mov.movement=='SALIDA'){
                                 movement.datetimeOut = mov.datetime
+                                movement.driverRUT = mov.driverRUT
                                 movement.driverPlate = mov.driverPlate
                                 movement.driverGuide = mov.driverGuide
                                 movement.driverSeal = mov.driverSeal
@@ -507,6 +522,7 @@ export default [
 
                         }else if(payload.type=='transferIn'){
                             movement.datetimeOut = mov.datetime
+                            movement.driverRUT = mov.driverRUT
                             movement.driverPlate = mov.driverPlate
                             movement.driverGuide = mov.driverGuide
                             movement.driverSeal = mov.driverSeal
@@ -514,6 +530,7 @@ export default [
 
                         }else if(payload.type=='transferOut'){
                             movement.datetimeOut = mov.datetime
+                            movement.driverRUT = mov.driverOutRUT
                             movement.driverPlate = mov.driverOutPlate
                             movement.driverGuide = mov.driverOutGuide
                             movement.driverSeal = mov.driverOutSeal
@@ -528,6 +545,13 @@ export default [
                     movement.net = serv.paymentNet
                     movement.iva = serv.paymentIVA
                     movement.total = serv.paymentTotal
+                    
+                    if(container.services[container.services.length-1].services.name=='Día(s) Extra'){
+                        movement.extraDayServiceNet = container.services[container.services.length-1].services.net
+                        movement.extraDayNet = container.services[container.services.length-1].paymentNet
+                        movement.extraDayIva = container.services[container.services.length-1].paymentIVA
+                        movement.extraDayTotal = container.services[container.services.length-1].paymentTotal
+                    }
                     /*for(i=0;container.services.length;i++){
                         if(type=='in'){
                             if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
@@ -580,13 +604,18 @@ export default [
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let payload = request.payload   
+                    let payload = request.payload
+
+                    let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
+                    let numberIn = parameters.numberIn
+                    
                     let movement = new Containers({
                         clients: payload.client,
                         containerNumber: payload.containerNumber,
                         containertypes: payload.containerType,
                         containerTexture: payload.containerTexture,
                         containerLarge: payload.containerLarge,
+                        numberIn: numberIn,
                         movements: [{
                             movement: payload.movement,
                             datetime: payload.datetime,
@@ -613,6 +642,9 @@ export default [
                     }
 
                     const response = await movement.save()
+
+                    parameters.numberIn++
+                    await parameters.save()
 
                     setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
 
@@ -677,8 +709,10 @@ export default [
                     let container = await Containers.findById(payload.id)
                     //let i = payload.movementID
 
+                    
                     if(container){
                         //let i = container.movements.length -1
+                        
 
                         if(payload.client){
                             container.clients = payload.client
@@ -694,6 +728,16 @@ export default [
                         }
                         if(payload.containerLarge){
                             container.containerLarge = payload.containerLarge
+                        }
+
+                        if(payload.movement == 'POR SALIR' || payload.movement == 'SALIDA'){
+                            if(!container.numberOut){
+                                let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
+                                container.numberOut = parameters.numberOut
+
+                                parameters.numberOut++
+                                await parameters.save()
+                            }
                         }
                         
                         container.movements.push({
@@ -855,12 +899,16 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload   
+
+                    let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
                     let movement = new Containers({
                         clients: payload.client,
                         containerNumber: payload.containerNumber,
                         containertypes: payload.containerType,
                         containerTexture: payload.containerTexture,
                         containerLarge: payload.containerLarge,
+                        transferIn: parameters.transferIn,
+                        transferOut: parameters.transferOut,
                         movements: [{
                             movement: payload.movement,
                             datetime: payload.datetime,
@@ -885,6 +933,10 @@ export default [
                     if(payload.cranes!=0){
                         movement.movements[0].cranes = payload.cranes
                     }
+
+                    parameters.transferIn++
+                    parameters.transferOut++
+                    await parameters.save()
 
                     const response = await movement.save()
 
@@ -1048,7 +1100,29 @@ export default [
                 })
             }
         }
-    }
+    },
+    {
+        method: 'GET',
+        path: '/api/allContainers',
+        options: {
+            auth: false,
+            description: 'get all containers data',
+            notes: 'return all data from containers',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let containers = await Containers.find().distinct('containerNumber')
+                    return containers
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            }
+        }
+    },
 ]
 
 //Almacenaje de conductor

@@ -9,6 +9,10 @@ const containerSchema = new Schema({
     containertypes: { type: Schema.Types.ObjectId, ref: 'containertypes' },
     containerTexture: { type: String },
     containerLarge: { type: String },
+    numberIn: { type: Number },
+    numberOut: { type: Number },
+    transferIn: { type: Number },
+    transferOut: { type: Number },
     movements: [{
         createdAt: { type: Date, default: Date.now()},
         movement: { type: String },

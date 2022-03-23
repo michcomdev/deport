@@ -14,6 +14,7 @@ let clients = {}
 let containerTypes = {}
 let sites = {}
 let cranes = {}
+let allContainers = []
 
 let siteMap = {}
 let selectedSiteMap = {}
@@ -22,7 +23,7 @@ $(document).ready(async function () {
     $('#searchDate').daterangepicker({
         opens: 'left',
         locale: dateRangePickerDefaultLocale,
-        startDate: moment().add(-1,'weeks')
+        startDate: moment().add(-2,'weeks')
         //endDate: moment()
     }, function(start, end, label) {
         //internals.initDate = start.format('YYYY-MM-DD')
@@ -71,6 +72,12 @@ async function getParameters() {
 
     let servicesData = await axios.get('api/services')
     services = servicesData.data
+
+    let allContainersData = await axios.get('api/allContainers')
+    allContainers = allContainersData.data.sort()
+    /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
+    autocomplete(document.getElementById("searchNumber"), allContainers)
+
 }
 
 async function setPositionList(editSite, editRow, editPosition, editLevel) {
@@ -502,17 +509,17 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             observation: $('#movementObservation').val()
         }
 
-
-        console.log(movementData)
         const res = validateMovementData(movementData)
         if(res.ok){
             let saveMovement = await axios.post('/api/movementSave', res.ok)
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
+                    printVoucher('in',saveMovement.data._id)
 
                     $('#modal_title').html(`Almacenado`)
                     $('#modal_body').html(`<h5 class="alert-heading">Contenedor almacenado correctamente</h5>`)
+
                     loadMovementTable()
                 }else{
                     $('#modal_title').html(`Error`)
@@ -581,6 +588,31 @@ $('#optionModMovement').on('click', async function () {
         $('#modalMov_title').html(`Modifica Ingreso`)
         $('#modalMov_body').html(createModalBody(container.movements[movementID].movement))
         setServiceList('ALL', container.services)
+        console.log("container",container)
+
+        if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
+
+            let extraDays = 0
+            extraDays = moment().diff(moment(container.movements[0].datetime), 'days')
+            if(extraDays<=5){
+                extraDays = 0
+            }else{
+                extraDays -= 5
+            }
+
+            setExtraDays(extraDays)
+
+        }else if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            //////MODIFICAR////
+            let extraDays = 0
+            extraDays = moment(container.movements[movementID].datetime).diff(moment(container.movements[0].datetime), 'days')
+            if(extraDays<=5){
+                extraDays = 0
+            }else{
+                extraDays -= 5
+            }
+            setExtraDays(extraDays)
+        }
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -648,11 +680,11 @@ $('#optionModMovement').on('click', async function () {
 
         
         if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
-            /*$('#movementDriverRUT').val(container.movements[movementID].driverRUT)
-            $('#movementDriverName').val(container.movements[movementID].driverName)
-            $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
-            $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
-            $('#movementDriverSeal').val(container.movements[movementID].driverSeal)*/
+            $('#movementDriverRUT').val(container.movements[0].driverRUT)
+            $('#movementDriverName').val(container.movements[0].driverName)
+            $('#movementDriverPlate').val(container.movements[0].driverPlate)
+            $('#movementDriverGuide').val(container.movements[0].driverGuide)
+            $('#movementDriverSeal').val(container.movements[0].driverSeal)
 
             $('#movementDriverOutRUT').val(container.movements[movementID].driverRUT)
             $('#movementDriverOutName').val(container.movements[movementID].driverName)
@@ -939,6 +971,17 @@ $('#optionCloseMovement').on('click', async function () {
     $('#modalMov_body').html(createModalBody('POR SALIR'))
 
     setServiceList('ALL', container.services)
+
+    let extraDays = 0
+    extraDays = moment().diff(moment(container.movements[0].datetime), 'days')
+    if(extraDays<=5){
+        extraDays = 0
+    }else{
+        extraDays -= 5
+    }
+
+    setExtraDays(extraDays)
+
     
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -953,8 +996,10 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementType').val('POR SALIR')
     $('#movementType').prop('disabled',true)
     //$('#movementType option[value="INGRESADO"]').prop('disabled',true)
-    $('#movementDate').val(moment().format('YYYY-MM-DD'))
-    $('#movementTime').val(moment().format('HH:mm'))
+    $('#movementDate').val(moment(container.movements[0].datetime).format('YYYY-MM-DD'))
+    $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
+    $('#movementOutDate').val(moment().format('YYYY-MM-DD'))
+    $('#movementOutTime').val(moment().format('HH:mm'))
     $('#movementClient').val(container.clients)
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
@@ -973,13 +1018,20 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
     $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
     $('.classDriverIn').prop('disabled',true)
-
-    
     
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classOut").prop('disabled',true)
 
+    $('#movementDriverOutRUT').on('keyup', function () {
+        let rut = validateRut($(this).val())
+        if(rut){
+            $(this).val(rut)
+            getDriver(rut,true)
+        }
+    })
+
+    let paymentType, paymentNumber, date
     
     $('#saveMovement').on('click', async function () {
         //Servicios
@@ -995,6 +1047,12 @@ $('#optionCloseMovement').on('click', async function () {
                 total = 0
             }
 
+            if(services.length==0){
+                paymentType = $($($(this).children()[1]).children()[0]).val()
+                paymentNumber = $($($(this).children()[2]).children()[0]).val()
+                date = $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+            }
+
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
                 paymentType: $($($(this).children()[1]).children()[0]).val(),
@@ -1004,6 +1062,36 @@ $('#optionCloseMovement').on('click', async function () {
                 paymentIVA: iva,
                 paymentTotal: total,
                 date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+            })
+        })
+
+        $("#tableServicesExtraBody > tr").each(function() {
+            let net = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = Math.round(net * 0.19)
+            let total = parseInt(net) + parseInt(iva)
+            
+            if(!$.isNumeric(net)){
+                net = 0
+                iva = 0
+                total = 0
+            }
+
+            
+            if($($($(this).children()[1]).children()[0]).prop('checked')){
+                paymentType = $($($(this).children()[2]).children()[0]).val()
+                paymentNumber = $($($(this).children()[3]).children()[0]).val()
+                date = $($($(this).children()[4]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+            }
+
+            services.push({
+                services: $($($(this).children()[0]).children()[1]).val(),
+                paymentType: paymentType,
+                paymentNumber: paymentNumber,
+                paymentAdvance: false,
+                paymentNet: net,
+                paymentIVA: iva,
+                paymentTotal: total,
+                date: date
             })
         })
 
@@ -1032,6 +1120,8 @@ $('#optionCloseMovement').on('click', async function () {
             observation: $('#movementObservation').val()
         }
 
+        console.log(movementData)
+        //return
 //FALTA AGREGAR ALGÚN INDICAR DE ASOCIACIÓN (PRINCIPALMENTE INGRESOS-MOVIMIENTOS)
         const res = validateMovementData(movementData)
         if(res.ok){
@@ -1039,6 +1129,7 @@ $('#optionCloseMovement').on('click', async function () {
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
+                    printVoucher('out',saveMovement.data._id)
 
                     $('#modal_title').html(`Almacenado`)
                     $('#modal_body').html(`<h5 class="alert-heading">Datos actualizados correctamente</h5>`)
@@ -1236,7 +1327,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         let movementData = {
             id: internals.dataRowSelected.id,
             movement: 'DESCONSOLIDADO',
-            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+            datetime: $('#movementOutDate').val() + ' ' + $('#movementOutTime').val(),
             cranes: $('#movementCrane').val(),
             sites: $('#movementSite').val(),
             position: {
@@ -1435,24 +1526,30 @@ function validateMovementData(movementData) {
         }else{
             $('#movementSite').css('border', '1px solid #CED4DA')
         }*/
+
+        let out = ''
+        if(movementData.movement=='POR SALIR' || movementData.movement=='SALIDA'){
+            out = 'Out'
+        }
         
         if(!validateRut(movementData.driverRUT)){
             errorMessage += '<br>RUT Chofer'
-            $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+
+            $('#movementDriver'+out+'RUT').css('border', '1px solid #E74C3C')
         }else{
-            $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+            $('#movementDriver'+out+'RUT').css('border', '1px solid #CED4DA')
         }
         if(movementData.driverName==''){
             errorMessage += '<br>Nombre Chofer'
-            $('#movementDriverName').css('border', '1px solid #E74C3C')
+            $('#movementDriver'+out+'Name').css('border', '1px solid #E74C3C')
         }else{
-            $('#movementDriverName').css('border', '1px solid #CED4DA')
+            $('#movementDriver'+out+'Name').css('border', '1px solid #CED4DA')
         }
         if(movementData.driverPlate==''){
             errorMessage += '<br>Patente Camión'
-            $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+            $('#movementDriver'+out+'Plate').css('border', '1px solid #E74C3C')
         }else{
-            $('#movementDriverPlate').css('border', '1px solid #CED4DA')
+            $('#movementDriver'+out+'Plate').css('border', '1px solid #CED4DA')
         }
 
         if(movementData.services.find(x => x.services === '0')){
@@ -1515,12 +1612,12 @@ function createModalBody(type){
                         </div>
 
                         <div class="col-md-5">
-                            Fecha
-                            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
+                            ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
+                            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}" ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
                         </div>
                         <div class="col-md-3">
-                            Hora
-                            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
+                            ${(type=='POR SALIR' || type=='SALIDA') ? 'Hora Ingreso':'Hora'}
+                            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}"  ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
                         </div>
                         <div class="col-md-10">
                             Cliente
@@ -1536,8 +1633,17 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2">
                             <br/>
-                            <button class="btn btn-dark classOut classMove" onclick="selectClient()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
                         </div>
+                        ${(type=='POR SALIR' || type=='SALIDA') ?
+                            `<div class="col-md-5">
+                                Fecha Salida
+                                <input id="movementOutDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
+                            </div>
+                            <div class="col-md-3">
+                                Hora Ingreso
+                                <input id="movementOutTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
+                            </div>` : ''}
                     </div>
                 </div>
             </div>
@@ -1826,8 +1932,6 @@ function createModalBody(type){
                             </div>`
                 }
 
-                console.log(type)
-
     body += `       </div>
                 </div>
             </div>
@@ -1866,6 +1970,24 @@ function createModalBody(type){
                                     </tr>
                                 </thead>
                                 <tbody id="tableServicesBody">
+                                    
+                                </tbody>
+                            </table>
+                            
+                            <table id="tableServicesExtra" class="display nowrap table table-condensed" cellspacing="0" width="100%" style="display: none;">
+                                <thead>
+                                    <tr>
+                                        <th>Días Extra</th>
+                                        <th>Pagar por separado</th>
+                                        <th class="classExtra" style="display: none;">Medio Pago</th>
+                                        <th class="classExtra" style="display: none;">N° Transacción</th>
+                                        <th class="classExtra" style="display: none;">Fecha Pago</th>
+                                        <th>Neto</th>
+                                        <th>IVA</th>
+                                        <th>TOTAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableServicesExtraBody">
                                     
                                 </tbody>
                             </table>`
@@ -2008,8 +2130,6 @@ function setServiceList(type,array){
     if(array){
         if(array.length>1){
             for(let i=1; i<array.length;i++){
-
-                console.log(array[i])
                 let trClass = ''
                 if(array[i].services.name=='Porteo'){
                     trClass = 'table-primary'
@@ -2017,51 +2137,54 @@ function setServiceList(type,array){
                     trClass = 'table-info'
                 }
 
-                $("#tableServicesBody").append(`
-                    <tr class="${trClass}">
-                        <td>
-                            <select class="custom-select classMove" onchange="updatePayment(this)">
-                                ${
-                                    services.reduce((acc,el)=>{
-                                        if(el._id==array[i].services._id){
-                                            acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                                        }
-                                        return acc
-                                    },'')
-                                }
-                            </select>
-                        </td>
-                        <td>
-                            <select class="custom-select classMove classPayment">
-                                <option value="0">SELECCIONAR</option>
-                                <option value="EFECTIVO">EFECTIVO</option>
-                                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                                <option value="TRANSBANK">TRANSBANK</option>
-                                <option value="CRÉDITO">CRÉDITO</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
-                        </td>
-                        <td>
-                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
-                        </td>
-                        <td>
-                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
-                        </td>
-                        <td>
-                            <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
-                        </td>
-                        <td style="text-align: center;">
-                            <input class="form-check-input classMove" type="checkbox" value="">
-                        </td>
-                        <td style="text-align: center;">
-                            <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
-                        </td>
-                        <td>
-                        </td>
-                    </tr>
-                `)
+                if(array[i].services.name!='Día(s) Extra'){
+
+                    $("#tableServicesBody").append(`
+                        <tr class="${trClass}">
+                            <td>
+                                <select class="custom-select classMove" onchange="updatePayment(this)">
+                                    ${
+                                        services.reduce((acc,el)=>{
+                                            if(el._id==array[i].services._id){
+                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                            }
+                                            return acc
+                                        },'')
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <select class="custom-select classMove classPayment">
+                                    <option value="0">SELECCIONAR</option>
+                                    <option value="EFECTIVO">EFECTIVO</option>
+                                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                                    <option value="TRANSBANK">TRANSBANK</option>
+                                    <option value="CRÉDITO">CRÉDITO</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                            </td>
+                            <td>
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                            </td>
+                            <td>
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                            </td>
+                            <td>
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                            </td>
+                            <td style="text-align: center;">
+                                <input class="form-check-input classMove" type="checkbox" value="">
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+                            </td>
+                            <td>
+                            </td>
+                        </tr>
+                    `)
+                }
             }
         }
     }
@@ -2124,8 +2247,6 @@ function setServiceList(type,array){
         //internals.endDate = end.format('YYYY-MM-DD')
     })
 
-    console.log(array)
-
     if(array){
         for(let j=0; j<array.length;j++){
             let row = $('#tableServicesBody').children()[j]
@@ -2143,6 +2264,88 @@ function setServiceList(type,array){
     }
 }
 
+function setExtraDays(quantity,toClose){
+
+    let disabled = 'disabled'
+    if(toClose){
+        disabled = ''
+    }
+    let net = 0
+
+
+    $("#tableServicesExtra").css('display','table')
+    
+    let extraRow = `<tr class="table-danger">
+            <td style="text-align: center;">
+                <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" ${disabled}>
+            
+                <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
+                    ${
+                        services.reduce((acc,el)=>{
+                            if(el.name=='Día(s) Extra'){
+                                net = el.net
+                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                            }
+                            return acc
+                        },'')
+                    }
+                </select>
+            </td>
+            <td style="text-align: center;">
+                <input id="chkExtra" class="form-check-input classMove" type="checkbox" value="">
+            </td>
+            <td class="classExtra" style="display: none;">
+                <select class="custom-select classMove classPayment classExtra classExtra" style="display: none;">
+                    <option value="0">SELECCIONAR</option>
+                    <option value="EFECTIVO">EFECTIVO</option>
+                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                    <option value="TRANSBANK">TRANSBANK</option>
+                    <option value="CRÉDITO">CRÉDITO</option>
+                </select>
+            </td>
+            <td class="classExtra" style="display: none;">
+                <input type="text" class="form-control border-input classMove classPayment classExtra" placeholder="N° Transacción" style="display: none;">
+            </td>
+            <td class="classExtra" style="text-align: center; display: none;">
+                <input type="text" class="form-control border-input classServiceDate classExtra" value="${moment().format('DD-MM-YYYY')}" style="display: none;">
+            </td>`
+
+    net = net*quantity
+    let iva = Math.round(net * 0.19)
+    let total = parseInt(net) + parseInt(iva)
+    
+    extraRow += `<td>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(net)}" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)" ${disabled}>
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(iva)}" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')" ${disabled}>
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(total)}" class="form-control border-input classMove classPayment" ${disabled}>
+            </td>
+
+        </tr>`
+
+    $("#tableServicesExtraBody").append(extraRow)
+
+    $('#chkExtra').change(function () {
+        if($(this).prop('checked')){
+            $('.classExtra').css('display','table-cell')
+        }else{
+            $('.classExtra').css('display','none')
+        }
+    })
+
+    $('.classServiceDate').daterangepicker({
+        opens: 'left',
+        locale: dateRangePickerDefaultLocale,
+        singleDatePicker: true,
+        autoApply: true
+    }, function(start, end, label) {
+        //internals.initDate = start.format('YYYY-MM-DD')
+        //internals.endDate = end.format('YYYY-MM-DD')
+    })
+}
 
 function getTextureTable(containerTypes){
     let table = '<table id="tableTextures" class="collapse"><tr>'
@@ -2204,6 +2407,113 @@ async function updatePayment(input,iva) {
     }
 }
 
+async function selectClientSearch(btn) {
+    
+    let clientSelectedData = await Swal.fire({
+        title: 'Seleccione Cliente',
+        customClass: 'swal-wide',
+        html: `
+            <div style="max-height: 400px !important; overflow-y: scroll;">
+                <table id="tableSearchClients" class="display nowrap table table-condensed" cellspacing="0">
+                    <thead>
+                        <tr class="table-dark">
+                            <th>RUT</th>
+                            <th>NOMBRE</th>
+                            <th>ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableSearchClientsBody"></tbody>
+                </table>
+            </div>
+        `,
+        onBeforeOpen: () => {
+            try {
+
+                if($.fn.DataTable.isDataTable('#tableSearchClients')){
+                    internals.clients.table.clear().destroy()
+                }
+                internals.clients.table = $('#tableSearchClients')
+                .DataTable( {
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'excel'
+                    ],
+                    iDisplayLength: 50,
+                    oLanguage: {
+                        sSearch: 'Buscar: '
+                    },
+                    lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
+                    language: {
+                        url: spanishDataTableLang
+                    },
+                    responsive: false,
+                    columnDefs: [//{targets: [1], className: 'dt-right'},
+                                {targets: [0], className: 'dt-center'}],
+                    order: [[ 0, 'desc' ]],
+                    ordering: true,
+                    rowCallback: function( row, data ) {
+                        //$(row).find('td:eq(1)').html(dot_separators(data.value))
+                        if(data.status=='enabled'){
+                            $(row).find('td:eq(2)').html('Habilitado')
+                        }else{
+                            $(row).find('td:eq(2)').html('Deshabilitado')
+                        }
+                    },
+                    columns: [
+                        { data: 'rut' },
+                        { data: 'name' },
+                        { data: 'status' }
+                    ],
+                    initComplete: function (settings, json) {
+                        getClients()
+                    }
+                })
+        
+                $('#tableSearchClients tbody').off("click")
+        
+                $('#tableSearchClients tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected')
+                    } else {
+                        internals.clients.table.$('tr.selected').removeClass('selected')
+                        $(this).addClass('selected')
+                        internals.clientRowSelected = internals.clients.table.row($(this)).data()
+                    }
+                })
+
+            } catch (error) {
+                loadingHandler('stop')
+
+                console.log(error)
+            }
+        },
+        preConfirm: async () => {
+            try {
+                let clientSelected = internals.clientRowSelected
+
+                if (clientSelected) {
+                    return {
+                        ...clientSelected
+                    }
+                }
+
+                throw new Error('Debe seleccionar un cliente')
+            } catch (error) {
+                Swal.showValidationMessage(error)
+            }
+        },
+        showCloseButton: true,
+        showCancelButton: true,
+        showConfirmButton: true,
+        focusConfirm: false,
+        confirmButtonText: 'Seleccionar',
+        cancelButtonText: 'Cancelar'
+    })
+
+    if (clientSelectedData.value) {
+        $('#searchClient').val(clientSelectedData.value._id)
+    }
+}
 
 async function selectClient(btn) {
     
@@ -2625,7 +2935,6 @@ async function showMap(){
     
     await getMap(selectedSiteMap)
 
-
     $('#modalMap').modal('show')
     $('#modalMap_title').html(`Ubicación de Container`)
 
@@ -2664,75 +2973,116 @@ async function printVoucher(type,id) {
 
     doc.setFontSize(12)
     doc.setFontType('bold')
+
     if(type=="in"){
-        doc.text(`INGRESO N°: ------`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        doc.text(`INGRESO N°: ${(voucher.numberIn) ? (voucher.numberIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
     }else if(type=="out"){
-        doc.text(`SALIDA N°: ------`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        doc.text(`SALIDA N°: ${(voucher.numberOut) ? (voucher.numberOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
     }else if(type=="transferIn"){
-        doc.text(`ENTRADA TRASPASO N°: ------`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        doc.text(`ENTRADA TRASPASO N°: ${(voucher.transferIn) ? (voucher.transferIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
     }else if(type=="transferOut"){
-        doc.text(`SALIDA TRASPASO N°: ------`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        doc.text(`SALIDA TRASPASO N°: ${(voucher.transferOut) ? (voucher.transferOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
     }
 
-    pdfY += 65
+    pdfY += 72
 
-    doc.text(voucher.containerNumber, pdfX + 75, pdfY + 2)
+    doc.text(voucher.containerNumber, pdfX + 80, pdfY + 2)
 
     doc.setFontSize(10)
     doc.setFontType('normal')
     doc.text(`Contenedor`, pdfX, pdfY)
     doc.text(`Tipo`, pdfX, pdfY + 15)
-    doc.text(`Llegada`, pdfX, pdfY + 25)
-    doc.text(`Salida`, pdfX, pdfY + 35)
-    doc.text(`Tracto`, pdfX, pdfY + 45)
-    doc.text(`Guía`, pdfX, pdfY + 55)
-    doc.text(`Sello`, pdfX, pdfY + 65)
-    doc.text(`Conductor`, pdfX, pdfY + 75)
-    doc.text(`Cliente RUT`, pdfX, pdfY + 85)
-    doc.text(`Cliente`, pdfX, pdfY + 95)
+    doc.text(`Llegada`, pdfX, pdfY + 27)
+    doc.text(`Salida`, pdfX, pdfY + 39)
+    doc.text(`Tracto`, pdfX, pdfY + 51)
+    doc.text(`Guía`, pdfX, pdfY + 63)
+    doc.text(`Sello`, pdfX, pdfY + 75)
+    doc.text(`Conductor RUT`, pdfX, pdfY + 87)
+    doc.text(`Conductor`, pdfX, pdfY + 99)
+    doc.text(`Cliente RUT`, pdfX, pdfY + 111)
+    //doc.text(`Cliente`, pdfX, pdfY + 95)
     doc.setFontType('bold')
-    doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 95)
+    doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 127)
     doc.setFontType('normal')
     //doc.text(`Ubicación`, pdfX, pdfY + 105)
 
-    doc.text(voucher.containerLarge, pdfX + 75, pdfY + 15)
-    doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 75, pdfY + 25)
+    doc.text(voucher.containerLarge, pdfX + 80, pdfY + 15)
+    doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 80, pdfY + 27)
     if(type=="in"){
-        doc.text('-', pdfX + 75, pdfY + 35)
+        doc.text('-', pdfX + 80, pdfY + 35)
     }else{
-        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 75, pdfY + 35)
+        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 80, pdfY + 39)
     }
     
-    doc.text(voucher.driverPlate, pdfX + 75, pdfY + 45)
-    doc.text(voucher.driverGuide, pdfX + 75, pdfY + 55)
-    doc.text(voucher.driverSeal, pdfX + 75, pdfY + 65)
-    doc.text(voucher.driverName, pdfX + 75, pdfY + 75)
-    doc.text(voucher.clientRUT, pdfX + 75, pdfY + 85)
+    doc.text(voucher.driverPlate, pdfX + 80, pdfY + 51)
+    doc.text(voucher.driverGuide, pdfX + 80, pdfY + 63)
+    doc.text(voucher.driverSeal, pdfX + 80, pdfY + 75)
+    doc.text(voucher.driverRUT, pdfX + 80, pdfY + 87)
+    doc.text(voucher.driverName, pdfX + 80, pdfY + 99)
+    doc.text(voucher.clientRUT, pdfX + 80, pdfY + 111)
 
     
-    //doc.text(voucher.clientName.toUpperCase(), pdfX + 75, pdfY + 95)
-    //doc.text('', pdfX + 75, pdfY + 105)
+    //doc.text(voucher.clientName.toUpperCase(), pdfX + 80, pdfY + 95)
+    //doc.text('', pdfX + 80, pdfY + 105)
 
 
     //doc.text(pdfX + 230, pdfY + 30, `Estado: ${internals.newSale.status}`, { align: 'center' }) // status right
     //doc.text(pdfX + 230, pdfY + 45, `Fecha: ${moment(auxHourPdf).format('DD/MM/YYYY HH:mm')}`, { align: 'center' }) // creationDate right
-    pdfY += 115
+    pdfY += 139
 
     doc.setLineWidth(0.5)
     doc.line(pdfX, pdfY, pdfX + 220, pdfY)
 
-    
-    doc.text(`NETO`, pdfX, pdfY + 25)
-    doc.text(`IVA`, pdfX, pdfY + 35)
-    doc.text(`TOTAL`, pdfX, pdfY + 45)
+    if(!voucher.extraDayNet || type=="in"){
+        doc.text(`NETO`, pdfX, pdfY + 27)
+        doc.text(`IVA`, pdfX, pdfY + 39)
+        doc.setFontType('bold')
+        doc.text(`TOTAL`, pdfX, pdfY + 51)
+        doc.setFontType('normal')
 
-    doc.text(voucher.service, pdfX, pdfY + 15)
-    doc.text(dot_separators(voucher.net), pdfX + 150, pdfY + 25, 'right')
-    doc.text(dot_separators(voucher.iva), pdfX + 150, pdfY + 35, 'right')
-    //doc.text(pdfX + 100, pdfY + 45, dot_separators(voucher.total), 'right')
-    doc.text(dot_separators(voucher.total), pdfX + 150, pdfY + 45, 'right')
+        doc.text(`$`, pdfX + 150, pdfY + 27)
+        doc.text(`$`, pdfX + 150, pdfY + 39)
+        doc.setFontType('bold')
+        doc.text(`$`, pdfX + 150, pdfY + 51)
+        doc.setFontType('normal')
 
-    pdfY += 55
+        doc.text(voucher.service, pdfX, pdfY + 15)
+        doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
+        doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 39, 'right')
+        doc.setFontType('bold')
+        doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 51, 'right')
+        doc.setFontType('normal')
+        pdfY += 63
+
+    }else{
+
+        let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn), 'days')-5
+
+        doc.text(`NETO`, pdfX, pdfY + 27)
+        doc.text(`DÍAS EXTRA (${extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 39)
+        doc.text(`IVA`, pdfX, pdfY + 51)
+        doc.setFontType('bold')
+        doc.text(`TOTAL`, pdfX, pdfY + 63)
+        doc.setFontType('normal')
+
+
+        doc.text(`$`, pdfX + 150, pdfY + 27)
+        doc.text(`$`, pdfX + 150, pdfY + 39)
+        doc.text(`$`, pdfX + 150, pdfY + 51)
+        doc.setFontType('bold')
+        doc.text(`$`, pdfX + 150, pdfY + 63)
+        doc.setFontType('normal')
+
+        doc.text(voucher.service, pdfX, pdfY + 15)
+        doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
+        doc.text(dot_separators(voucher.extraDayNet), pdfX + 210, pdfY + 39, 'right')
+        doc.text(dot_separators(voucher.iva+voucher.extraDayIva), pdfX + 210, pdfY + 51, 'right')
+        doc.setFontType('bold')
+        doc.text(dot_separators(voucher.total+voucher.extraDayTotal), pdfX + 210, pdfY + 63, 'right')
+        doc.setFontType('normal')
+        pdfY += 75
+    }
+
 
     doc.setLineWidth(0.5)
     doc.line(pdfX, pdfY, pdfX + 220, pdfY)
@@ -2765,17 +3115,6 @@ function addService(btn,type){
     }else if(type=='TRANSPORTE'){
         trClass = 'table-info'
     }
-
-    /*Mapa tr servicios
-    - Servicio
-    - Medio Pago
-    - N° Transacción
-    - Neto
-    - IVA
-    - Total
-    - Anticipo
-    - Botón quitar
-    */
 
     $("#tableServicesBody").append(`
         <tr class="${trClass}">
@@ -2834,6 +3173,104 @@ function addService(btn,type){
 function deleteService(btnRow, btn){
     $(btnRow).parent().parent().remove()
     $('#'+btn).removeAttr('disabled')
+}
+
+
+function autocomplete(inp, arr) {
+    /*the autocomplete function takes two arguments,
+    the text field element and an array of possible autocompleted values:*/
+    var currentFocus;
+    /*execute a function when someone writes in the text field:*/
+    inp.addEventListener("input", function(e) {
+        var a, b, i, val = this.value;
+        /*close any already open lists of autocompleted values*/
+        closeAllLists();
+        if (!val) { return false;}
+        currentFocus = -1;
+        /*create a DIV element that will contain the items (values):*/
+        a = document.createElement("DIV");
+        a.setAttribute("id", this.id + "autocomplete-list");
+        a.setAttribute("class", "autocomplete-items");
+        /*append the DIV element as a child of the autocomplete container:*/
+        this.parentNode.appendChild(a);
+        /*for each item in the array...*/
+        for (i = 0; i < arr.length; i++) {
+          /*check if the item starts with the same letters as the text field value:*/
+          if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+            /*create a DIV element for each matching element:*/
+            b = document.createElement("DIV");
+            /*make the matching letters bold:*/
+            b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+            b.innerHTML += arr[i].substr(val.length);
+            /*insert a input field that will hold the current array item's value:*/
+            b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+            /*execute a function when someone clicks on the item value (DIV element):*/
+            b.addEventListener("click", function(e) {
+                /*insert the value for the autocomplete text field:*/
+                inp.value = this.getElementsByTagName("input")[0].value;
+                /*close the list of autocompleted values,
+                (or any other open lists of autocompleted values:*/
+                closeAllLists();
+            });
+            a.appendChild(b);
+          }
+        }
+    });
+    /*execute a function presses a key on the keyboard:*/
+    inp.addEventListener("keydown", function(e) {
+        var x = document.getElementById(this.id + "autocomplete-list");
+        if (x) x = x.getElementsByTagName("div");
+        if (e.keyCode == 40) {
+          /*If the arrow DOWN key is pressed,
+          increase the currentFocus variable:*/
+          currentFocus++;
+          /*and and make the current item more visible:*/
+          addActive(x);
+        } else if (e.keyCode == 38) { //up
+          /*If the arrow UP key is pressed,
+          decrease the currentFocus variable:*/
+          currentFocus--;
+          /*and and make the current item more visible:*/
+          addActive(x);
+        } else if (e.keyCode == 13) {
+          /*If the ENTER key is pressed, prevent the form from being submitted,*/
+          e.preventDefault();
+          if (currentFocus > -1) {
+            /*and simulate a click on the "active" item:*/
+            if (x) x[currentFocus].click();
+          }
+        }
+    });
+    function addActive(x) {
+      /*a function to classify an item as "active":*/
+      if (!x) return false;
+      /*start by removing the "active" class on all items:*/
+      removeActive(x);
+      if (currentFocus >= x.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = (x.length - 1);
+      /*add class "autocomplete-active":*/
+      x[currentFocus].classList.add("autocomplete-active");
+    }
+    function removeActive(x) {
+      /*a function to remove the "active" class from all autocomplete items:*/
+      for (var i = 0; i < x.length; i++) {
+        x[i].classList.remove("autocomplete-active");
+      }
+    }
+    function closeAllLists(elmnt) {
+      /*close all autocomplete lists in the document,
+      except the one passed as an argument:*/
+      var x = document.getElementsByClassName("autocomplete-items");
+      for (var i = 0; i < x.length; i++) {
+        if (elmnt != x[i] && elmnt != inp) {
+          x[i].parentNode.removeChild(x[i]);
+        }
+      }
+    }
+    /*execute a function when someone clicks in the document:*/
+    document.addEventListener("click", function (e) {
+        closeAllLists(e.target);
+    });
 }
 
 function testing(){

@@ -8,16 +8,27 @@
 <br>
 
 <div class="row">
-    <div class="col-md-2 col-xs-12">
+    <div class="col-md-1 col-xs-12">
         Cliente
         <select id="searchClient" class="custom-select">
             <option value="">TODOS</option>
         </select>
     </div>
+    <div class="col-md-1">
+        <br/>
+        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+    </div>
     <div class="col-md-2 col-xs-12">
         Número Container
-        <input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">
+        <!--<input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">-->
+        <form autocomplete="off" action="/action_page.php">
+            <div class="autocomplete" style="width:300px;">
+              <input id="searchNumber" type="text" class="form-control border-input">
+            </div>
+          </form>
     </div>
+
+    
     <div class="col-md-2 col-xs-12">
         Estado / Últ. Movimiento
         <select id="searchStatus" class="custom-select noInventory">
