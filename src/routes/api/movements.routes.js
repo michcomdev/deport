@@ -317,7 +317,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate
+                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            services: el.services
                                         })
                                     }
                                 }else{
@@ -336,7 +337,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov-1].driverName,
-                                            driverPlate: el.movements[lastMov-1].driverPlate
+                                            driverPlate: el.movements[lastMov-1].driverPlate,
+                                            services: el.services
                                         })
                                     }else{
                                         acc.push({
@@ -354,7 +356,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate
+                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            services: el.services
                                         })
                                     }
                                 }
@@ -375,7 +378,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate
+                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            services: el.services
                                         })
                                     }
                                 }else if(status=='RETIRADO'){
@@ -394,7 +398,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov-1].driverName,
-                                            driverPlate: el.movements[lastMov-1].driverPlate
+                                            driverPlate: el.movements[lastMov-1].driverPlate,
+                                            services: el.services
                                         })
 
                                     }else if(el.movements[lastMov].movement=='TRASPASO'){
@@ -412,7 +417,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate
+                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            services: el.services
                                         })
                                     }
                                 }else{
@@ -431,7 +437,8 @@ export default [
                                             site: site,
                                             position: position,
                                             driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate
+                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            services: el.services
                                         })
                                     }
                                 }
@@ -742,7 +749,8 @@ export default [
                         
                         container.movements.push({
                             movement: payload.movement,
-                            datetime: Date.now(), //payload.datetime,
+                            datetime: payload.datetime,
+                            //datetime: Date.now(), //payload.datetime,
                             position: payload.position,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,

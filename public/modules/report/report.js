@@ -7,6 +7,10 @@ let internals = {
         table: {},
         data: []
     },
+    clients: {
+        table: {},
+        data: []
+    },
     dataRowSelected: {}
 }
 
@@ -68,49 +72,81 @@ async function getParameters() {
 
 function chargeMovementTable() {
 
-    if($.fn.DataTable.isDataTable('#tableInventory')){
-        internals.movements.table.clear().destroy()
-    }
-
     try {
-        internals.movements.table = $('#tableInventory')
-        .DataTable( {
+        if($.fn.DataTable.isDataTable('#tableMovements')){
+            internals.movements.table.clear().destroy()
+        }
+        $.fn.dataTable.moment('DD/MM/YYYY HH:mm') //Se utiliza plugin datetime-moment para datatables
+
+        internals.movements.table = $('#tableMovements')
+        .DataTable({
             dom: 'Bfrtip',
-            buttons: [
-                'excel'
-            ],
+            buttons: ['excel'],
             iDisplayLength: 50,
             oLanguage: {
-              sSearch: 'Buscar: '
-            },
-            language: {
-                url: spanishDataTableLang
+                sSearch: 'Buscar: '
             },
             responsive: false,
             order: [[ 0, 'desc' ]],
             ordering: true,
+            columnDefs: [{targets: [0,1,3,4,5,6,7,8,11,12], className: 'dt-center'}],
             rowCallback: function( row, data ) {
-          },
-          columns: [
-            { data: 'datetime' },
-            { data: 'movement' },
-            //{ data: 'client' },
-            //{ data: 'containerInitials' },
-            { data: 'containerNumber' },
-            { data: 'containerType' },
-            { data: 'containerLarge' },
-            //{ data: 'position' },
-            //{ data: 'driverName' },
-            //{ data: 'driverPlate' }
-          ],
-          initComplete: function (settings, json) {
-            getMovementsEnabled()
-          }
+            },
+            columns: [
+                { data: 'datetime'},
+                { data: 'datetimeOut'},
+                { data: 'containerNumber' },
+                { data: 'storage' },
+                { data: 'extraDays'},
+                { data: 'deconsolidated',
+                    render: function (data,type,row) {
+                        if (data == true) {
+                            return '<input type="checkbox" onclick="return false" checked>'
+                        } else {
+                            return '<input type="checkbox" onclick="return false">'
+                        }
+                    } 
+                },
+                { data: 'transfer',
+                    render: function (data,type,row) {
+                        if (data == true) {
+                            return '<input type="checkbox" onclick="return false" checked>'
+                        } else {
+                            return '<input type="checkbox" onclick="return false">'
+                        }
+                    } 
+                },
+                { data: 'portage',
+                    render: function (data,type,row) {
+                        if (data == true) {
+                            return '<input type="checkbox" onclick="return false" checked>'
+                        } else {
+                            return '<input type="checkbox" onclick="return false">'
+                        }
+                    } 
+                },
+                { data: 'transport',
+                    render: function (data,type,row) {
+                        if (data == true) {
+                            return '<input type="checkbox" onclick="return false" checked>'
+                        } else {
+                            return '<input type="checkbox" onclick="return false">'
+                        }
+                    } 
+                },
+                { data: 'client' },
+                { data: 'containerType' },
+                { data: 'containerLarge' },
+                { data: 'containerState' }
+            ],
+            initComplete: function (settings, json) {
+                getMovementsEnabled()
+            }
         })
 
-        $('#tableInventory tbody').off("click")
+        $('#tableMovements tbody').off("click")
 
-        $('#tableInventory tbody').on('click', 'tr', function () {
+        $('#tableMovements tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected')
                 $('#optionModMovement').prop('disabled', true)
@@ -138,27 +174,81 @@ function chargeMovementTable() {
 }
 
 async function getMovementsEnabled() {
-
+    let movementData
     let query = {
+        table: true,
+        containerNumber: $("#searchNumber").val(),
         client: $("#searchClient").val(),
+        status: $("#searchStatus").val(),
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
-        endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
+        endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
+        dateOut: $("#searchDateOut").prop('checked'),
+        onlyInventory: $("#searchInventory").prop('checked')
     }
-    let movementData = await axios.post('api/reportByFilter',query)
 
+    movementData = await axios.post('api/movementsByFilter',query)
+    
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
+
+            el.extraDays = 0
+
+            if(Date.parse(el.datetimeOut)){
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
+                if(el.extraDays<=5){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= 5
+                }
+                el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
+            }else{
+                el.extraDays = moment().diff(moment(el.datetime), 'days')
+                if(el.extraDays<=5){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= 5
+                }
+            }
             el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
+            
+
+
+            el.status = 'EN SITIO'
+            if(el.movement=='SALIDA' || el.movement=='TRASPASO'){
+                el.status = 'RETIRADO'
+            }
+
+            el.storage = ''
+            el.deconsolidated = false
+            el.transfer = false
+            el.portage = false
+            el.transport = false
+
+
+            for(i=0;i<el.services.length;i++){
+                if(el.services[i].services.name=='Almacenamiento Vacío' || el.services[i].services.name=='Almacenamiento Full' || el.services[i].services.name=='Almacenamiento IMO'){
+                    el.storage = el.services[i].services.name
+                }else if(el.services[i].services.name=='Desconsolidado'){
+                    el.deconsolidated = true
+                }else if(el.services[i].services.name=='Traspaso'){
+                    el.transfer = true
+                }else if(el.services[i].services.name=='Porteo'){
+                    el.portage = true
+                }else if(el.services[i].services.name=='Transporte'){
+                    el.transport = true
+                }
+            }
+
+            console.log(el)
 
             return el
         })
 
         internals.movements.table.rows.add(formatData).draw()
-        
+        $('#loadingMovements').empty()
     } else {
-        console.log('vacio', movementData);
-        toastr.warning('No hay containers asociados')
-        
+        toastr.warning('No se han encontrado movimientos en base a filtrado')
+        $('#loadingMovements').empty()
     }
 }
 
@@ -192,12 +282,24 @@ async function loadSingleContainer(id){
                 url: spanishDataTableLang
             },
             responsive: false,
+            columnDefs: [{targets: [1,2,3], className: 'dt-center'},{targets: [4,5,6], className: 'dt-right'}],
             order: [[ 0, 'desc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
           },
           columns: [
             { data: 'service' },
+            { data: 'date' },
+            { data: 'paymentType' },
+            { data: 'paymentAdvance',
+                render: function (data,type,row) {
+                    if (data == true) {
+                        return '<input type="checkbox" onclick="return false" checked>'
+                    } else {
+                        return '<input type="checkbox" onclick="return false">'
+                    }
+                }
+            },
             { data: 'paymentNet' },
             { data: 'paymentIVA' },
             { data: 'paymentTotal' }
@@ -206,6 +308,11 @@ async function loadSingleContainer(id){
 
                 let formatData= movement.services.map(el => {
                     el.service = el.services.name
+                    el.date = moment(el.date).format('DD/MM/YYYY')
+
+                    if(el.paymentType=='0'){
+                        el.paymentType = 'N/A'
+                    }
                     return el
                 })
 
@@ -322,7 +429,7 @@ $('#optionDeleteMovement').on('click', function () {
 
                     toastr.success('{{ lang.deleteMovement.swalToastrOK }}')
 
-                    datatableInventory
+                    datatableMovements
                         .row(movementRowSelected)
                         .remove()
                         .draw()
@@ -814,6 +921,121 @@ function createModalBody(){
     </div>
 `
     return body
+}
+
+async function getClients(){
+    let clientData = await axios.get('api/clients')
+    if (clientData.data.length > 0) {
+        internals.clients.table.rows.add(clientData.data).draw()
+    }
+}
+
+async function selectClientSearch(btn) {
+    
+    let clientSelectedData = await Swal.fire({
+        title: 'Seleccione Cliente',
+        customClass: 'swal-wide',
+        html: `
+            <div style="max-height: 400px !important; overflow-y: scroll;">
+                <table id="tableSearchClients" class="display nowrap table table-condensed" cellspacing="0">
+                    <thead>
+                        <tr class="table-dark">
+                            <th>RUT</th>
+                            <th>NOMBRE</th>
+                            <th>ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableSearchClientsBody"></tbody>
+                </table>
+            </div>
+        `,
+        onBeforeOpen: () => {
+            try {
+
+                if($.fn.DataTable.isDataTable('#tableSearchClients')){
+                    internals.clients.table.clear().destroy()
+                }
+                internals.clients.table = $('#tableSearchClients')
+                .DataTable( {
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'excel'
+                    ],
+                    iDisplayLength: 50,
+                    oLanguage: {
+                        sSearch: 'Buscar: '
+                    },
+                    lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
+                    language: {
+                        url: spanishDataTableLang
+                    },
+                    responsive: false,
+                    columnDefs: [//{targets: [1], className: 'dt-right'},
+                                {targets: [0], className: 'dt-center'}],
+                    order: [[ 0, 'desc' ]],
+                    ordering: true,
+                    rowCallback: function( row, data ) {
+                        //$(row).find('td:eq(1)').html(dot_separators(data.value))
+                        if(data.status=='enabled'){
+                            $(row).find('td:eq(2)').html('Habilitado')
+                        }else{
+                            $(row).find('td:eq(2)').html('Deshabilitado')
+                        }
+                    },
+                    columns: [
+                        { data: 'rut' },
+                        { data: 'name' },
+                        { data: 'status' }
+                    ],
+                    initComplete: function (settings, json) {
+                        getClients()
+                    }
+                })
+        
+                $('#tableSearchClients tbody').off("click")
+        
+                $('#tableSearchClients tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected')
+                    } else {
+                        internals.clients.table.$('tr.selected').removeClass('selected')
+                        $(this).addClass('selected')
+                        internals.clientRowSelected = internals.clients.table.row($(this)).data()
+                    }
+                })
+
+            } catch (error) {
+                loadingHandler('stop')
+
+                console.log(error)
+            }
+        },
+        preConfirm: async () => {
+            try {
+                let clientSelected = internals.clientRowSelected
+
+                if (clientSelected) {
+                    return {
+                        ...clientSelected
+                    }
+                }
+
+                throw new Error('Debe seleccionar un cliente')
+            } catch (error) {
+                Swal.showValidationMessage(error)
+            }
+        },
+        showCloseButton: true,
+        showCancelButton: true,
+        showConfirmButton: true,
+        focusConfirm: false,
+        confirmButtonText: 'Seleccionar',
+        cancelButtonText: 'Cancelar'
+    })
+
+    if (clientSelectedData.value) {
+        $('#searchClient').val(clientSelectedData.value._id)
+    }
 }
 
 function getTextureTable(containerTypes){

@@ -9,18 +9,69 @@
 
 <div class="row">
 
-    <div class="col-md-2 col-xs-12">
+    <div class="col-md-1 col-xs-12">
         Cliente
-        <select id="searchClient" class="custom-select classOut">
+        <select id="searchClient" class="custom-select">
             <option value="">TODOS</option>
         </select>
     </div>
+    <div class="col-md-1">
+        <br/>
+        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+    </div>
     <div class="col-md-2 col-xs-12">
-        Desde - Hasta
-        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input">
+        Número Container
+        <!--<input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">-->
+        <form autocomplete="off" action="/action_page.php">
+            <div class="autocomplete">
+              <input id="searchNumber" type="text" class="form-control border-input">
+            </div>
+          </form>
     </div>
-    <div class="col-md-8 col-xs-12">
+
+    
+    <div class="col-md-2 col-xs-12">
+        Estado / Últ. Movimiento
+        <select id="searchStatus" class="custom-select noInventory">
+            <option value="TODOS">TODOS</option>
+            <option value="EN SITIO">EN SITIO</option>
+            <option value="RETIRADO">RETIRADO</option>
+            <option disabled>──────────</option>
+            <option value="POR INGRESAR">POR INGRESAR</option>
+            <option value="INGRESADO">INGRESADO</option>
+            <option value="TRASLADO">TRASLADO</option>
+            <option value="POR SALIR">POR SALIR</option>
+            <option value="SALIDA">SALIDA</option>
+            <option value="TRASPASO">TRASPASO</option>
+            <option value="DESCONSOLIDADO">DESCONSOLIDADO</option>
+        </select>
     </div>
+    <div class="col-md-2 col-xs-12">
+        Fecha Desde - Hasta
+        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input noInventory">
+    </div>
+    <div class="form-check col-md-1  col-xs-12">
+        <br/>
+        <input class="form-check-input" type="checkbox" value="" id="searchDateOut">
+        <label class="form-check-label" for="flexCheckDefault">
+            Filtrar por fecha salida
+        </label>
+    </div>
+    <div class="form-check col-md-1  col-xs-12">
+        <br/>
+        <input class="form-check-input" type="checkbox" value="" id="searchInventory">
+        <label class="form-check-label" for="flexCheckDefault">
+            Sólo en inventario
+        </label>
+    </div>
+        
+    <div class="col-md-2 col-xs-12">
+        <br>
+        <button class="btn btn-primary btn-block" id="search">
+            <i class="fas fa-search"></i> BUSCAR
+        </button>
+    </div>
+
     
     <!--<div class="col-md-2 col-xs-12">
         <br>
@@ -28,39 +79,43 @@
             <i class="fas fa-search"></i> BUSCAR
         </button>
     </div>-->
-    <div class="col-md-6" style="height:300px; overflow-y:scroll;">
-        <table id="tableInventory" class="display nowrap table table-condensed" cellspacing="0">
+    <!--<div class="col-md-12" style="height:300px; overflow-y:scroll;">-->
+    <div class="col-md-12 table-responsive">
+        <table id="tableMovements" class="display nowrap table table-condensed" cellspacing="0">
             <thead>
                 <tr>
-                    <th>FECHA</th>
-                    <th>MOVIMIENTO</th>
-                    <!--<th>N° INGRESO</th>-->
+                    <th>FECHA INGRESO</th>
+                    <th>FECHA SALIDA</th>
                     <th>CONTENEDOR</th>
+                    <th>ALMACENAJE</th>
+                    <th>DÍAS EXTRA</th>
+                    <th>DESCONSOLIDADO</th>
+                    <th>TRASPASO</th>
+                    <th>PORTEO</th>
+                    <th>TRANSPORTE</th>
+                    <th>CLIENTE</th>
                     <th>TIPO</th>
                     <th>LARGO</th>
-                    <!--<th>UBICACION</th>-->
-                    <!--<th>CONDUCTOR</th>-->
-                    <!--<th>PATENTE</th>-->
+                    <th>ESTADO</th>
                 </tr>
             </thead>
         </table>
     </div>
-    <div class="col-md-6">
-        <div class="row">
-            <div class="col-md-6">
-                Servicios aplicados al container
-                <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>SERVICIO</th>
-                            <th>NETO</th>
-                            <th>IVA</th>
-                            <th>TOTAL</th>
-                        </tr>
-                    </thead>
-                </table>
-            </div>
-        </div>
+    <div class="col-md-6 table-responsive">
+        Servicios aplicados al container
+        <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>SERVICIO</th>
+                    <th>FECHA</th>
+                    <th>MEDIO PAGO</th>
+                    <th>PAGO ANTICIPADO</th>
+                    <th>NETO</th>
+                    <th>IVA</th>
+                    <th>TOTAL</th>
+                </tr>
+            </thead>
+        </table>
     </div>
 </div>
 

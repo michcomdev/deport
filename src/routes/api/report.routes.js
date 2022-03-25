@@ -108,9 +108,7 @@ export default [
 
                     let movement = await Containers.findById(payload.id).lean().populate(['clients','sites','cranes','containertypes','services.services'])
                     
-
-
-                    let service1 = movement.services.slice().reverse().find(x => x.serviceNumber===1)
+                    /*let service1 = movement.services.slice().reverse().find(x => x.serviceNumber===1)
                     let service2 = movement.services.slice().reverse().find(x => x.serviceNumber===2)
 
                     let services = []
@@ -119,9 +117,11 @@ export default [
                     }
                     if(service2){
                         services.push(service2)
-                    }
+                    }*/
+
+
                    
-                    movement.services = services
+                    //movement.services = services
 
                     return movement
                 

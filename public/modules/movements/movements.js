@@ -302,25 +302,29 @@ function loadMovementTable() {
 
                 let movementType = internals.dataRowSelected.movement
 
-                if(movementType=='POR INGRESAR' || movementType=='INGRESADO' || movementType=='TRASLADO'){
+                if(movementType=='POR INGRESAR' || movementType=='INGRESADO' || movementType=='TRASLADO' || movementType=='DESCONSOLIDADO'){
                     $('#optionModMovement').addClass('btn-outline-success')
                     $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR')
                 }else if(movementType=='SALIDA' || movementType=='POR SALIR'){
                     $('#optionModMovement').addClass('btn-outline-primary')
                     $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR SALIDA')
-                }else if(movementType=='DESCONSOLIDADO'){
+                /*}else if(movementType=='DESCONSOLIDADO'){
                     $('#optionModMovement').addClass('btn-outline-warning')
-                    $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR DESCONSOLIDADO')
+                    $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR DESCONSOLIDADO')*/
                 }else if(movementType=='TRASPASO'){
                     $('#optionModMovement').addClass('btn-outline-primary')
                     $('#optionModMovement').html('<i class="fas fa-edit"></i> MODIFICAR TRASPASO')
                 }
 
                 $('#optionCloseMovement').prop('disabled', false)
-                if(movementType=='INGRESADO' || movementType=='TRASLADO' || movementType=='DESCONSOLIDADO'){
+                if(movementType=='INGRESADO' || movementType=='TRASLADO'){
                     $('#optionCloseMovement').prop('disabled', false)
                     $('#optionMovMovement').prop('disabled', false)
                     $('#optionDeconsolidatedMovement').prop('disabled', false)
+                }else if(movementType=='DESCONSOLIDADO'){
+                    $('#optionCloseMovement').prop('disabled', false)
+                    $('#optionMovMovement').prop('disabled', false)
+                    $('#optionDeconsolidatedMovement').prop('disabled', true)
                 }else{
                     $('#optionCloseMovement').prop('disabled', true)
                     $('#optionMovMovement').prop('disabled', true)
@@ -1327,7 +1331,8 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         let movementData = {
             id: internals.dataRowSelected.id,
             movement: 'DESCONSOLIDADO',
-            datetime: $('#movementOutDate').val() + ' ' + $('#movementOutTime').val(),
+            //datetime: $('#movementOutDate').val() + ' ' + $('#movementOutTime').val(),
+            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
             cranes: $('#movementCrane').val(),
             sites: $('#movementSite').val(),
             position: {
