@@ -1,0 +1,183 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/invoices/invoices.css">
+    <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
+{{/extend}}
+
+<h2 class="text-center">FACTURACIÓN</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">CLIENTES</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-xs-12">
+                        Cliente
+                        <select id="searchClient" class="custom-select">
+                            <option value="0">TODOS</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <br/>
+                        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                    </div>
+                    
+                    
+                    <!--<div class="form-check col-md-3  col-xs-12">
+                        <br/>
+                        <input class="form-check-input" type="checkbox" value="" id="searchDateOut">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Filtrar por fecha salida
+                        </label>
+                    </div>-->
+                        
+                    <div class="col-md-2 col-xs-12">
+                        <br>
+                        <button class="btn btn-primary btn-block" id="search">
+                            <i class="fas fa-search"></i> BUSCAR
+                        </button>
+                    </div>
+
+                    <div class="col-md-12 col-xs-12">
+                        Seleccione un cliente para mostrar sus facturas asociadas
+                    </div>
+                    <!--<div class="col-md-12" style="height:300px; overflow-y:scroll;">-->
+                    <div class="col-md-12 table-responsive">
+                        <table id="tableClientsInvoices" class="display nowrap table table-condensed" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>CLIENTE</th>
+                                    <th>TOTAL HISTÓRICO</th>
+                                    <th>TOTAL RANGO FECHAS</th>
+                                    <th>FACTURADOS</th>
+                                    <th>NO APLICA FACTURA</th>
+                                    <th>POR FACTURAR</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">FACTURAS</div>
+            <div class="card-body">
+                <div class="row">
+
+                    <div class="col-md-3 col-xs-12">
+                        <br>
+                        <button class="btn btn-success btn-block" id="addInvoice" disabled>
+                            <i class="fas fa-plus"></i> Nueva Factura
+                        </button>
+                    </div>
+                    
+                    <div class="col-md-3 col-xs-12">
+                        Número Container
+                        <form autocomplete="off" action="/action_page.php">
+                            <div class="autocomplete">
+                            <input id="searchNumber" type="text" class="form-control border-input">
+                            </div>
+                        </form>
+                    </div>
+
+                    
+                    <!--<div class="col-md-2 col-xs-12">
+                        Estado / Últ. Movimiento
+                        <select id="searchStatus" class="custom-select noInventory">
+                            <option value="TODOS">TODOS</option>
+                            <option value="EN SITIO">EN SITIO</option>
+                            <option value="RETIRADO">RETIRADO</option>
+                            <option disabled>──────────</option>
+                            <option value="POR INGRESAR">POR INGRESAR</option>
+                            <option value="INGRESADO">INGRESADO</option>
+                            <option value="TRASLADO">TRASLADO</option>
+                            <option value="POR SALIR">POR SALIR</option>
+                            <option value="SALIDA">SALIDA</option>
+                            <option value="TRASPASO">TRASPASO</option>
+                            <option value="DESCONSOLIDADO">DESCONSOLIDADO</option>
+                        </select>
+                    </div>-->
+
+                    <div class="col-md-3 col-xs-12">
+                        Fecha Desde - Hasta
+                        <input id="searchInvoiceDate" type="text" placeholder="Ej: ABC123" class="form-control border-input noInventory">
+                    </div>
+                    <!--<div class="form-check col-md-1  col-xs-12">
+                        <br/>
+                        <input class="form-check-input" type="checkbox" value="" id="searchInvoiceDateOut">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Filtrar por fecha salida
+                        </label>
+                    </div>
+                    <div class="form-check col-md-1  col-xs-12">
+                        <br/>
+                        <input class="form-check-input" type="checkbox" value="" id="searchInventory">
+                        <label class="form-check-label" for="flexCheckDefault">
+                            Sólo en inventario
+                        </label>
+                    </div>-->
+                        
+                    <div class="col-md-2 col-xs-12">
+                        <br>
+                        <button class="btn btn-primary btn-block" id="searchInvoice">
+                            <i class="fas fa-search"></i> BUSCAR
+                        </button>
+                    </div>
+                    <div class="col-md-12 table-responsive">
+                        Listado de Facturas
+                        <table id="tableInvoices" class="display nowrap table table-condensed" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>N° FACTURA</th>
+                                    <th>FECHA</th>
+                                    <th>MEDIO PAGO</th>
+                                    <th>FECHA PAGO</th>
+                                    <th>CONTAINERS</th>
+                                    <th>NETO</th>
+                                    <th>IVA</th>
+                                    <th>TOTAL</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="invoiceModal" role="dialog" aria-labelledby="modal">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalInv_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalInv_body"></div>
+            <div class="modal-footer" id="modalInv_footer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/modules/invoices/invoices.js"></script>
+{{/extend}}
