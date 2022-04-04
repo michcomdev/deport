@@ -28,6 +28,8 @@ export default [
                     for(let i=0;i<clientsInvoices.length;i++){
 
                         clientsInvoices[i].totalHistoric = 0
+                        clientsInvoices[i].totalActual = 0
+                        clientsInvoices[i].totalRetired = 0
                         clientsInvoices[i].invoiced = 0
                         clientsInvoices[i].noInvoice = 0
                         clientsInvoices[i].toInvoice = 0
@@ -35,15 +37,28 @@ export default [
                         let containers = await Containers.find({clients: clientsInvoices[i]._id}).lean()
                         if(containers){
                             clientsInvoices[i].totalHistoric = containers.length
-                            /*for(let j=0;j<containers.length;j++){
-                                clientsInvoices[i].invoiced += containers[j].containers.length
-                            }*/
+                            //if(containers.movements.find(x => (x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO') ? '' : '' )){
+                                //clientsInvoices[i].totalRetired = containers.movements.find(x => (x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO') ? '' : '' )
+                            //}
+                            for(let j=0;j<containers.length;j++){
+                                if(containers[j].movements.find(x => x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO')){
+                                    clientsInvoices[i].totalRetired++
+                                    //clientsInvoices[i].invoiced += containers[j].containers.length
+                                }else{
+                                    clientsInvoices[i].totalActual++
+
+                                }
+                            }
                         }
                         
                         let invoices = await Invoices.find({clients: clientsInvoices[i]._id}).lean()
                         if(invoices){
                             for(let k=0;k<invoices.length;k++){
-                                clientsInvoices[i].invoiced += invoices[k].containers.length
+                                if(invoices[k].type=='Factura' || invoices[k].type=='Boleta'){
+                                    clientsInvoices[i].invoiced += invoices[k].containers.length
+                                }else{
+                                    clientsInvoices[i].noInvoice += invoices[k].containers.length
+                                }
                             }
                         }
 
@@ -77,42 +92,19 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
-                    let query = {}
+                    
+                    let query = {
+                        date: {
+                            $gt: `${payload.startDate}T00:00:00.000Z`,
+                            $lt: `${payload.endDate}T23:59:59.999Z`
+                        }
+                    }
                     
                     if(payload.clients!='0'){
                         query.clients= payload.client
                     }
-
-                    let clientInvoices = await Invoices.find(query).populate(['containers.containers']).lean()
                     
-
-                    /*for(let i=0;i<clientInvoices.length;i++){
-
-                        clientInvoices[i].totalHistoric = 0
-                        clientInvoices[i].invoiced = 0
-                        clientInvoices[i].noInvoice = 0
-                        clientInvoices[i].toInvoice = 0
-                        //Lista Total
-                        console.log('clients',clientInvoices) 
-                        let containers = await Containers.find({clients: clientInvoices[i]._id}).lean()
-                        console.log('containers',containers)
-                        if(containers){
-                            clientInvoices[i].totalHistoric = containers.length
-                            for(let j=0;j<invoices.length;j++){
-                                clientInvoices[i].invoiced += invoices[j].containers.length
-                            }
-                        }
-                        
-                        let invoices = await Invoices.find({clients: clientInvoices[i]._id}).lean()
-                        if(invoices){
-                            for(let k=0;k<invoices.length;k++){
-                                clientInvoices[i].invoiced += invoices[k].containers.length
-                            }
-                        }
-
-                    }*/
-                    //Lista Por fecha
-                    //Lista de Pagadas
+                    let clientInvoices = await Invoices.find(query).populate(['containers.containers']).lean()
                     
                     return clientInvoices
                 } catch (error) {
@@ -125,7 +117,9 @@ export default [
             },
             validate: {
                 payload: Joi.object().keys({
-                    client: Joi.string().optional().allow('')
+                    client: Joi.string().optional().allow(''),
+                    startDate: Joi.string().optional().allow(''),
+                    endDate: Joi.string().optional().allow('')
                 })
             }
         }
@@ -144,6 +138,7 @@ export default [
                     if(!payload.id){
 
                         let invoice = new Invoices({
+                            type: payload.type,
                             clients: payload.clients,
                             rut: payload.rut,
                             name: payload.name,
@@ -164,6 +159,7 @@ export default [
                     }else{
 
                         let invoice = await Invoices.findById(payload.id)
+                        invoice.type = payload.type
                         invoice.clients = payload.clients
                         invoice.rut = payload.rut
                         invoice.name = payload.name
@@ -193,6 +189,7 @@ export default [
             validate: {
                 payload: Joi.object().keys({
                     id: Joi.string().optional(),
+                    type: Joi.string().optional().allow(''),
                     clients: Joi.string().optional().allow(''),
                     rut: Joi.string().optional().allow(''),
                     name: Joi.string().optional().allow(''),
@@ -224,7 +221,16 @@ export default [
                     let status = ''
 
                     var ObjectId = require('mongodb').ObjectID
-                    let invoices = await Invoices.find({clients: payload.client})
+
+                    let firstquery = {
+                        clients: payload.client
+                    }
+                    if(payload.onlyInvoice){
+                        firstquery._id = new ObjectId(payload.onlyInvoice)
+                    }
+
+
+                    let invoices = await Invoices.find(firstquery)
                     //console.log('invoices', invoices)
 
                     let arrayContainers = []
@@ -237,7 +243,6 @@ export default [
                     //let invoices = await Invoices.find({clients: new ObjectId(payload.client)})
                     
                     if(arrayContainers.length>0){
-                        console.log('here')
                         if(payload.onlyInvoice){
                             query._id = {
                                 $in : arrayContainers
@@ -497,7 +502,7 @@ export default [
                     endDate: Joi.string().required(),
                     dateOut: Joi.boolean().required(),
                     onlyInventory: Joi.boolean().required(),
-                    onlyInvoice: Joi.boolean().optional()
+                    onlyInvoice: Joi.string().optional()
                 })
             }
         }

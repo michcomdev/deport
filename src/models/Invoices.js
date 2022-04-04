@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 const Schema = mongoose.Schema
 
 const invoicesSchema = new Schema({
+    type: { type: String },
     clients: { type: Schema.Types.ObjectId, ref: 'clients' },
     rut: { type: String },
     name: { type: String },

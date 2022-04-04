@@ -36,7 +36,7 @@ $(document).ready(async function () {
         //internals.endDate = end.format('YYYY-MM-DD')
     })
 
-    $('#searchContainerDate').daterangepicker({
+    $('#searchInvoiceDate').daterangepicker({
         opens: 'left',
         locale: dateRangePickerDefaultLocale,
         startDate: moment().add(-1,'months')
@@ -50,6 +50,10 @@ $(document).ready(async function () {
 
     $("#search").on('click', function(){
         chargeClientsTable()
+    })
+
+    $("#searchInvoice").on('click', function(){
+        loadInvoices(internals.dataRowSelected._id)
     })
 })
 
@@ -87,7 +91,6 @@ async function getParameters() {
     let allContainersData = await axios.get('api/allContainers')
     allContainers = allContainersData.data.sort()
     /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
-    autocomplete(document.getElementById("searchNumber"), allContainers)
 }
 
 function chargeClientsTable() {
@@ -109,7 +112,7 @@ function chargeClientsTable() {
             responsive: false,
             order: [[ 0, 'desc' ]],
             ordering: true,
-            //columnDefs: [{targets: [0,1,3,4,5,6,7,8,11,12], className: 'dt-center'}],
+            columnDefs: [{targets: [1,2,3,4,5], className: 'dt-center'}],
             rowCallback: function( row, data ) {
             },
             columns: [
@@ -131,12 +134,12 @@ function chargeClientsTable() {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected')
                 $('#addInvoice').prop('disabled', true)
-                $('#btnSearchInvoice').prop('disabled', true)
+                $('.invoiceFilter').prop('disabled', true)
             } else {
                 internals.clientsInvoice.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 $('#addInvoice').prop('disabled', false)
-                $('#btnSearchInvoice').prop('disabled', false)
+                $('.invoiceFilter').prop('disabled', false)
                 internals.dataRowSelected = internals.clientsInvoice.table.row($(this)).data()
                 loadInvoices(internals.dataRowSelected._id)
                 //loadSingleContainer(internals.dataRowSelected.id)
@@ -195,12 +198,11 @@ async function getClientsInvoiceEnabled() {
             el.client = el.name
 
             //el.totalHistoric = el.totalHistoric
-            el.totalActual = 0
+            //el.totalActual = 0
             //el.invoiced = 0
-            el.noInvoice = 0
-            el.toInvoice = 0
-
-
+            //el.noInvoice = 0
+            el.toInvoice = el.totalRetired - el.invoiced
+            
             return el
         })
 
@@ -219,10 +221,12 @@ async function loadInvoices(id){
         }
         return
     }
-    let invoicesData = await axios.post('/api/clientInvoices', {client: id})
+    let invoicesData = await axios.post('/api/clientInvoices', {
+        client: id,
+        startDate: $("#searchInvoiceDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
+        endDate: $("#searchInvoiceDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
+    })
     let invoices = invoicesData.data
-
-    console.log(invoices)
     
     if($.fn.DataTable.isDataTable('#tableInvoices')){
         internals.invoices.table.clear().destroy()
@@ -243,12 +247,13 @@ async function loadInvoices(id){
                 url: spanishDataTableLang
             },
             responsive: false,
-            //columnDefs: [{targets: [1,2,3], className: 'dt-center'},{targets: [4,5,6], className: 'dt-right'}],
+            columnDefs: [{targets: [1,3,4,5], className: 'dt-center'},{targets: [6,7,8], className: 'dt-right'}],
             order: [[ 0, 'desc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
           },
           columns: [
+            { data: 'type' },
             { data: 'number' },
             { data: 'date' },
             { data: 'paymentType' },
@@ -285,8 +290,8 @@ async function loadInvoices(id){
                 $(this).removeClass('selected')
                 
             } else {
-                //internals.clientsInvoice.table.$('tr.selected').removeClass('selected');
-                $(this).addClass('selected');
+                internals.invoices.table.$('tr.selected').removeClass('selected')
+                $(this).addClass('selected')
                 
                 //internals.dataRowSelected = internals.clientsInvoice.table.row($(this)).data()
                 internals.dataRowSelectedInvoice = internals.invoices.table.row($(this)).data()
@@ -384,8 +389,8 @@ async function loadContainers(id,onlyInvoice){
 
     let startDate = '2000-01-01', endDate = '3000-01-01'
     if($('#searchInvoiceDateCheck').prop('checked')){
-        startDate = $("#searchInvoiceDate").data('daterangepicker').startDate.format('YYYY-MM-DD')
-        endDate = $("#searchInvoiceDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
+        startDate = $("#searchContainerInvoiceDate").data('daterangepicker').startDate.format('YYYY-MM-DD')
+        endDate = $("#searchContainerInvoiceDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
     }
 
     let movementData
@@ -397,8 +402,11 @@ async function loadContainers(id,onlyInvoice){
         startDate: startDate,
         endDate: endDate,
         dateOut: false,
-        onlyInventory: false,
-        onlyInvoice: onlyInvoice
+        onlyInventory: false
+    }
+
+    if(onlyInvoice){
+        query.onlyInvoice = onlyInvoice
     }
 
     movementData = await axios.post('api/movementsInvoiceByFilter',query)
@@ -560,6 +568,9 @@ $('#addInvoice').on('click', function () { // CREAR FACTURA
         </button>
     `)
 
+    //autocomplete(document.getElementById("searchNumber"), allContainers)
+    activateButtons()
+
     $('#invoiceRUT').val(internals.dataRowSelected.rut)
     $('#invoiceName').val(internals.dataRowSelected.nameFull)
     
@@ -589,6 +600,7 @@ $('#addInvoice').on('click', function () { // CREAR FACTURA
     }, function(start, end, label) {
     })
 
+    invoiceContainers.containersInvoice = []
     loadContainers(internals.dataRowSelected._id, false)
 
 
@@ -630,16 +642,15 @@ $('#addInvoice').on('click', function () { // CREAR FACTURA
 
     $('#saveInvoice').on('click', async function () {
 
-        console.log(internals.dataRowSelected)
-
         let invoiceData = {
             clients: internals.dataRowSelected._id,
+            type: $('#invoiceType').val(),
             rut: $('#invoiceRUT').val(),
             number: $('#invoiceNumber').val(),
             name: $('#invoiceName').val(),
-            date: $('#invoiceDate').val(),
+            date: $('#invoiceDate').data('daterangepicker').startDate.format('YYYY-MM-DD'),
             paymentType: $('#invoicePaymentType').val(),
-            paymentDate: $('#invoicePaymentDate').val(),
+            paymentDate: $('#invoicePaymentDate').data('daterangepicker').startDate.format('YYYY-MM-DD'),
             paymentNet: parseInt(replaceAll($('#invoiceNet').val(), '.', '').replace(' ', '')),
             paymentIVA: parseInt(replaceAll($('#invoiceIVA').val(), '.', '').replace(' ', '')),
             paymentTotal: parseInt(replaceAll($('#invoiceTotal').val(), '.', '').replace(' ', '')),
@@ -651,12 +662,10 @@ $('#addInvoice').on('click', function () { // CREAR FACTURA
             },[])
         }
 
-        console.log(invoiceData)
-
         const res = validateInvoiceData(invoiceData)
         if(res.ok){
             let saveMovement = await axios.post('/api/invoiceSave', res.ok)
-            console.log(saveMovement)
+            
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     loadInvoices(internals.dataRowSelected._id)
@@ -695,8 +704,10 @@ function viewInvoice() { // VER/MODIFICAR FACTURA
             <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
         </button>
     `)
-    
+    //autocomplete(document.getElementById("searchNumber"), allContainers)
+    activateButtons()
 
+    $('#invoiceType').val(internals.dataRowSelectedInvoice.type)
     $('#invoiceRUT').val(internals.dataRowSelectedInvoice.rut)
     $('#invoiceName').val(internals.dataRowSelectedInvoice.name)
     $('#invoiceNumber').val(internals.dataRowSelectedInvoice.number)
@@ -729,7 +740,7 @@ function viewInvoice() { // VER/MODIFICAR FACTURA
     })
 
     loadContainers(internals.dataRowSelectedInvoice.clients, false)
-    loadContainers(internals.dataRowSelectedInvoice.clients, true)
+    loadContainers(internals.dataRowSelectedInvoice.clients, internals.dataRowSelectedInvoice._id)
 
     $('#addContainers').on('click', async function () {
         $('#tableBodyContainers > tr').each(function(){
@@ -769,11 +780,10 @@ function viewInvoice() { // VER/MODIFICAR FACTURA
 
     $('#saveInvoice').on('click', async function () {
 
-        console.log(internals.dataRowSelectedInvoice)
-
         let invoiceData = {
             id: internals.dataRowSelectedInvoice._id,
             clients: internals.dataRowSelectedInvoice.clients,
+            type: $('#invoiceType').val(),
             rut: $('#invoiceRUT').val(),
             number: $('#invoiceNumber').val(),
             name: $('#invoiceName').val(),
@@ -790,12 +800,11 @@ function viewInvoice() { // VER/MODIFICAR FACTURA
                 return acc
             },[])
         }
-        console.log(invoiceData)
         
         const res = validateInvoiceData(invoiceData)
         if(res.ok){
             let saveMovement = await axios.post('/api/invoiceSave', res.ok)
-            console.log(saveMovement)
+
             if(saveMovement.data){
                 if(saveMovement.data._id){
 
@@ -923,19 +932,37 @@ function createModalBody(){
             Razón Social
             <input id="invoiceName" type="text" class="form-control border-input">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            Tipo Registro
+            <select id="invoiceType" class="form-control border-input">
+                <option value="Factura" selected>Factura</option>
+                <option value="Boleta">Boleta</option>
+                <option value="Sin Documento">Sin Documento</option>
+            </select>
+        </div>
+        <div class="col-md-2">
             Número Factura
             <input id="invoiceNumber" type="text" class="form-control border-input">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             Fecha
             <input id="invoiceDate" type="text" class="form-control border-input invoiceDates" value="${moment().format('DD/MM/YYYY')}">
         </div>
-        <div class="col-md-5 table-responsive">
+        <div class="col-md-12">
+            <br/>
+        </div>
+        <div class="col-md-5 table-responsive" id="divContainers" style="max-height: 590px">
             <div class="card border-primary">
                 <div class="card-body">
-                    Containers sin Facturar
                     <div class="row">
+                        <div class="col-md-8 col-xs-12">
+                            Containers sin Facturar
+                        </div>
+                        <div class="col-md-4 col-xs-12">
+                            <button class="btn btn-sm btn-secondary btn-block" id="expandContainers">
+                                <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir
+                            </button>
+                        </div>
                         <!--<div class="form-check col-md-3  col-xs-12">
                             <br/>
                             <input class="form-check-input" type="checkbox" value="" id="searchInvoiceDateCheck">
@@ -992,28 +1019,40 @@ function createModalBody(){
                 <i class="fas fa-chevron-left"></i>
             </button>
         </div>
-        <div class="col-md-6 table-responsive">
+        
+        <div class="col-md-6 table-responsive" id="divInvoiceContainers" style="max-height: 590px">
             <div class="card border-primary">
                 <div class="card-body">
-                    A Facturar
-                    <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
-                        <thead id="tableHeadContainersInvoice">
-                            <tr>
-                                <th>SEL.</th>
-                                <th>FECHA INGRESO</th>
-                                <th>FECHA SALIDA</th>
-                                <th>CONTENEDOR</th>
-                                <th>ALMACENAJE</th>
-                                <th>DÍAS EXTRA</th>
-                                <th>DESC</th>
-                                <th>TRASP</th>
-                                <th>PORTEO</th>
-                                <th>TRANSP</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBodyContainersInvoice">
-                        </tbody>
-                    </table>
+                    <div class="row">
+                        <div class="col-md-8 col-xs-12">
+                            A Facturar
+                        </div>
+                        <div class="col-md-4 col-xs-12">
+                            <button class="btn btn-sm btn-secondary btn-block" id="expandInvoiceContainers">
+                                <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir
+                            </button>
+                        </div>
+                        <div class="col-md-12 col-xs-12">
+                            <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                                <thead id="tableHeadContainersInvoice">
+                                    <tr>
+                                        <th>SEL.</th>
+                                        <th>FECHA INGRESO</th>
+                                        <th>FECHA SALIDA</th>
+                                        <th>CONTENEDOR</th>
+                                        <th>ALMACENAJE</th>
+                                        <th>DÍAS EXTRA</th>
+                                        <th>DESC</th>
+                                        <th>TRASP</th>
+                                        <th>PORTEO</th>
+                                        <th>TRANSP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBodyContainersInvoice">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1064,6 +1103,37 @@ function createModalBody(){
     </div>
 `
     return body
+}
+
+function activateButtons(){
+    $("#expandContainers").on('click', function(){
+        if($($(this).children()[0]).hasClass('fa-chevron-left')){
+            $(this).html('<i class="fas fa-chevron-right"></i><i class="fas fa-chevron-left"></i> Contraer')
+            $("#divContainers").removeClass('col-md-5 col-md-2').addClass('col-md-9')
+            $("#divInvoiceContainers").removeClass('col-md-6 col-md-9').addClass('col-md-2')
+            $("#expandInvoiceContainers").html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+        }else{
+            $(this).html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+            $("#divContainers").removeClass('col-md-9 col-md-2').addClass('col-md-5')
+            $("#divInvoiceContainers").removeClass('col-md-2 col-md-9').addClass('col-md-6')
+            $("#expandInvoiceContainers").html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+        }
+    })
+
+    $("#expandInvoiceContainers").on('click', function(){
+        if($($(this).children()[0]).hasClass('fa-chevron-left')){
+            $(this).html('<i class="fas fa-chevron-right"></i><i class="fas fa-chevron-left"></i> Contraer')
+            $("#divContainers").removeClass('col-md-9 col-md-5').addClass('col-md-2')
+            $("#divInvoiceContainers").removeClass('col-md-6 col-md-2').addClass('col-md-9')
+            $("#expandContainers").html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+        }else{
+            $(this).html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+            $("#divContainers").removeClass('col-md-9 col-md-2').addClass('col-md-5')
+            $("#divInvoiceContainers").removeClass('col-md-2 col-md-9').addClass('col-md-6')
+            $("#expandContainers").html('<i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir')
+        }
+    })
+    
 }
 
 function autoCheck(tr){

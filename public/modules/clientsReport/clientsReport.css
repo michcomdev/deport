@@ -1,0 +1,70 @@
+@font-face {font-family: "Password"; src: url("/public/fonts/password.ttf") format("truetype") /* chrome firefox opera Safari, Android, iOS 4.2+*/ }
+
+.inputUserForm {
+    text-align: center;
+    font-size: 25px;
+}
+
+.swal-wide {
+    min-width: 70%;
+}
+
+
+#inputEmailPasswordSeller {
+    font-family: 'Password' !important;
+}
+
+#inputEmailPasswordSeller::placeholder {
+    font-family: 'Arial' !important
+}
+
+#tableClientsInvoices {
+    font-size: 13px;
+}
+
+#tableInvoices {
+    font-size: 13px;
+}
+
+#tableContainers {
+    font-size: 12px;
+}
+
+#tableContainersInvoice {
+    font-size: 12px;
+}
+
+
+#tableHeadContainers, #tableBodyContainers tr {
+    display: table;
+    width: 100%; 
+    table-layout: fixed;
+}
+
+#tableBodyContainers {
+    display: block;
+    height: 400px; 
+    overflow: auto;
+}
+
+#tableHeadContainers{
+    width: calc( 100% - 1em );
+}
+
+
+
+#tableHeadContainersInvoice, #tableBodyContainersInvoice tr {
+    display: table;
+    width: 100%; 
+    table-layout: fixed;
+}
+
+#tableBodyContainersInvoice {
+    display: block;
+    height: 300px; 
+    overflow: auto;
+}
+
+#tableHeadContainersInvoice{
+    width: calc( 100% - 1em );
+}

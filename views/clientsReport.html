@@ -1,0 +1,166 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/clientsReport/clientsReport.css">
+    <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
+{{/extend}}
+
+<h2 class="text-center">RESUMEN CLIENTES</h2>
+
+<div class="row">
+    
+    <div class="col-md-3 col-xs-12">
+        Cliente
+        <select id="searchClient" class="custom-select">
+            <option value="0">TODOS</option>
+        </select>
+    </div>
+    <div class="col-md-1">
+        <br/>
+        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+    </div>
+
+    <div class="form-check col-md-1  col-xs-12">
+        <br/>
+        <input class="form-check-input" type="checkbox" value="" id="searchDateCheck">
+        <label class="form-check-label" for="flexCheckDefault">
+            Filtrar por fecha
+        </label>
+    </div>
+    <div class="col-md-2 col-xs-12">
+        Fecha Desde - Hasta
+        <input id="searchDate" type="text" class="form-control border-input" disabled>
+    </div>
+                            
+    <div class="col-md-2 col-xs-12">
+        <br>
+        <button class="btn btn-primary btn-block" id="search">
+            <i class="fas fa-search"></i> BUSCAR
+        </button>
+    </div>
+
+    <div class="col-md-12 col-xs-12">
+        <br/>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">FACTURAS</div>
+            <div class="card-body table-responsive">
+                Listado de Facturas
+                <table id="tableInvoices" class="display nowrap table table-condensed" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>TIPO</th>
+                            <th>N°</th>
+                            <th>FECHA</th>
+                            <th>MEDIO PAGO</th>
+                            <th>FECHA PAGO</th>
+                            <th>CONTAINERS</th>
+                            <th>NETO</th>
+                            <th>IVA</th>
+                            <th>TOTAL</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">CONTAINERS</div>
+            <div class="card-body table-responsive">
+                Containers asociados a factura
+                <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                    <thead id="tableHeadContainersInvoice">
+                        <tr>
+                            <th>SEL.</th>
+                            <th>FECHA INGRESO</th>
+                            <th>FECHA SALIDA</th>
+                            <th>CONTENEDOR</th>
+                            <th>ALMACENAJE</th>
+                            <th>DÍAS EXTRA</th>
+                            <th>DESC</th>
+                            <th>TRASP</th>
+                            <th>PORTEO</th>
+                            <th>TRANSP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyContainersInvoice">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">RESUMEN SERVICIOS</div>
+            <div class="card-body table-responsive">
+                <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                    <thead id="tableHeadServices">
+                        <tr>
+                            <th>SERVICIO</th>
+                            <th>CANTIDAD CONTAINERS</th>
+                            <th>NETO</th>
+                            <th>IVA</th>
+                            <th>TOTAL</th>
+                            <th>FACTURADO</th>
+                            <th>POR FACTURAR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyServices">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!--<div class="col-md-12 table-responsive">
+        <table id="tableClientsInvoices" class="display nowrap table table-condensed" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>CLIENTE</th>
+                    <th>TOTAL HISTÓRICO</th>
+                    <th>EN INVENTARIO</th>
+                    <th>FACTURADOS</th>
+                    <th>NO APLICA FACTURA</th>
+                    <th>POR FACTURAR</th>
+                </tr>
+            </thead>
+        </table>
+    </div>-->
+</div>
+
+<div class="modal fade" id="invoiceModal" role="dialog" aria-labelledby="modal">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalInv_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalInv_body"></div>
+            <div class="modal-footer" id="modalInv_footer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal"  role="dialog" aria-labelledby="modal" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/modules/clientsReport/clientsReport.js"></script>
+{{/extend}}
