@@ -19,11 +19,11 @@ export default [
                     let payload = request.payload
                     let query = {}
                     
-                    if(payload.clients!='0'){
-                        query.clients= payload.client
+                    if(payload.client!='0'){
+                        query.clients = payload.client
                     }
 
-                    let clientsInvoices = await Client.find().lean()
+                    let clientsInvoices = await Client.find(query).lean()
 
                     for(let i=0;i<clientsInvoices.length;i++){
 
@@ -100,10 +100,10 @@ export default [
                         }
                     }
                     
-                    if(payload.clients!='0'){
+                    if(payload.client!='0'){
                         query.clients= payload.client
                     }
-                    
+                   
                     let clientInvoices = await Invoices.find(query).populate(['containers.containers']).lean()
                     
                     return clientInvoices
@@ -503,6 +503,216 @@ export default [
                     dateOut: Joi.boolean().required(),
                     onlyInventory: Joi.boolean().required(),
                     onlyInvoice: Joi.string().optional()
+                })
+            }
+        }
+    },  
+    {
+        method: 'POST',
+        path: '/api/clientServices',
+        options: {
+            description: 'get all services taken by client',
+            notes: 'return all data from services taken by client',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+
+                    let fullData = {
+                        storageFull: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        storageEmpty: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        storageIMO: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        deconsolidated: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        transfer: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        portage: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        transport: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        },
+                        total: {
+                            quantity: 0,
+                            net: 0,
+                            iva: 0,
+                            total: 0,
+                            invoiced: 0,
+                            inventory: 0,
+                            retired: 0
+                        }
+                    }
+
+                    
+                    let containers = await Containers.find({clients: payload.client}).populate(['services.services']).lean()
+                    let invoices = await Invoices.find({clients: payload.client}).lean()
+
+                    /*SERVICIOS
+                    - Almacenamiento Full
+                    - Almacenamiento Vacío
+                    - Almacenamiento IMO
+                    - Desconsolidado
+                    - Traspaso
+                    - Porteo
+                    - Transporte
+                    */
+
+                    for(let i=0;i<containers.length;i++){
+                        
+                        for(let j=0;j<containers[i].services.length;j++){
+                            let actualService
+
+                            switch(containers[i].services[j].services.name) {
+                                case 'Almacenamiento Full':
+                                    actualService = fullData.storageFull
+                                break;
+                                case 'Día(s) Extra':
+                                    actualService = fullData.storageFull
+                                break;
+                                case 'Almacenamiento Vacío':
+                                    actualService = fullData.storageEmpty
+                                break;
+                                case 'Almacenamiento IMO':
+                                    actualService = fullData.storageIMO
+                                break;
+                                case 'Desconsolidado':
+                                    actualService = fullData.deconsolidated
+                                break;
+                                case 'Traspaso':
+                                    actualService = fullData.transfer
+                                break;
+                                case 'Porteo':
+                                    actualService = fullData.portage
+                                break;
+                                case 'Transporte':
+                                    actualService = fullData.transport
+                                break;
+                            }
+
+                            if(containers[i].services[j].services.name!='Día(s) Extra'){
+                                actualService.quantity++
+                                fullData.total.quantity++
+                                
+                                if(containers[i].movements.find(x => x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO')){
+                                    actualService.retired++
+                                    fullData.total.retired++
+                                }else{
+                                    actualService.inventory++
+                                    fullData.total.inventory++
+                                }
+
+
+                                ///FACTURADOS///
+                                for(let k=0;k<invoices.length;k++){
+                                    if(invoices[k].containers.find(x => x.containers.toString() === containers[i]._id.toString())){
+                                        actualService.invoiced++
+                                        fullData.total.invoiced++
+                                        k = invoices.length
+                                    }
+                                }
+                            }
+                            actualService.net += containers[i].services[j].paymentNet
+                            actualService.iva += containers[i].services[j].paymentIVA
+                            actualService.total += containers[i].services[j].paymentTotal
+
+                            fullData.total.net += containers[i].services[j].paymentNet
+                            fullData.total.iva += containers[i].services[j].paymentIVA
+                            fullData.total.total += containers[i].services[j].paymentTotal
+
+
+                        }
+                        
+
+                        //clientsInvoices[i].totalHistoric = containers.length
+                        //if(containers.movements.find(x => (x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO') ? '' : '' )){
+                            //clientsInvoices[i].totalRetired = containers.movements.find(x => (x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO') ? '' : '' )
+                        //}
+
+
+                        /*if(containers[j].movements.find(x => x.movement === 'SALIDA' || x.movement === 'POR SALIR' || x.movement === 'TRASPASO')){
+                            //
+                        }else{
+                            fullData..totalActual++
+                        }*/
+                        
+                        /*let invoices = await Invoices.find({clients: clientsInvoices[i]._id}).lean()
+                        if(invoices){
+                            for(let k=0;k<invoices.length;k++){
+                                if(invoices[k].type=='Factura' || invoices[k].type=='Boleta'){
+                                    clientsInvoices[i].invoiced += invoices[k].containers.length
+                                }else{
+                                    clientsInvoices[i].noInvoice += invoices[k].containers.length
+                                }
+                            }
+                        }*/
+
+                    }
+           
+                    
+                    return fullData
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    client: Joi.string().optional().allow(''),
+                    startDate: Joi.string().optional().allow(''),
+                    endDate: Joi.string().optional().allow('')
                 })
             }
         }

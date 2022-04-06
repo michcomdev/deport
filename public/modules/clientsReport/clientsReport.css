@@ -18,22 +18,15 @@
     font-family: 'Arial' !important
 }
 
-#tableClientsInvoices {
-    font-size: 13px;
+.tables {
+    font-size: 12px;
+    height: 250px;
+    max-height: 250px;
 }
 
-#tableInvoices {
-    font-size: 13px;
-}
-
-#tableContainers {
+.tablesParent {
     font-size: 12px;
 }
-
-#tableContainersInvoice {
-    font-size: 12px;
-}
-
 
 #tableHeadContainers, #tableBodyContainers tr {
     display: table;
@@ -61,7 +54,7 @@
 
 #tableBodyContainersInvoice {
     display: block;
-    height: 300px; 
+    /*height: 300px; */
     overflow: auto;
 }
 

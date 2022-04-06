@@ -1,7 +1,6 @@
 {{!< layout/default}}
 {{#extend "css" }}
     <link rel="stylesheet" type="text/css" href="/public/modules/clientsReport/clientsReport.css">
-    <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
 {{/extend}}
 
 <h2 class="text-center">RESUMEN CLIENTES</h2>
@@ -45,9 +44,9 @@
     <div class="col-md-6">
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">FACTURAS</div>
-            <div class="card-body table-responsive">
-                Listado de Facturas
-                <table id="tableInvoices" class="display nowrap table table-condensed" cellspacing="0">
+            <!--<div class="card-body table-responsive">-->
+            <div class="card-body tablesParent">
+                <table id="tableInvoices" class="display nowrap table table-condensed tables" cellspacing="0">
                     <thead>
                         <tr>
                             <th>TIPO</th>
@@ -69,9 +68,8 @@
     <div class="col-md-6">
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">CONTAINERS</div>
-            <div class="card-body table-responsive">
-                Containers asociados a factura
-                <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+            <div class="card-body tablesParent">
+                <table id="tableContainersInvoice" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
                     <thead id="tableHeadContainersInvoice">
                         <tr>
                             <th>SEL.</th>
@@ -93,20 +91,22 @@
         </div>
     </div>
 
-    <div class="col-md-12">
+    <div class="col-md-6">
         <div class="card border-primary">
             <div class="card-header bg-primary text-white">RESUMEN SERVICIOS</div>
-            <div class="card-body table-responsive">
-                <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+            <div class="card-body table-responsive tablesParent">
+                <table id="tableServices" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
                     <thead id="tableHeadServices">
                         <tr>
                             <th>SERVICIO</th>
-                            <th>CANTIDAD CONTAINERS</th>
-                            <th>NETO</th>
-                            <th>IVA</th>
-                            <th>TOTAL</th>
-                            <th>FACTURADO</th>
-                            <th>POR FACTURAR</th>
+                            <th style="text-align: center;">CANTIDAD</th>
+                            <th style="text-align: center;">EN SITIO</th>
+                            <th style="text-align: center;">RETIRADOS</th>
+                            <th style="text-align: center;">FACTURADO</th>
+                            <th style="text-align: center;">POR FACTURAR</th>
+                            <th style="text-align: right;">NETO</th>
+                            <th style="text-align: right;">IVA</th>
+                            <th style="text-align: right;">TOTAL</th>
                         </tr>
                     </thead>
                     <tbody id="tableBodyServices">
@@ -116,20 +116,6 @@
         </div>
     </div>
 
-    <!--<div class="col-md-12 table-responsive">
-        <table id="tableClientsInvoices" class="display nowrap table table-condensed" cellspacing="0">
-            <thead>
-                <tr>
-                    <th>CLIENTE</th>
-                    <th>TOTAL HISTÓRICO</th>
-                    <th>EN INVENTARIO</th>
-                    <th>FACTURADOS</th>
-                    <th>NO APLICA FACTURA</th>
-                    <th>POR FACTURAR</th>
-                </tr>
-            </thead>
-        </table>
-    </div>-->
 </div>
 
 <div class="modal fade" id="invoiceModal" role="dialog" aria-labelledby="modal">

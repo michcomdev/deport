@@ -167,6 +167,8 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             }
             $('#modal').modal('show');
 
+        }else{
+
         }
 
     });
@@ -301,6 +303,8 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             }
             $('#modal').modal('show');
 
+        }else{
+
         }
 
     });
@@ -343,7 +347,8 @@ function validateClientData(clientData) {
         errorMessage += `<br>Seleccionar Servicio(s)`
     }
 
-    if (validationCounter == 4) {
+
+    if (validationCounter >= 4) {
         return { ok: clientData }
     } else {
         toastr.warning('Falta datos:<br>'+errorMessage)

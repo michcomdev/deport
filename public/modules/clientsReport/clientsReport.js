@@ -7,6 +7,10 @@ let internals = {
         table: {},
         data: []
     },
+    services: {
+        table: {},
+        data: []
+    },
     clients: {
         table: {},
         data: []
@@ -50,6 +54,7 @@ $(document).ready(async function () {
         //chargeClientsTable()
         if($("#searchClient").val()!=0){
             loadInvoices($("#searchClient").val())
+            loadServices($("#searchClient").val())
         }
     })
 
@@ -63,9 +68,9 @@ async function getParameters() {
         $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
         if(i+1==clients.length){
             $('#searchClient').on('change', function(){
-                loadSingleContainer(0)
                 if($(this).val()!=0){
                     loadInvoices($("#searchClient").val())
+                    loadServices($("#searchClient").val())
                 }
             })
         }
@@ -288,6 +293,199 @@ async function loadContainers(id,onlyInvoice){
     } else {
         toastr.warning('No se han encontrado contenedores para facturar')
         $('#loadingMovements').empty()
+    }
+}
+
+async function loadServices(id){
+    /*if(id==0){
+        if($.fn.DataTable.isDataTable('#clientsServices')){
+            internals.services.table.clear().destroy()
+        }
+        return
+    }*/
+
+    let startDate = '2000-01-01', endDate = '3000-01-01'
+    if($('#searchDateCheck').prop('checked')){
+        startDate = $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD')
+        endDate = $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD')
+    }
+
+    let servicesData = await axios.post('/api/clientServices', {
+        client: id,
+        startDate: startDate,
+        endDate: endDate
+    })
+    let services = servicesData.data
+
+    console.log(services)
+
+    $("#tableBodyServices").html(`
+        <tr>
+            <td>Almacenamiento Full</td>
+            <td style="text-align: center;">${services.storageFull.quantity}</td>
+            <td style="text-align: center;">${services.storageFull.inventory}</td>
+            <td style="text-align: center;">${services.storageFull.retired}</td>
+            <td style="text-align: center;">${services.storageFull.invoiced}</td>
+            <td style="text-align: center;">${services.storageFull.retired - services.storageFull.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.storageFull.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageFull.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageFull.total)}</td>
+        </tr>
+        <tr>
+            <td>Almacenamiento Vacío</td>
+            <td style="text-align: center;">${services.storageEmpty.quantity}</td>
+            <td style="text-align: center;">${services.storageEmpty.inventory}</td>
+            <td style="text-align: center;">${services.storageEmpty.retired}</td>
+            <td style="text-align: center;">${services.storageEmpty.invoiced}</td>
+            <td style="text-align: center;">${services.storageEmpty.retired - services.storageEmpty.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.storageEmpty.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageEmpty.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageEmpty.total)}</td>
+        </tr>
+        <tr>
+            <td>Almacenamiento IMO</td>
+            <td style="text-align: center;">${services.storageIMO.quantity}</td>
+            <td style="text-align: center;">${services.storageIMO.inventory}</td>
+            <td style="text-align: center;">${services.storageIMO.retired}</td>
+            <td style="text-align: center;">${services.storageIMO.invoiced}</td>
+            <td style="text-align: center;">${services.storageIMO.retired - services.storageIMO.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.storageIMO.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageIMO.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.storageIMO.total)}</td>
+        </tr>
+        <tr>
+            <td>Desconsolidado</td>
+            <td style="text-align: center;">${services.deconsolidated.quantity}</td>
+            <td style="text-align: center;">${services.deconsolidated.inventory}</td>
+            <td style="text-align: center;">${services.deconsolidated.retired}</td>
+            <td style="text-align: center;">${services.deconsolidated.invoiced}</td>
+            <td style="text-align: center;">${services.deconsolidated.retired - services.deconsolidated.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.deconsolidated.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.deconsolidated.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.deconsolidated.total)}</td>
+        </tr>
+        <tr>
+            <td>Traspaso</td>
+            <td style="text-align: center;">${services.transfer.quantity}</td>
+            <td style="text-align: center;">${services.transfer.inventory}</td>
+            <td style="text-align: center;">${services.transfer.retired}</td>
+            <td style="text-align: center;">${services.transfer.invoiced}</td>
+            <td style="text-align: center;">${services.transfer.retired - services.transfer.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.transfer.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.transfer.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.transfer.total)}</td>
+        </tr>
+        <tr>
+            <td>Porteo</td>
+            <td style="text-align: center;">${services.portage.quantity}</td>
+            <td style="text-align: center;">${services.portage.inventory}</td>
+            <td style="text-align: center;">${services.portage.retired}</td>
+            <td style="text-align: center;">${services.portage.invoiced}</td>
+            <td style="text-align: center;">${services.portage.retired - services.portage.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.portage.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.portage.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.portage.total)}</td>
+        </tr>
+        <tr>
+            <td>Transporte</td>
+            <td style="text-align: center;">${services.transport.quantity}</td>
+            <td style="text-align: center;">${services.transport.inventory}</td>
+            <td style="text-align: center;">${services.transport.retired}</td>
+            <td style="text-align: center;">${services.transport.invoiced}</td>
+            <td style="text-align: center;">${services.transport.retired - services.transport.invoiced}</td>
+            <td style="text-align: right;">${dot_separators(services.transport.net)}</td>
+            <td style="text-align: right;">${dot_separators(services.transport.iva)}</td>
+            <td style="text-align: right;">${dot_separators(services.transport.total)}</td>
+        </tr>
+        <tr>
+            <th>TOTALES</th>
+            <th style="text-align: center;">${services.total.quantity}</th>
+            <td style="text-align: center;">${services.total.inventory}</td>
+            <td style="text-align: center;">${services.total.retired}</td>
+            <td style="text-align: center;">${services.total.invoiced}</td>
+            <td style="text-align: center;">${services.total.retired - services.total.invoiced}</td>
+            <th style="text-align: right;">${dot_separators(services.total.net)}</th>
+            <th style="text-align: right;">${dot_separators(services.total.iva)}</th>
+            <th style="text-align: right;">${dot_separators(services.total.total)}</th>
+        </tr>
+    `)
+
+    return
+    
+    if($.fn.DataTable.isDataTable('#tablServices')){
+        internals.services.table.clear().destroy()
+    }
+
+    try {
+        internals.services.table = $('#tablServices')
+        .DataTable( {
+            dom: 'Bfrtip',
+            buttons: [
+                'excel'
+            ],
+            iDisplayLength: 50,
+            oLanguage: {
+              sSearch: 'Buscar: '
+            },
+            language: {
+                url: spanishDataTableLang
+            },
+            responsive: false,
+            columnDefs: [{targets: [1,3,4,5], className: 'dt-center'},{targets: [6,7,8], className: 'dt-right'}],
+            order: [[ 0, 'desc' ]],
+            ordering: true,
+            rowCallback: function( row, data ) {
+          },
+          columns: [
+            { data: 'type' },
+            { data: 'number' },
+            { data: 'date' },
+            { data: 'paymentType' },
+            { data: 'paymentDate' },
+            { data: 'containersQuantity' },
+            { data: 'paymentNet' },
+            { data: 'paymentIVA' },
+            { data: 'paymentTotal' }
+          ],
+          initComplete: function (settings, json) {
+
+                let formatData= services.map(el => {
+                    el.date = moment.utc(el.date).format('DD/MM/YYYY')
+                    el.paymentDate = moment.utc(el.paymentDate).format('DD/MM/YYYY')
+
+                    if(el.paymentType=='0'){
+                        el.paymentType = 'N/A'
+                    }
+                    el.containersQuantity = el.containers.length
+                    el.paymentNet = dot_separators(el.paymentNet)
+                    el.paymentIVA = dot_separators(el.paymentIVA)
+                    el.paymentTotal = dot_separators(el.paymentTotal)
+                    return el
+                })
+
+                internals.services.table.rows.add(formatData).draw()
+          }
+        })
+
+        $('#tablServices tbody').off("click")
+
+        $('#tablServices tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected')
+                
+            } else {
+                internals.invoices.table.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                
+                //internals.dataRowSelected = internals.clientsInvoice.table.row($(this)).data()
+                internals.dataRowSelectedInvoice = internals.invoices.table.row($(this)).data()
+                loadContainers($("#searchClient").val(), internals.dataRowSelectedInvoice._id)
+                //loadInvoices(internals.dataRowSelected._id)
+                //loadSingleContainer(internals.dataRowSelected.id)
+            }
+        })
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -689,19 +887,4 @@ function autocomplete(inp, arr) {
     document.addEventListener("click", function (e) {
         closeAllLists(e.target);
     });
-}
-
-function getTextureTable(containerTypes){
-    let table = '<table id="tableTextures" class="collapse"><tr>'
-    for(var i=0; i<containerTypes.length; i++){
-        table += '<td><img src="/public/img/textures/'+containerTypes[i].texture+'.jpg" style="width: 32px" onclick="changeTexture(\'image\',\''+containerTypes[i].texture+'\')"></td>'
-        if( ((i+1)%6==0 && i>0) || i+1==containerTypes.length ){
-            table += '</tr>'
-            if(i+1<containerTypes.length){
-                table += '<tr>'
-            }
-        }
-    }
-    table += '</table>'
-    return table
 }
