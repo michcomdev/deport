@@ -239,6 +239,15 @@
     font-size: 13px;
 }
 
+.table-dangerSoft>td, .table-dangerSoft>th{
+    background-color: #fffcb0;
+}
+.table-primarySoft>td, .table-primarySoft>th{
+    background-color: #c4d1de;
+}
+.table-infoSoft>td, .table-infoSoft>th{
+    background-color: #a9d3f0;
+}
 
 
 /*AUTOCOMPLETAR*/

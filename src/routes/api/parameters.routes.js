@@ -4,6 +4,7 @@ import Cranes from '../../models/Cranes'
 import Maps from '../../models/Maps'
 import Services from '../../models/Services'
 import dotEnv from 'dotenv'
+import Parameters from '../../models/Parameters'
 
 dotEnv.config()
 
@@ -82,6 +83,27 @@ export default [
                 try {                    
                     let services = await Services.find().lean()
                     return services
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            }
+        }
+    },
+    {
+        method: 'GET',
+        path: '/api/parameters',
+        options: {
+            description: 'get all parameters data',
+            notes: 'return all data from parameters',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {                    
+                    let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
+                    return parameters
                 } catch (error) {
                     console.log(error)
 

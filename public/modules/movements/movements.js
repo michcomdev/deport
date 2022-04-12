@@ -642,6 +642,13 @@ $('#optionModMovement').on('click', async function () {
             $(".classOut").prop('disabled',true)
         }
 
+        var element = document.getElementById('movementContainerNumber')
+        var maskOptions = {
+            mask: 'aaaa-000000-0',
+            lazy: false //shows placeholder
+        };
+        var mask = IMask(element, maskOptions)
+
         $('#movementStacker').change(function () {
             if($(this).prop('checked')){
                 $('.classStacker').attr('disabled',true)
@@ -656,6 +663,9 @@ $('#optionModMovement').on('click', async function () {
         $('#movementClient').val(container.clients)
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
+        if(container.containerTexture==''){
+            container.containerTexture = 'cai'
+        }
         $('#imgTexture').prop('src','/public/img/textures/'+container.containerTexture+'.jpg')
         $('#imgTexture').val(container.containerTexture)
         $('#movementContainerLarge').val(container.containerLarge)
@@ -828,12 +838,22 @@ $('#optionModMovement').on('click', async function () {
             }
         })
 
+        var element = document.getElementById('movementContainerNumber')
+        var maskOptions = {
+            mask: 'aaaa-000000-0',
+            lazy: false //shows placeholder
+        };
+        var mask = IMask(element, maskOptions)
+
         $('#movementType').val(container.movements[movementID].movement)
         $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
         $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
         $('#movementClient').val(container.clients)
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
+        if(container.containerTexture==''){
+            container.containerTexture = 'cai'
+        }
         $('#imgTexture').prop('src','/public/img/textures/'+container.containerTexture+'.jpg')
         $('#imgTexture').val(container.containerTexture)
         $('#movementContainerLarge').val(container.containerLarge)
@@ -1007,6 +1027,9 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementClient').val(container.clients)
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
+    if(container.containerTexture==''){
+        container.containerTexture = 'cai'
+    }
     $('#imgTexture').prop('src','/public/img/textures/'+container.containerTexture+'.jpg')
     $('#imgTexture').val(container.containerTexture)
     $('#movementContainerLarge').val(container.containerLarge)
@@ -1172,12 +1195,23 @@ $('#optionMovMovement').on('click', async function () {
             <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
         </button>
     `)
+
+    var element = document.getElementById('movementContainerNumber')
+    var maskOptions = {
+        mask: 'aaaa-000000-0',
+        lazy: false //shows placeholder
+    };
+    var mask = IMask(element, maskOptions)
+
     $('#movementType').val('TRASLADO')
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
     $('#movementClient').val(container.clients)
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
+    if(container.containerTexture==''){
+        container.containerTexture = 'cai'
+    }
     $('#imgTexture').prop('src','/public/img/textures/'+container.containerTexture+'.jpg')
     $('#imgTexture').val(container.containerTexture)
     $('#movementContainerLarge').val(container.containerLarge)
@@ -1273,6 +1307,9 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementClient').val(container.clients)
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
+    if(container.containerTexture==''){
+        container.containerTexture = 'cai'
+    }
     $('#imgTexture').prop('src','/public/img/textures/'+container.containerTexture+'.jpg')
     $('#imgTexture').val(container.containerTexture)
     $('#movementContainerLarge').val(container.containerLarge)
@@ -1532,43 +1569,90 @@ function validateMovementData(movementData) {
             $('#movementSite').css('border', '1px solid #CED4DA')
         }*/
 
-        let out = ''
         if(movementData.movement=='POR SALIR' || movementData.movement=='SALIDA'){
-            out = 'Out'
+           
+            if(!validateRut(movementData.driverRUT)){
+                errorMessage += '<br>RUT Chofer'
+
+                $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverName==''){
+                errorMessage += '<br>Nombre Chofer'
+                $('#movementDriverOutName').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutName').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverPlate==''){
+                errorMessage += '<br>Patente Camión'
+                $('#movementDriverOutPlate').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutPlate').css('border', '1px solid #CED4DA')
+            }
+
+        }else if(movementData.movement=='TRASPASO'){
+           
+            if(!validateRut(movementData.driverRUT)){
+                errorMessage += '<br>RUT Chofer'
+
+                $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+                $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverName==''){
+                errorMessage += '<br>Nombre Chofer'
+                $('#movementDriverName').css('border', '1px solid #E74C3C')
+                $('#movementDriverOutName').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutName').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverPlate==''){
+                errorMessage += '<br>Patente Camión'
+                $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+                $('#movementDriverOutPlate').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverOutPlate').css('border', '1px solid #CED4DA')
+            }
+
+
+        }else{
+            if(!validateRut(movementData.driverRUT)){
+                errorMessage += '<br>RUT Chofer'
+    
+                $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverName==''){
+                errorMessage += '<br>Nombre Chofer'
+                $('#movementDriverName').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverName').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverPlate==''){
+                errorMessage += '<br>Patente Camión'
+                $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverPlate').css('border', '1px solid #CED4DA')
+            }
+
         }
         
-        if(!validateRut(movementData.driverRUT)){
-            errorMessage += '<br>RUT Chofer'
-
-            $('#movementDriver'+out+'RUT').css('border', '1px solid #E74C3C')
-        }else{
-            $('#movementDriver'+out+'RUT').css('border', '1px solid #CED4DA')
-        }
-        if(movementData.driverName==''){
-            errorMessage += '<br>Nombre Chofer'
-            $('#movementDriver'+out+'Name').css('border', '1px solid #E74C3C')
-        }else{
-            $('#movementDriver'+out+'Name').css('border', '1px solid #CED4DA')
-        }
-        if(movementData.driverPlate==''){
-            errorMessage += '<br>Patente Camión'
-            $('#movementDriver'+out+'Plate').css('border', '1px solid #E74C3C')
-        }else{
-            $('#movementDriver'+out+'Plate').css('border', '1px solid #CED4DA')
-        }
-
         if(movementData.services.find(x => x.services === '0')){
             errorMessage += '<br>Servicio'
             $('#movementService').css('border', '1px solid #E74C3C')
         }else{
             $('#movementService').css('border', '1px solid #CED4DA')
         }
-        if(movementData.services.find(x => x.paymentType === '0')){
+
+        /*if(movementData.services.find(x => x.paymentType === '0')){
             errorMessage += '<br>Medio de Pago'
             $('#movementPaymentType').css('border', '1px solid #E74C3C')
         }else{
             $('#movementPaymentType').css('border', '1px solid #CED4DA')
-        }
+        }*/
 
         if (errorMessage.length===0) {
             return { ok: movementData }
@@ -1638,7 +1722,7 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2">
                             <br/>
-                            <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-dark classOut classMove" onclick="selectClientSearch('modal')" title="Buscar Cliente"><i class="fas fa-search"></i></button>
                         </div>
                         ${(type=='POR SALIR' || type=='SALIDA') ?
                             `<div class="col-md-5">
@@ -2087,7 +2171,7 @@ function setServiceList(type,array){
                     ${
                         services.reduce((acc,el)=>{
                             if(type=='ALL' || type=='DESCONSOLIDADO'){
-                                if(el.name!='Traspaso' && el.name!='Desconsolidado'){
+                                if(el.name!='Traspaso' && el.name!='Desconsolidado' && el.name.indexOf("Almacenamiento") >= 0){
                                     acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
                                 }
                             }else if(type=='TRASPASO'){
@@ -2280,7 +2364,7 @@ function setExtraDays(quantity,toClose){
 
     $("#tableServicesExtra").css('display','table')
     
-    let extraRow = `<tr class="table-danger">
+    let extraRow = `<tr class="table-dangerSoft">
             <td style="text-align: center;">
                 <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" ${disabled}>
             
@@ -2412,7 +2496,7 @@ async function updatePayment(input,iva) {
     }
 }
 
-async function selectClientSearch(btn) {
+async function selectClientSearch(from) {
     
     let clientSelectedData = await Swal.fire({
         title: 'Seleccione Cliente',
@@ -2515,8 +2599,13 @@ async function selectClientSearch(btn) {
         cancelButtonText: 'Cancelar'
     })
 
+    console.log(clientSelectedData.value)
     if (clientSelectedData.value) {
-        $('#searchClient').val(clientSelectedData.value._id)
+        if(from=='search'){
+            $('#searchClient').val(clientSelectedData.value._id)
+        }else{
+            $('#movementClient').val(clientSelectedData.value._id)
+        }
     }
 }
 
@@ -3116,9 +3205,11 @@ function addService(btn,type){
     let btnService = $(btn).attr('id')
     $(btn).attr('disabled',true)
     if(type=='PORTEO'){
-        trClass = 'table-primary'
+        //trClass = 'table-primary'
+        trClass = 'table-primarySoft'
     }else if(type=='TRANSPORTE'){
-        trClass = 'table-info'
+        //trClass = 'table-info'
+        trClass = 'table-infoSoft'
     }
 
     $("#tableServicesBody").append(`
@@ -3166,7 +3257,7 @@ function addService(btn,type){
                 <input class="form-check-input classMove" type="checkbox" value="">
             </td>
             <td style="text-align: center;">
-                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD/MM/YYYY')}">
             </td>
             <td>
                 <button class="btn btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Buscar Cliente"><i class="fas fa-times"></i></button>
