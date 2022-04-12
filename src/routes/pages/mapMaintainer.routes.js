@@ -6,7 +6,11 @@ export default {
             let credentials = request.auth.credentials
             credentials[credentials.scope] = true
 
-            return h.view('mapMaintainer', { credentials })
+            if (credentials.scope === 'admin' || credentials.scope === 'contab') {
+                return h.view('mapMantainer', { credentials })
+            } else {
+                return h.redirect('movements')
+            }
         }
     }
 }

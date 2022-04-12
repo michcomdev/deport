@@ -226,8 +226,8 @@ function selectPosition(e){
     e.stopPropagation()
 
     // get the current mouse position
-    var mx=parseInt(e.clientX-offsetX)
-    var my=parseInt(e.clientY-offsetY)
+    var mx=parseInt(e.clientX-(offsetX-window.scrollX))
+    var my=parseInt(e.clientY-(offsetY-window.scrollY))
 
     $("#sideViewText").text('Seleccione una ubicación')
     $(".trSide").css('cursor','not-allowed')

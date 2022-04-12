@@ -50,9 +50,12 @@ export default [
                         findUser.name = payload.name
                         findUser.lastname = payload.lastname
                         findUser.email = payload.email
-                        findUser.status = payload.status
+                        //findUser.status = payload.status
+                        findUser.status = 'enabled'
                         findUser.scope = payload.scope
-                        findUser.password = payload.password
+                        if(payload.password){
+                            findUser.password = payload.password
+                        }
                         // findUser.permissions = {
                         //     superadmin: payload.permissions.superadmin
                         // }

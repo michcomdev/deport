@@ -6,7 +6,13 @@ export default {
             let credentials = request.auth.credentials
             credentials[credentials.scope] = true
 
-            return h.view('report', { credentials })
+
+            if (credentials.scope === 'admin' || credentials.scope === 'contab') {
+                return h.view('report', { credentials })
+            } else {
+                return h.redirect('movements')
+            }
+            
         }
     }
 }

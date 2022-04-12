@@ -12,6 +12,10 @@ $(document).ready(async function () {
 
 function chargeUsersTable() {
     try {
+
+        if($.fn.DataTable.isDataTable('#tableUsers')){
+            internals.users.table.clear().destroy()
+        }
         internals.users.table = $('#tableUsers')
             .DataTable({
                 dom: 'Bfrtip',
@@ -38,6 +42,8 @@ function chargeUsersTable() {
                     getUsersEnabled()
                 }
             })
+        
+        $('#tableUsers tbody').off("click")
 
         $('#tableUsers tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
@@ -69,10 +75,14 @@ async function getUsersEnabled() {
                 el.rut = el.rut
             }
 
-            if (el.scope == 'user') {
-                el.scope = 'Usuario'
-            } else {
+            if (el.scope == 'gate') {
+                el.scope = 'Gate Control'
+            }else if (el.scope == 'contab') {
+                el.scope = 'Contabilidad'
+            }else if (el.scope == 'admin') {
                 el.scope = 'Administrador'
+            } else {
+                el.scope = '-'
             }
 
             if (el.status == 'enabled') {
@@ -113,19 +123,21 @@ $('#optionCreateUser').on('click', async function () { // CREAR USUARIO
             lastname: $('#userLastname').val(),
             password: $('#userPassword').val(),
             scope: $('#userRole').val(),
-            email: ($('#userEmail').val()).trim(),
+            email: ($('#userEmail').val()).trim()
         }
 
-        let validate = await validateUserData(userData)
+        let validate = await validateUserData(userData,'create')
 
         if (validate.ok) {
-            let newUserData = await axios.post('api/users', userData)
+            let newUserData = await axios.post('api/users', validate.ok)
             if (newUserData.data.error) {
                 toastr.warning(newUserData.data.error)
             } else {
                 toastr.success('Usuario creado correctamente')
 
-                if (validateRut(newUserData.data.rut)) {
+                chargeUsersTable()
+
+                /*if (validateRut(newUserData.data.rut)) {
                     newUserData.data.rut = `${validateRut(newUserData.data.rut)}`
                 } else {
                     newUserData.data.rut = newUserData.data.rut
@@ -151,7 +163,7 @@ $('#optionCreateUser').on('click', async function () { // CREAR USUARIO
                 $(userAdded).css('color', '#1abc9c')
                 setTimeout(() => {
                     $(userAdded).css('color', '#484848')
-                }, 5000)
+                }, 5000)*/
 
                 $('#modal').modal('hide')
             }
@@ -163,9 +175,11 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
     handleModal(internals.users.data)
     console.log('adas', internals);
 
-    if (internals.users.data.scope == 'Usuario') {
-        internals.users.data.scope = 'user'
-    } else {
+    if (internals.users.data.scope == 'Gate Control') {
+        internals.users.data.scope = 'gate'
+    }else if (internals.users.data.scope == 'Contabilidad') {
+        internals.users.data.scope = 'contab'
+    }else if (internals.users.data.scope == 'Administrador') {
         internals.users.data.scope = 'admin'
     }
 
@@ -180,17 +194,21 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
         internals.users.data.scope = $('#userRole').val()
         internals.users.data.email = ($('#userEmail').val()).trim()
 
+        console.log(internals.users.data)
 
-        let validate = await validateUserData(internals.users.data)
+
+        let validate = await validateUserData(internals.users.data,'update')
 
         if (validate.ok) {
-            let newUserData = await axios.post('api/users', userData)
+            let newUserData = await axios.post('api/users', validate.ok)
             if (newUserData.data.error) {
                 toastr.warning(newUserData.data.error)
             } else {
-                toastr.success('Usuario creado correctamente')
+                toastr.success('Usuario modificado correctamente')
 
-                if (validateRut(newUserData.data.rut)) {
+                chargeUsersTable()
+
+                /*if (validateRut(newUserData.data.rut)) {
                     newUserData.data.rut = `${validateRut(newUserData.data.rut)}`
                 } else {
                     newUserData.data.rut = newUserData.data.rut
@@ -216,7 +234,7 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
                 $(userAdded).css('color', '#1abc9c')
                 setTimeout(() => {
                     $(userAdded).css('color', '#484848')
-                }, 5000)
+                }, 5000)*/
 
                 $('#modal').modal('hide')
             }
@@ -238,10 +256,10 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
 
 
 
-    $('#saveUser').on('click', function () {
+    /*$('#saveUser').on('click', function () {
         let userData = {
             status: 'mod',
-            rut: removeExtraSpaces($('#modUserRut').val()),
+            rut: $('#modUserRut').val(),
             name: $('#modUserName').val(),
             lastname: $('#modUserLastname').val(),
             changePassword: $('#changePassword').is(':checked'),
@@ -249,7 +267,7 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
             role: $('#modUserRole').val(),
             charge: $('#modUserCharge').val(),
             phone: $('#modUserPhone').val(),
-            email: removeExtraSpaces($('#modUserEmail').val()),
+            email: $('#modUserEmail').val(),
             changeEmailPassword: $('#changeEmailPassword').is(':checked'),
             emailPassword: $('#modUserEmailPassword').val()
         }
@@ -326,7 +344,7 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
                 })
             }
         })
-    })
+    })*/
 })
 
 $('#optionDeleteUser').on('click', function () { //ELIMINAR USUARIO
@@ -398,7 +416,8 @@ function handleModal(userSelected) {
             <div class="col-md-4" style="margin-top:10px;">
                 Rol
                 <select id="userRole" class="custom-select">
-                    <option value="user">Usuario</option>
+                    <option value="gate">Gate Control</option>
+                    <option value="contab">Contabilidad</option>
                     <option value="admin">Administrador</option>
                 </select>
             </div>
@@ -443,16 +462,18 @@ function handleModal(userSelected) {
     `)
 }
 
-async function validateUserData(userData) { // VERIFICACION
+async function validateUserData(userData, type) { // VERIFICACION
     let validationCounter = 0
     let errorMessage = ''
+
+    console.log("here",userData)
 
     // 5 puntos
     if (userData.rut.length >= 6) { // 1
         validationCounter++
         $('#userRut').css('border', '1px solid #3498db')
     } else {
-        errorMessage += `<br>* Debe ingresar un <b>rut válido`
+        errorMessage += `<br>* Debe ingresar un <b>RUT válido`
         $('#userRut').css('border', '1px solid #e74c3c')
     }
 
@@ -484,12 +505,21 @@ async function validateUserData(userData) { // VERIFICACION
         if (userData.password.length >= 6) { // 5
             validationCounter++
             $('userPassword').css('border', '1px solid #3498db')
+        } else if(userData.password.length <= 6 && userData.password.length > 0) {
+            errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario al menos 6 caracteres</b>`
+            $('#userPassword').css('border', '1px solid #e74c3c')
         } else {
             errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario válida</b>`
             $('#userPassword').css('border', '1px solid #e74c3c')
         }
     } else {
-        validationCounter++
+        if (type=='update') { // 5
+            validationCounter++
+            $('userPassword').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario válida</b>`
+            $('#userPassword').css('border', '1px solid #e74c3c')
+        }
     }
 
     if (validationCounter == 5) {

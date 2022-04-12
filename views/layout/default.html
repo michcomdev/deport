@@ -37,6 +37,8 @@
           <a class="nav-link" href="/inventory"><i class="fas fa-layer-group"></i>Inventario</a>
         </li>
 
+
+      {{#if credentials.admin}}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
             aria-expanded="false"><i class="fas fa-map"></i> Mapas</a>
@@ -46,8 +48,6 @@
             <a class="dropdown-item" href="/mapMaintainer"> Mantenedor</a>
           </div>
         </li>
-
-
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
             aria-expanded="false"><i class="fas fa-chart-bar"></i> Reportes</a>
@@ -57,25 +57,53 @@
             <a class="dropdown-item" href="/clientsReport"> Resumen por Cliente</a>
           </div>
         </li>
-        
-        {{#if credentials.admin}}
+
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
             aria-expanded="false"><i class="fas fa-user-shield"></i> Admin</a>
           <div class="dropdown-menu">
             <a class="dropdown-item" href="/clients"> Clientes</a>
             <div class="dropdown-divider"></div>
-            {{#if credentials.permissions.superadmin}}
             <a class="dropdown-item" href="/users"> Usuarios</a>
-            {{/if}}
+          </div>
+        </li>
+      {{/if}}
+
+      {{#if credentials.contab}}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+            aria-expanded="false"><i class="fas fa-map"></i> Mapas</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/map2D"><i class="fas fa-map-marked-alt"></i> 2D</a>
+            <a class="dropdown-item" href="/map"><i class="fas fa-cube"></i> 3D</a>
+            <a class="dropdown-item" href="/mapMaintainer"> Mantenedor</a>
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+            aria-expanded="false"><i class="fas fa-chart-bar"></i> Reportes</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/report"> General</a>
+            <a class="dropdown-item" href="/invoices"> Facturación</a>
+            <a class="dropdown-item" href="/clientsReport"> Resumen por Cliente</a>
           </div>
         </li>
 
-        <!-- <li class="nav-item">
-            <a class="nav-link" href="#" onclick="alert('En construcción')"><img src="/public/img/powerbi.png" width="22"/>&nbsp;Reportería</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+            aria-expanded="false"><i class="fas fa-user-shield"></i> Admin</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/clients"> Clientes</a>
+          </div>
+        </li>
+      {{/if}}
 
-          </li> -->
-        {{/if}}
+      {{#if credentials.gate}}
+        <li class="nav-item">
+          <a class="nav-link" href="/map2D"><i class="fas fa-map-marked-alt"></i> Mapa</a>
+        </li>
+      {{/if}}
+
       </ul>
       <div class="my-2 my-lg-0">
         <ul class="navbar-nav mr-auto">

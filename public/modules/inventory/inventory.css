@@ -9,6 +9,9 @@
     min-width: 70%;
 }
 
+#tableInventory {
+    font-size: 13px;
+}
 
 #inputEmailPasswordSeller {
     font-family: 'Password' !important;

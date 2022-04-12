@@ -47,9 +47,15 @@ $(document).ready(async function () {
     })
 
     $('body').on('hidden.bs.modal', function () { //Evita pérdida de scroll modal
-        if($('.modal').length > 0){
+        if(($(".modal").data('bs.modal') || {})._isShown){
             $('body').addClass('modal-open')
-        }
+        }/*else{
+            $('body').removeClass('modal-open')
+        }*/
+
+        /*if($('.modal').length > 0){
+            $('body').addClass('modal-open')
+        }*/
     })
 })
 
@@ -723,6 +729,8 @@ $('#optionModMovement').on('click', async function () {
             }
         })
 
+        //$("#btnMap").css('display','block')
+        $("#btnHistory").css('display','block')
         
         $('#saveMovement').on('click', async function () {
 
@@ -1428,7 +1436,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
 
     var element = document.getElementById('movementContainerNumber')
     var maskOptions = {
-        mask: 'aaaa-000000-0000',
+        mask: 'aaaa-000000-0',
         lazy: false //shows placeholder
     };
     var mask = IMask(element, maskOptions)
@@ -1592,30 +1600,44 @@ function validateMovementData(movementData) {
             }
 
         }else if(movementData.movement=='TRASPASO'){
-           
-            if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer'
 
+            if(!validateRut(movementData.driverRUT)){
+                errorMessage += '<br>RUT Chofer Entrada'
                 $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverName==''){
+                errorMessage += '<br>Nombre Chofer Entrada'
+                $('#movementDriverName').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverName').css('border', '1px solid #CED4DA')
+            }
+            if(movementData.driverPlate==''){
+                errorMessage += '<br>Patente Camión Entrada'
+                $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+            }else{
+                $('#movementDriverPlate').css('border', '1px solid #CED4DA')
+            }
+           
+            if(!validateRut(movementData.driverOutRUT)){
+                errorMessage += '<br>RUT Chofer Salida'
                 $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
             }else{
                 $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
             }
-            if(movementData.driverName==''){
-                errorMessage += '<br>Nombre Chofer'
-                $('#movementDriverName').css('border', '1px solid #E74C3C')
+            if(movementData.driverOutName==''){
+                errorMessage += '<br>Nombre Chofer Salida'
                 $('#movementDriverOutName').css('border', '1px solid #E74C3C')
             }else{
                 $('#movementDriverOutName').css('border', '1px solid #CED4DA')
             }
-            if(movementData.driverPlate==''){
-                errorMessage += '<br>Patente Camión'
-                $('#movementDriverPlate').css('border', '1px solid #E74C3C')
+            if(movementData.driverOutPlate==''){
+                errorMessage += '<br>Patente Camión Salida'
                 $('#movementDriverOutPlate').css('border', '1px solid #E74C3C')
             }else{
                 $('#movementDriverOutPlate').css('border', '1px solid #CED4DA')
             }
-
 
         }else{
             if(!validateRut(movementData.driverRUT)){

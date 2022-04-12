@@ -176,11 +176,6 @@ $("#btnHoriLeftRight").on('click', function(){
 
 $("#btnSave").on('click', async function(){
 
-    console.log("Nombre Sitio",$("#siteName").val())
-    console.log("Dimensiones Mts",$("#meterX").val(),$("#meterY").val())
-    console.log("Dimensiones Pies",edgeX,edgeY)
-    console.log("Filas",shapes)
-
     if($("#siteName").val()==''){
         toastr.warning('Debe ingresar un nombre de paño válido')
         return
@@ -226,7 +221,6 @@ $("#btnSave").on('click', async function(){
         
 
         let saveMap = await axios.post('/api/siteSave', sites)
-        console.log(saveMap)
         if(saveMap){
             toastr.success('Almacenado correctamente')
 
@@ -235,7 +229,6 @@ $("#btnSave").on('click', async function(){
                 id: saveMap.data._id,
                 name: saveMap.data.name
             })
-            console.log(listSites)
         }
     }else{
 
@@ -246,16 +239,13 @@ $("#btnSave").on('click', async function(){
 
 
         sites.id = $("#listSites").val()
-        console.log(sites)
         let updateMap = await axios.post('/api/siteUpdate', sites)
-        console.log(updateMap)
         if(updateMap){
             toastr.success('Almacenado correctamente')
 
             if(listSites.find(x => x.id === sites.id).name!=$("#siteName").val()){
                 listSites.find(x => x.id === sites.id).name == $("#siteName").val()
             }
-            console.log(listSites)
             $('#listSites option[value='+sites.id+']').text($("#siteName").val())
         }
     }
@@ -301,6 +291,7 @@ async function createMap(){
     WIDTH = canvas.width
     HEIGHT = canvas.height
 
+    console.log(offsetX, offsetY, WIDTH, HEIGHT)
     // drag related variables
     dragok = false
     //startX
@@ -398,10 +389,10 @@ function myDown(e){
     // tell the browser we're handling this mouse event
     e.preventDefault()
     e.stopPropagation()
-
+    
     // get the current mouse position
-    var mx=parseInt(e.clientX-offsetX)
-    var my=parseInt(e.clientY-offsetY)
+    var mx=parseInt(e.clientX-(offsetX-window.scrollX))
+    var my=parseInt(e.clientY-(offsetY-window.scrollY))
 
     // test each shape to see if mouse is inside
     dragok=false
@@ -409,7 +400,6 @@ function myDown(e){
         var s=shapes[i]
         // decide if the shape is a rect or circle
         
-        console.log(s)
         if(s.width * cubePixels){
             // test if the mouse is inside this rect
             if(mx>s.x * cubePixels && mx<s.x * cubePixels+s.width * cubePixels && my>s.y * cubePixels && my<s.y * cubePixels+s.height * cubePixels){
@@ -457,8 +447,8 @@ function myMove(e){
         e.stopPropagation()
 
         // get the current mouse position
-        var mx=parseInt(e.clientX-offsetX)
-        var my=parseInt(e.clientY-offsetY)
+        var mx=parseInt(e.clientX-(offsetX-window.scrollX))
+        var my=parseInt(e.clientY-(offsetY-window.scrollY))
 
         // calculate the distance the mouse has moved
         // since the last mousemove
@@ -506,7 +496,7 @@ function myMove(e){
                 }else if(my<s.y * cubePixels-(cubePixels - 1)){
                     s.y-=1                    
                 }
-                console.log(s.x,s.y)
+                
             }
         }
 
@@ -587,10 +577,6 @@ function addShape(orientation,orientationNumber,containerLarge,name,x,y){
         isDragging: false,
         name: name
     })
-
-    console.log(cubePixels)
-    console.log(shapes)
-
 
     let colorAlert = 'success'
     if(colorCount==0) colorAlert = 'success'
@@ -689,7 +675,7 @@ function containerView(type){
     
     if(type){
         clear()
-        console.log(shapes)
+        
         for(let i=0;i<shapes.length;i++){
             
             let k = shapes[i].containers
@@ -725,7 +711,7 @@ function containerView(type){
                     contWidth = contWidth/shapes[i].containers
 
                 }
-                console.log(name,contX, contY, contWidth, contHeight)
+                
                 ctx.fillRect(contX, contY, contWidth, contHeight)
                 //ctx.fillRect(shapes[i].x, shapes[i].y + ( j * shapes[i].height), shapes[i].width, shapes[i].height/shapes[i].containers)
                 
