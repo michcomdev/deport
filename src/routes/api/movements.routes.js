@@ -46,8 +46,8 @@ export default [
                         movements : { 
                             $elemMatch : { 
                                 datetime: {
-                                    $gt: `${payload.startDate}T00:00:00.000Z`,
-                                    $lt: `${payload.endDate}T23:59:59.999Z`
+                                    $gt: `${payload.startDate}T00:00:00.000`,
+                                    $lt: `${payload.endDate}T23:59:59.999`
                                 }
                             } 
                         }
@@ -221,8 +221,8 @@ export default [
                         query.movements = { 
                             $elemMatch : { 
                                 datetime: {
-                                    $gt: `${payload.startDate}T00:00:00.000Z`,
-                                    $lt: `${payload.endDate}T23:59:59.999Z`
+                                    $gt: `${payload.startDate}T00:00:00.000`, //`${payload.startDate}T00:00:00.000Z`,
+                                    $lt: `${payload.endDate}T23:59:59.999` //`${payload.endDate}T23:59:59.999Z`
                                 }
                             } 
                         }
@@ -615,8 +615,8 @@ export default [
 
                     let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
                     let numberIn = parameters.numberIn
-                    
-                    let movement = new Containers({
+
+                    let query = {
                         clients: payload.client,
                         containerNumber: payload.containerNumber,
                         containertypes: payload.containerType,
@@ -639,7 +639,11 @@ export default [
                             observation: payload.observation
                         }],
                         services: payload.services
-                    })
+                    }
+
+                    console.log(query)
+                    
+                    let movement = new Containers(query)
 
                     if(payload.cranes!=0){
                         movement.movements[0].cranes = payload.cranes

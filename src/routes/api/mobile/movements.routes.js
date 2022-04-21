@@ -45,8 +45,8 @@ export default [
                         movements: {
                             $elemMatch: {
                                 datetime: {
-                                    $gt: `${payload.startDate}T00:00:00.000Z`,
-                                    $lt: `${payload.endDate}T23:59:59.999Z`
+                                    $gt: `${payload.startDate}T00:00:00.000`,
+                                    $lt: `${payload.endDate}T23:59:59.999`
                                 }
                             }
                         }

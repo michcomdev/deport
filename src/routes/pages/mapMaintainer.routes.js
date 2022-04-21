@@ -7,7 +7,7 @@ export default {
             credentials[credentials.scope] = true
 
             if (credentials.scope === 'admin' || credentials.scope === 'contab') {
-                return h.view('mapMantainer', { credentials })
+                return h.view('mapMaintainer', { credentials })
             } else {
                 return h.redirect('movements')
             }

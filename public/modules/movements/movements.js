@@ -39,7 +39,7 @@ $(document).ready(async function () {
         }
     })
 
-    loadMovementTable()
+    //loadMovementTable()
     getParameters()
 
     $("#search").on('click', function(){
@@ -83,7 +83,8 @@ async function getParameters() {
     allContainers = allContainersData.data.sort()
     /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
     autocomplete(document.getElementById("searchNumber"), allContainers)
-
+    
+    loadMovementTable()
 }
 
 async function setPositionList(editSite, editRow, editPosition, editLevel) {
@@ -257,8 +258,8 @@ function loadMovementTable() {
             dom: 'Bfrtip',
             buttons: ['excel'],
             iDisplayLength: 50,
-            oLanguage: {
-                sSearch: 'Buscar: '
+            language: {
+                url: spanishDataTableLang
             },
             responsive: false,
             order: [[ 0, 'desc' ]],
@@ -476,6 +477,8 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
                 total = 0
             }
 
+            console.log(services)
+
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
                 paymentType: $($($(this).children()[1]).children()[0]).val(),
@@ -490,7 +493,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     
         let movementData = {
             movement: movement,
-            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),//$('#movementDate').val() + 'T' + $('#movementTime').val() + ':00.000Z'
             client: $('#movementClient').val(),
             containerNumber: $('#movementContainerNumber').val(),
             containerType: $('#movementContainerType').val(),
@@ -591,16 +594,17 @@ $('#optionModMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
+    console.log("data",container)
+
 
     if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA' || container.movements[movementID].movement=='DESCONSOLIDADO'){
 
         $('#movementsModal').modal('show')
-        $('#modalMov_title').html(`Modifica Ingreso`)
         $('#modalMov_body').html(createModalBody(container.movements[movementID].movement))
         setServiceList('ALL', container.services)
-        console.log("container",container)
-
+        
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
+            $('#modalMov_title').html(`Modifica Ingreso`)
 
             let extraDays = 0
             extraDays = moment().diff(moment(container.movements[0].datetime), 'days')
@@ -613,6 +617,7 @@ $('#optionModMovement').on('click', async function () {
             setExtraDays(extraDays)
 
         }else if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            $('#modalMov_title').html(`Modifica Salida`)
             //////MODIFICAR////
             let extraDays = 0
             extraDays = moment(container.movements[movementID].datetime).diff(moment(container.movements[0].datetime), 'days')
@@ -664,8 +669,15 @@ $('#optionModMovement').on('click', async function () {
         })
 
         $('#movementType').val(container.movements[movementID].movement)
-        $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
-        $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
+        if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            $('#movementDate').val(moment(container.movements[0].datetime).format('YYYY-MM-DD'))
+            $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
+            $('#movementOutDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
+            $('#movementOutTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
+        }else{
+            $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
+            $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
+        }
         $('#movementClient').val(container.clients)
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
@@ -737,7 +749,9 @@ $('#optionModMovement').on('click', async function () {
             let movement = $('#movementType').val()
 
             if($('#movementCrane').val()!=0 && $('#movementCrane').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0 && $('#movementPositionRow').val()!=0){
-                movement = 'INGRESADO'
+                if(movement=='POR INGRESAR'){
+                    movement = 'INGRESADO'
+                }
             }
 
             //Servicios
@@ -765,11 +779,16 @@ $('#optionModMovement').on('click', async function () {
                 })
             })
 
+            let datetime = $('#movementDate').val() + ' ' + $('#movementTime').val()
+            if(movement=='POR SALIR' || movement=='SALIDA'){
+                datetime = $('#movementOutDate').val() + ' ' + $('#movementOutTime').val()
+            }
+
             let movementData = {
                 id: internals.dataRowSelected.id,
                 movementID: movementID,
                 movement: movement,
-                datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+                datetime: datetime,
                 client: $('#movementClient').val(),
                 containerNumber: $('#movementContainerNumber').val(),
                 containerType: $('#movementContainerType').val(),
@@ -790,7 +809,7 @@ $('#optionModMovement').on('click', async function () {
                 services: services,
                 observation: $('#movementObservation').val()
             }
-            console.log('update',movementData)
+            
             const res = validateMovementData(movementData)
             if(res.ok){
                 let saveMovement = await axios.post('/api/movementUpdate', res.ok)
@@ -1133,7 +1152,7 @@ $('#optionCloseMovement').on('click', async function () {
         let movementData = {
             id: internals.dataRowSelected.id,
             movement: $('#movementType').val(),
-            datetime: $('#movementDate').val() + ' ' + $('#movementTime').val(),
+            datetime: $('#movementOutDate').val() + ' ' + $('#movementOutTime').val(),
             client: $('#movementClient').val(),
             containerNumber: $('#movementContainerNumber').val(),
             containerType: $('#movementContainerType').val(),
@@ -1155,7 +1174,6 @@ $('#optionCloseMovement').on('click', async function () {
             observation: $('#movementObservation').val()
         }
 
-        console.log(movementData)
         //return
 //FALTA AGREGAR ALGÚN INDICAR DE ASOCIACIÓN (PRINCIPALMENTE INGRESOS-MOVIMIENTOS)
         const res = validateMovementData(movementData)
@@ -1580,7 +1598,7 @@ function validateMovementData(movementData) {
         if(movementData.movement=='POR SALIR' || movementData.movement=='SALIDA'){
            
             if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer'
+                errorMessage += '<br>RUT Chofer Válido'
 
                 $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
             }else{
@@ -1641,7 +1659,7 @@ function validateMovementData(movementData) {
 
         }else{
             if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer'
+                errorMessage += '<br>RUT Chofer Válido'
     
                 $('#movementDriverRUT').css('border', '1px solid #E74C3C')
             }else{
@@ -1696,12 +1714,22 @@ function validateMovementData(movementData) {
 }
 
 function createModalBody(type){
+
+    /*<div class="col-md-5">
+        ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
+        <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}" ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
+    </div>
+    <div class="col-md-3">
+        ${(type=='POR SALIR' || type=='SALIDA') ? 'Hora Ingreso':'Hora'}
+        <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}"  ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
+    </div>*/
+
     let body = `
     <div class="row">
 
         <div class="col-md-2" style="display: none;">
             Movimiento
-            <select id="movementType" class="custom-select classMove">
+            <select id="movementType" class="custom-select custom-select-sm classMove">
                 <option value="POR INGRESAR">POR INGRESAR</option>
                 <option value="INGRESADO">INGRESADO</option>
                 <option value="TRASLADO">TRASLADO</option>
@@ -1717,24 +1745,26 @@ function createModalBody(type){
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <h6>DATOS GENERALES</h6>
-                            <button class="btn btn-primary" onclick="testing()">Rellenar</button>
-                        </div>
+                        </div>`
+                body += `<div class="col-md-6">
+                            <button class="btn btn-primary btn-sm" onclick="testing()">Rellenar</button>
+                        </div>`
 
-                        <div class="col-md-5">
+                body += `<div class="col-md-7">
                             ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
-                            <input id="movementDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}" ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
+                            <input id="movementDate" type="date" class="form-control form-control-sm border-input" value="${moment().format('YYYY-MM-DD')}" disabled>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-5">
                             ${(type=='POR SALIR' || type=='SALIDA') ? 'Hora Ingreso':'Hora'}
-                            <input id="movementTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}"  ${(type=='POR SALIR' || type=='SALIDA') ? 'disabled':''}>
+                            <input id="movementTime" type="text" class="form-control form-control-sm border-input" value="${moment().format('HH:mm')}" disabled>
                         </div>
                         <div class="col-md-10">
                             Cliente
-                            <select id="movementClient" class="custom-select classOut classMove">
+                            <select id="movementClient" class="custom-select custom-select-sm classOut classMove">
                                 <option value="0">SELECCIONE...</option>
-                                ${                      
+                                ${
                                     clients.reduce((acc,el)=>{
                                         acc += '<option value="'+el._id+'">'+el.name+'</option>'
                                         return acc
@@ -1744,16 +1774,16 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2">
                             <br/>
-                            <button class="btn btn-dark classOut classMove" onclick="selectClientSearch('modal')" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-sm btn-dark classOut classMove" onclick="selectClient('modal')" title="Buscar Cliente"><i class="fas fa-search"></i></button>
                         </div>
                         ${(type=='POR SALIR' || type=='SALIDA') ?
-                            `<div class="col-md-5">
+                            `<div class="col-md-7">
                                 Fecha Salida
-                                <input id="movementOutDate" type="date" class="form-control border-input" value="${moment().format('YYYY-MM-DD')}">
+                                <input id="movementOutDate" type="date" class="form-control form-control-sm border-input" value="${moment().format('YYYY-MM-DD')}" disabled>
                             </div>
-                            <div class="col-md-3">
-                                Hora Ingreso
-                                <input id="movementOutTime" type="text" class="form-control border-input" value="${moment().format('HH:mm')}">
+                            <div class="col-md-5">
+                                Hora Salida
+                                <input id="movementOutTime" type="text" class="form-control form-control-sm border-input" value="${moment().format('HH:mm')}" disabled>
                             </div>` : ''}
                     </div>
                 </div>
@@ -1771,11 +1801,11 @@ function createModalBody(type){
                             <div class="row">
                                 <div class="col-md-7">
                                     Número Container
-                                    <input id="movementContainerNumber" type="text" placeholder="Ej: 126170-0" class="form-control border-input classOut classMove">
+                                    <input id="movementContainerNumber" type="text" placeholder="Ej: 126170-0" class="form-control form-control-sm border-input classOut classMove" onkeyup="toUpper(this)">
                                 </div>
                                 <div class="col-md-2">
                                     Largo
-                                    <select id="movementContainerLarge" class="custom-select classOut classMove">
+                                    <select id="movementContainerLarge" class="custom-select custom-select-sm classOut classMove">
                                         <option value="20">20</option>
                                         <option value="40">40</option>
                                         <option value="40H">40H</option>
@@ -1783,7 +1813,7 @@ function createModalBody(type){
                                 </div>
                                 <div class="col-md-3">
                                     Tipo
-                                    <select id="movementContainerType" class="custom-select classOut classMove" onchange="changeTexture('type')">
+                                    <select id="movementContainerType" class="custom-select custom-select-sm classOut classMove" onchange="changeTexture('type')">
                                         <option value="61d70f00f5ffd3251426d0a5" data-texture="cai">GENÉRICO</option>
                                         ${
                                             containerTypes.reduce((acc,el)=>{
@@ -1804,7 +1834,7 @@ function createModalBody(type){
                     </div>
                     <div class="col-md-2">
                         Grúa
-                        <select id="movementCrane" class="custom-select classStacker">
+                        <select id="movementCrane" class="custom-select custom-select-sm classStacker">
                             <option value="0">SELECCIONE...</option>
                             ${                      
                                 cranes.reduce((acc,el)=>{
@@ -1817,7 +1847,7 @@ function createModalBody(type){
             if(type=='TRASLADO' || type=='DESCONSOLIDADO'){
                 body += `<div class="col-md-2" style="text-align: center">
                             Paño
-                            <select id="movementSiteOld" class="custom-select classMove">
+                            <select id="movementSiteOld" class="custom-select custom-select-sm classMove">
                                 <option value="0">SELECCIONE...</option>
                                 ${                      
                                     sites.reduce((acc,el)=>{
@@ -1830,21 +1860,21 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2" style="text-align: center">
                             Fila
-                            <select id="movementPositionRowOld" class="custom-select classMove">
+                            <select id="movementPositionRowOld" class="custom-select custom-select-sm classMove">
                                 <option value="0">SEL</option>
                             </select>
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <div class="col-md-2" style="text-align: center">
                             Posición
-                            <select id="movementPositionPositionOld" class="custom-select classMove">
+                            <select id="movementPositionPositionOld" class="custom-select custom-select-sm classMove">
                                 <option value="0">SEL</option>   
                             </select>
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <div class="col-md-2" style="text-align: center">
                             Altura
-                            <select id="movementPositionLevelOld" class="custom-select classMove" style="text-align: center">
+                            <select id="movementPositionLevelOld" class="custom-select custom-select-sm classMove" style="text-align: center">
                                 <option value="0">SEL</option>  
                             </select>
                             <i class="fas fa-chevron-down"></i>
@@ -1853,7 +1883,7 @@ function createModalBody(type){
                         <div class="col-md-4">
                         </div>
                         <div class="col-md-2">
-                            <select id="movementSite" class="custom-select classOut">
+                            <select id="movementSite" class="custom-select custom-select-sm classOut">
                                 <option value="0">SELECCIONE...</option>
                                 ${                      
                                     sites.reduce((acc,el)=>{
@@ -1864,17 +1894,17 @@ function createModalBody(type){
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="movementPositionRow" class="custom-select classOut">
+                            <select id="movementPositionRow" class="custom-select custom-select-sm classOut">
                                 <option value="0">SEL</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="movementPositionPosition" class="custom-select classOut">
+                            <select id="movementPositionPosition" class="custom-select custom-select-sm classOut">
                                 <option value="0">SEL</option>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="movementPositionLevel" class="custom-select classOut">
+                            <select id="movementPositionLevel" class="custom-select custom-select-sm classOut">
                                 <option value="0">SEL</option>
                             </select>
                         </div>`
@@ -1882,7 +1912,7 @@ function createModalBody(type){
             }else{
                 body += `<div class="col-md-2">
                             Paño
-                            <select id="movementSite" class="custom-select classOut classStacker">
+                            <select id="movementSite" class="custom-select custom-select-sm classOut classStacker">
                                 <option value="0">SELECCIONE...</option>
                                 ${                      
                                     sites.reduce((acc,el)=>{
@@ -1894,19 +1924,19 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2">
                             Fila
-                            <select id="movementPositionRow" class="custom-select classOut classStacker">
+                            <select id="movementPositionRow" class="custom-select custom-select-sm classOut classStacker">
                                 <option value="0">SEL</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             Posición
-                            <select id="movementPositionPosition" class="custom-select classOut classStacker">
+                            <select id="movementPositionPosition" class="custom-select custom-select-sm classOut classStacker">
                                 <option value="0">SEL</option>
                             </select>
                         </div>
                         <div class="col-md-2">
                             Altura
-                            <select id="movementPositionLevel" class="custom-select classOut classStacker">
+                            <select id="movementPositionLevel" class="custom-select custom-select-sm classOut classStacker">
                                 <option value="0">SEL</option>
                             </select>
                         </div>`
@@ -1924,7 +1954,7 @@ function createModalBody(type){
                     </div>
                     <div class="col-md-3">
                         Grúa
-                        <select id="movementCrane" class="custom-select classStacker">
+                        <select id="movementCrane" class="custom-select custom-select-sm classStacker">
                             <option value="0">SELECCIONE...</option>
                             ${                      
                                 cranes.reduce((acc,el)=>{
@@ -1944,7 +1974,7 @@ function createModalBody(type){
             body += `<div class="col-md-3">
                     Color
                     <br/>
-                    <button class="btn btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
+                    <button class="btn btn-sm btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
                     <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="${containerTypes[0].texture}">
 
                     ${ getTextureTable(containerTypes)}
@@ -1971,23 +2001,23 @@ function createModalBody(type){
                             </div>
                             <div class="col-md-5" style="text-align: center">
                                 RUT
-                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDriverIn">
+                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-7" style="text-align: center">
                                 Nombre
-                                <input id="movementDriverName" type="text" class="form-control border-input classMove classDriverIn">
+                                <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Placa Patente
-                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove classDriverIn">
+                                <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDriverIn" onkeyup="toUpper(this)">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Guía Despacho
-                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove classDriverIn">
+                                <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
                             </div>
                             <div class="col-md-4">
                                 Sello Container
-                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove classDriverIn">
+                                <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
                             </div>
 
                             <div class="col-md-12">
@@ -1996,25 +2026,25 @@ function createModalBody(type){
                             </div>
                             <div class="col-md-5" style="text-align: center">
                                 RUT
-                                <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove">
+                                <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove">
                             </div>
                             <div class="col-md-7" style="text-align: center">
                                 Nombre
-                                <input id="movementDriverOutName" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverOutName" type="text" class="form-control form-control-sm border-input classMove">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Placa Patente
-                                <input id="movementDriverOutPlate" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverOutPlate" type="text" class="form-control form-control-sm border-input classMove" onkeyup="toUpper(this)">
                             </div>
                             <div class="col-md-4" style="text-align: center">
                                 Guía Despacho
-                                <input id="movementDriverOutGuide" type="text" class="form-control border-input classMove">
+                                <input id="movementDriverOutGuide" type="text" class="form-control form-control-sm border-input classMove">
                             </div>`
                     if(type=='POR SALIR' || type=='SALIDA'){
                         body += `
                                 <div class="col-md-4">
                                     Sello Container
-                                    <input id="movementDriverOutSeal" type="text" class="form-control border-input classMove classDriverIn">
+                                    <input id="movementDriverOutSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
                                 </div>`
                     }
                 }else{
@@ -2023,23 +2053,23 @@ function createModalBody(type){
                             </div>
                             <div class="col-md-5">
                                 RUT
-                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control border-input classMove classDeconsolidated">
+                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDeconsolidated">
                             </div>
                             <div class="col-md-7">
                                 Nombre
-                                <input id="movementDriverName" type="text" class="form-control border-input classMove classDeconsolidated">
+                                <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
                             </div>
                             <div class="col-md-4">
                                 Placa Patente
-                                <input id="movementDriverPlate" type="text" class="form-control border-input classMove classDeconsolidated">
+                                <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated" onkeyup="toUpper(this)">
                             </div>
                             <div class="col-md-4">
                                 Guía Despacho
-                                <input id="movementDriverGuide" type="text" class="form-control border-input classMove classDeconsolidated">
+                                <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
                             </div>
                             <div class="col-md-4">
                                 Sello Container
-                                <input id="movementDriverSeal" type="text" class="form-control border-input classMove classDeconsolidated">
+                                <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
                             </div>`
                 }
 
@@ -2052,15 +2082,15 @@ function createModalBody(type){
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            <h6>DATOS DE PAGO</h6>
+                            <h6>DATOS DE SERVICIOS</h6>
                         </div>
                         <div class="col-md-3">
                             <br/ >
-                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA') ? '<button id="btnServicePortage" class="btn btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServicePortage" class="btn btn-sm btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
                         </div>
                         <div class="col-md-3">
                             <br/ >
-                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA') ? '<button id="btnServiceTransport" class="btn btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServiceTransport" class="btn btn-sm btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
                         </div>
                         <div class="col-md-3">
                         </div>
@@ -2115,7 +2145,7 @@ function createModalBody(type){
                                 <option value="TRANSFERENCIA">TRANSFERENCIA</option>
                                 <option value="TRANSBANK">TRANSBANK</option>
                             </select>
-                            <input id="movementPaymentNumber" type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                            <input id="movementPaymentNumber" type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
 
                         </div>
                         <div class="col-md-3">
@@ -2158,11 +2188,35 @@ function createModalBody(type){
                         body += `</div>
                         <div class="col-md-3">
                             VALOR
-                            <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
-                            <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
-                            <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                            <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
+                            <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment">
+                            <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove">
                         </div>`*/
                     body += `</div>
+                        <div class="col-md-7">
+                        </div>
+                        <div class="col-md-2" style="text-align: right">
+                            Total Neto
+                        </div>
+                        <div class="col-md-2">
+                            <input id="movementTotalNet" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                        <div class="col-md-7">
+                        </div>
+                        <div class="col-md-2" style="text-align: right">
+                            Total IVA
+                        </div>
+                        <div class="col-md-2">
+                            <input id="movementTotalIVA" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                        <div class="col-md-7">
+                        </div>
+                        <div class="col-md-2" style="text-align: right">
+                            Total Final
+                        </div>
+                        <div class="col-md-2">
+                            <input id="movementTotalTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2170,7 +2224,7 @@ function createModalBody(type){
             
         <div class="form-group col-md-12">
             <h4 class="card-title">&nbsp;Observaciones</h4>
-            <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control" rows="5"></textarea>
+            <textarea id="movementObservation" placeholder="EJEMPLO: CONTENEDOR DAÑADO" class="form-control form-control-sm" rows="5"></textarea>
         </div>
 
     </div>
@@ -2188,7 +2242,7 @@ function setServiceList(type,array){
     $("#tableServicesBody").append(`
         <tr>
             <td>
-                <select class="custom-select classMove" onchange="updatePayment(this)">
+                <select class="custom-select custom-select-sm classMove" onchange="updatePayment(this)">
                     ${firstSelect}
                     ${
                         services.reduce((acc,el)=>{
@@ -2207,7 +2261,7 @@ function setServiceList(type,array){
                 </select>
             </td>
             <td>
-                <select class="custom-select classMove classPayment">
+                <select class="custom-select custom-select-sm classMove classPayment">
                     <option value="0">SELECCIONAR</option>
                     <option value="EFECTIVO">EFECTIVO</option>
                     <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -2216,22 +2270,22 @@ function setServiceList(type,array){
                 </select>
             </td>
             <td>
-                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
             </td>
             <td style="text-align: center;">
                 <input class="form-check-input classMove" type="checkbox" value="">
             </td>
-            <td style="text-align: center;">
-                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+            <td>
+                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
             </td>
             <td>
             </td>
@@ -2243,9 +2297,9 @@ function setServiceList(type,array){
             for(let i=1; i<array.length;i++){
                 let trClass = ''
                 if(array[i].services.name=='Porteo'){
-                    trClass = 'table-primary'
+                    trClass = 'table-primarySoft'
                 }else if(array[i].services.name=='Transporte'){
-                    trClass = 'table-info'
+                    trClass = 'table-infoSoft'
                 }
 
                 if(array[i].services.name!='Día(s) Extra'){
@@ -2253,7 +2307,7 @@ function setServiceList(type,array){
                     $("#tableServicesBody").append(`
                         <tr class="${trClass}">
                             <td>
-                                <select class="custom-select classMove" onchange="updatePayment(this)">
+                                <select class="custom-select custom-select-sm classMove" onchange="updatePayment(this)">
                                     ${
                                         services.reduce((acc,el)=>{
                                             if(el._id==array[i].services._id){
@@ -2265,7 +2319,7 @@ function setServiceList(type,array){
                                 </select>
                             </td>
                             <td>
-                                <select class="custom-select classMove classPayment">
+                                <select class="custom-select custom-select-sm classMove classPayment">
                                     <option value="0">SELECCIONAR</option>
                                     <option value="EFECTIVO">EFECTIVO</option>
                                     <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -2274,22 +2328,22 @@ function setServiceList(type,array){
                                 </select>
                             </td>
                             <td>
-                                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
                             </td>
                             <td>
-                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
                             </td>
                             <td>
-                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
                             </td>
                             <td>
-                                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
                             </td>
                             <td style="text-align: center;">
                                 <input class="form-check-input classMove" type="checkbox" value="">
                             </td>
                             <td style="text-align: center;">
-                                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+                                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
                             </td>
                             <td>
                             </td>
@@ -2304,7 +2358,7 @@ function setServiceList(type,array){
         $("#tableServicesBody").append(`
             <tr>
                 <td>
-                    <select class="custom-select classMove classDeconsolidated" onchange="updatePayment(this)">
+                    <select class="custom-select custom-select-sm classMove classDeconsolidated" onchange="updatePayment(this)">
                         ${                      
                             services.reduce((acc,el)=>{
                                 if(el.name=='Desconsolidado'){
@@ -2316,7 +2370,7 @@ function setServiceList(type,array){
                     </select>
                 </td>
                 <td>
-                    <select class="custom-select classMove classDeconsolidated classPayment">
+                    <select class="custom-select custom-select-sm classMove classDeconsolidated classPayment">
                         <option value="0">SELECCIONAR</option>
                         <option value="EFECTIVO">EFECTIVO</option>
                         <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -2324,22 +2378,22 @@ function setServiceList(type,array){
                     </select>
                 </td>
                 <td>
-                    <input type="text" class="form-control border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
+                    <input type="text" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
                 </td>
                 <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this)">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this)">
                 </td>
                 <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this,'iva')">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this,'iva')">
                 </td>
                 <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classDeconsolidated classPayment">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
                 </td>
                 <td style="text-align: center;">
                     <input class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
                 </td>
                 <td style="text-align: center;">
-                    <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
+                    <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
                 </td>
                 <td>
                 </td>
@@ -2368,11 +2422,16 @@ function setServiceList(type,array){
             $($($(row).children()[4]).children()[0]).val(`$ ${dot_separators(array[j].paymentIVA)}`)
             $($($(row).children()[5]).children()[0]).val(`$ ${dot_separators(array[j].paymentTotal)}`)
             $($($(row).children()[6]).children()[0]).prop('checked',array[j].paymentAdvance)
-            if(array[j].date){
-                $($($(row).children()[7]).children()[0]).val(moment.utc(array[j].date).format('DD/MM/YYYY'))
+
+            if(array[j].paymentAdvance){//Si el pago fue anticipado, se indicará la fecha registrada, caso contrario será la fecha actual
+                if(array[j].date){
+                    $($($(row).children()[7]).children()[0]).val(moment.utc(array[j].date).format('DD/MM/YYYY'))
+                }
             }
         }
     }
+
+    calculateTotal()
 }
 
 function setExtraDays(quantity,toClose){
@@ -2432,7 +2491,7 @@ function setExtraDays(quantity,toClose){
                 <input type="text" style="text-align: right" value="$ ${dot_separators(iva)}" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')" ${disabled}>
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ ${dot_separators(total)}" class="form-control border-input classMove classPayment" ${disabled}>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(total)}" class="form-control border-input classMove" disabled>
             </td>
 
         </tr>`
@@ -2516,6 +2575,49 @@ async function updatePayment(input,iva) {
         $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
         $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
     }
+
+    calculateTotal()
+}
+
+async function calculateTotal(){
+    let totalNet = 0, totalIVA = 0, totalTotal = 0
+    $("#tableServicesBody > tr").each(function() {
+        let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let total = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        
+        if(!$.isNumeric(net)){
+            net = 0
+            iva = 0
+            total = 0
+        }
+
+        totalNet += net
+        totalIVA += iva
+        totalTotal += total
+    })
+
+    $("#tableServicesExtraBody > tr").each(function() {
+        let net = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = parseInt(replaceAll($($($(this).children()[6]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let total = parseInt(replaceAll($($($(this).children()[7]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        
+        if(!$.isNumeric(net)){
+            net = 0
+            iva = 0
+            total = 0
+        }
+
+        totalNet += net
+        totalIVA += iva
+        totalTotal += total
+       
+    })
+
+    $("#movementTotalNet").val(`$ ${dot_separators(totalNet)}`)
+    $("#movementTotalIVA").val(`$ ${dot_separators(totalIVA)}`)
+    $("#movementTotalTotal").val(`$ ${dot_separators(totalTotal)}`)
+
 }
 
 async function selectClientSearch(from) {
@@ -2524,7 +2626,7 @@ async function selectClientSearch(from) {
         title: 'Seleccione Cliente',
         customClass: 'swal-wide',
         html: `
-            <div style="max-height: 400px !important; overflow-y: scroll;">
+            <div style="max-height: 400px !important; overflow-y: scroll; font-size: 14px">
                 <table id="tableSearchClients" class="display nowrap table table-condensed" cellspacing="0">
                     <thead>
                         <tr class="table-dark">
@@ -2550,9 +2652,6 @@ async function selectClientSearch(from) {
                         'excel'
                     ],
                     iDisplayLength: 50,
-                    oLanguage: {
-                        sSearch: 'Buscar: '
-                    },
                     lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
                     language: {
                         url: spanishDataTableLang
@@ -2621,7 +2720,6 @@ async function selectClientSearch(from) {
         cancelButtonText: 'Cancelar'
     })
 
-    console.log(clientSelectedData.value)
     if (clientSelectedData.value) {
         if(from=='search'){
             $('#searchClient').val(clientSelectedData.value._id)
@@ -2640,7 +2738,7 @@ async function selectClient(btn) {
             <button class="btn btn-success btn-block" id="createClient" style="max-width: 200px">
                 <i class="fas fa-user-plus"></i> NUEVO CLIENTE
             </button>
-            <div style="max-height: 400px !important; overflow-y: scroll;">
+            <div style="max-height: 400px !important; overflow-y: scroll; font-size: 14px">
                 <table id="tableSearchClients" class="display nowrap table table-condensed" cellspacing="0">
                     <thead>
                         <tr class="table-dark">
@@ -2666,9 +2764,6 @@ async function selectClient(btn) {
                         'excel'
                     ],
                     iDisplayLength: 50,
-                    oLanguage: {
-                        sSearch: 'Buscar: '
-                    },
                     lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
                     language: {
                         url: spanishDataTableLang
@@ -2763,6 +2858,8 @@ async function createClient() {
         $('#clientRUT').focus()
     }, 500)
 
+    $('#saveClient').unbind('click')
+
     $('#saveClient').on('click', async function () {
         let clientData = {
             rut: $('#clientRUT').val(),
@@ -2800,9 +2897,6 @@ async function createClient() {
                             'excel'
                         ],
                         iDisplayLength: 50,
-                        oLanguage: {
-                            sSearch: 'Buscar: '
-                        },
                         lengthMenu: [[50, 100, 500, -1], [50, 100, 500, 'Todos los registros']],
                         language: {
                             url: spanishDataTableLang
@@ -2832,8 +2926,8 @@ async function createClient() {
                             let clientsData = await axios.get('api/clients')
                             clients = clientsData.data
 
-                            $("#searchClient").append('<option value="0">TODOS</option>')
-                            $("#movementClient").append('<option value="0">SELECCIONE...</option>')
+                            $("#searchClient").html('<option value="">TODOS</option>')
+                            $("#movementClient").html('<option value="">SELECCIONE...</option>')
                             for(let i=0; i < clients.length; i++){
                                 $("#movementClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
                                 $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
@@ -2922,6 +3016,7 @@ function setModalClient(){
 }
 
 function validateClientData(clientData) {
+
     let validationCounter = 0
     let errorMessage = ''
 
@@ -2930,7 +3025,7 @@ function validateClientData(clientData) {
         validationCounter++
         $('#clientRUT').css('border', '1px solid #3498db')
     } else {
-        errorMessage += `<br>RUT`
+        errorMessage += `<br>RUT incorrecto`
         $('#clientRUT').css('border', '1px solid #e74c3c')
     }
 
@@ -2960,7 +3055,7 @@ function validateClientData(clientData) {
     if (validationCounter == 4) {
         return { ok: clientData }
     } else {
-        toastr.warning('Falta datos:<br>'+errorMessage)
+        toastr.warning('Faltan datos:<br>'+errorMessage)
         return { err: clientData }
     }
 
@@ -3064,11 +3159,8 @@ async function showMap(){
 
 async function printVoucher(type,id) {
 
-
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
     let voucher = movement.data
-
-    console.log('voucher',voucher)
 
     //TESTING//
     if(!voucher.driverGuide) voucher.driverGuide='0'
@@ -3237,7 +3329,7 @@ function addService(btn,type){
     $("#tableServicesBody").append(`
         <tr class="${trClass}">
             <td>
-                <select class="custom-select classMove" onchange="updatePayment(this)">
+                <select class="custom-select custom-select-sm classMove" onchange="updatePayment(this)">
                     ${
                         services.reduce((acc,el)=>{
                             if(type=='PORTEO'){
@@ -3255,7 +3347,7 @@ function addService(btn,type){
                 </select>
             </td>
             <td>
-                <select class="custom-select classMove classPayment">
+                <select class="custom-select custom-select-sm classMove classPayment">
                     <option value="0">SELECCIONAR</option>
                     <option value="EFECTIVO">EFECTIVO</option>
                     <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -3264,28 +3356,39 @@ function addService(btn,type){
                 </select>
             </td>
             <td>
-                <input type="text" class="form-control border-input classMove classPayment" placeholder="N° Transacción">
+                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,,'iva')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,,'iva')">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control border-input classMove classPayment">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
             </td>
             <td style="text-align: center;">
                 <input class="form-check-input classMove" type="checkbox" value="">
             </td>
             <td style="text-align: center;">
-                <input type="text" class="form-control border-input classServiceDate" value="${moment().format('DD/MM/YYYY')}">
+                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD/MM/YYYY')}">
             </td>
             <td>
-                <button class="btn btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Buscar Cliente"><i class="fas fa-times"></i></button>
+                <button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Quitar Servicio"><i class="fas fa-times"></i></button>
             </td>
         </tr>
     `)
+
+
+    $('.classServiceDate').daterangepicker({
+        opens: 'left',
+        locale: dateRangePickerDefaultLocale,
+        singleDatePicker: true,
+        autoApply: true
+    }, function(start, end, label) {
+        //internals.initDate = start.format('YYYY-MM-DD')
+        //internals.endDate = end.format('YYYY-MM-DD')
+    })
 }
 
 function deleteService(btnRow, btn){
@@ -3391,8 +3494,13 @@ function autocomplete(inp, arr) {
     });
 }
 
+function toUpper(input){
+    $(input).val($(input).val().toUpperCase())
+}
+
 function testing(){
-    let arrClient = ['61b88ccdeb77f0bf62cb74b3','61d5af56986222a3aedcf652','61e8356c6d5f012fc4920b58','61e83634605fed158ca1721a','62265580be54f73ba4a3a2ca','62265f305d41216a90857de5']
+    //let arrClient = ['61b88ccdeb77f0bf62cb74b3','61d5af56986222a3aedcf652','61e8356c6d5f012fc4920b58','61e83634605fed158ca1721a','62265580be54f73ba4a3a2ca','62265f305d41216a90857de5']
+    let arrClient = ['61b88ccdeb77f0bf62cb74b3']
     $('#movementClient').val(arrClient[Math.floor(Math.random() * arrClient.length)])
     //$('#movementContainerNumber').val('HASU-751000-1123')
     let arr = ['MSFU','HASU','BCLU','EUXU','PXCU','TORU']

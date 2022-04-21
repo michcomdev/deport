@@ -203,13 +203,13 @@
 @media (min-width: 992px) {
     .modal-lg,
     .modal-xl {
-      max-width: 800px;
+        max-width: 98%;
     }
 }
   
 @media (min-width: 1200px) {
     .modal-xl {
-      max-width: 90%;
+      max-width: 98%;
     }
 }
 
@@ -218,6 +218,9 @@
 }
 
 
+#movementsModal{
+    font-size: 13px;
+}
 
 #movementsModal input{
     font-size: 13px;
@@ -236,7 +239,7 @@
 }
 
 #tableServices {
-    font-size: 13px;
+    font-size: 12px;
 }
 
 #tableServicesExtra {
