@@ -1896,9 +1896,9 @@ function createModalBody(type){
                         <div class="col-md-6">
                             <h6>DATOS GENERALES</h6>
                         </div>`
-                body += `<div class="col-md-6">
+                /*body += `<div class="col-md-6">
                             <button class="btn btn-primary btn-sm" onclick="testing()">Rellenar</button>
-                        </div>`
+                        </div>`*/
 
                 body += `<div class="col-md-7">
                             ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
@@ -2123,7 +2123,7 @@ function createModalBody(type){
                     Color
                     <br/>
                     <button class="btn btn-sm btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
-                    <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="${containerTypes[0].texture}">
+                    <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="cai">
 
                     ${ getTextureTable(containerTypes)}
                 
