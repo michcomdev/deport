@@ -405,6 +405,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Llegada`)
     $('#modalMov_body').html(createModalBody())
+    $('#imgTexture').val('cai')
     
     setServiceList('ALL')
 
@@ -622,6 +623,7 @@ $('#optionModMovement').on('click', async function () {
 
         $('#movementsModal').modal('show')
         $('#modalMov_body').html(createModalBody(container.movements[movementID].movement))
+        $('#imgTexture').val('cai')
         setServiceList('ALL', container.services)
         
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
@@ -881,6 +883,7 @@ $('#optionModMovement').on('click', async function () {
         $('#movementsModal').modal('show')
         $('#modalMov_title').html(`Modifica Traspaso`)
         $('#modalMov_body').html(createModalBody('TRASPASO'))
+        $('#imgTexture').val('cai')
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -1088,6 +1091,7 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Dar Salida`)
     $('#modalMov_body').html(createModalBody('POR SALIR'))
+    $('#imgTexture').val('cai')
 
     setServiceList('ALL', container.services)
 
@@ -1310,6 +1314,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Movimiento interno Container`)
     $('#modalMov_body').html(createModalBody('TRASLADO'))
+    $('#imgTexture').val('cai')
     setServiceList('ALL', container.services)
 
     $('#modalMov_footer').html(`
@@ -1412,6 +1417,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Desconsolidado de Container`)
     $('#modalMov_body').html(createModalBody('DESCONSOLIDADO'))
+    $('#imgTexture').val('cai')
     setServiceList('DESCONSOLIDADO', container.services)
     setPositionList()
 
@@ -1560,6 +1566,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Ingreso de Traspaso`)
     $('#modalMov_body').html(createModalBody('TRASPASO'))
+    $('#imgTexture').val('cai')
     setServiceList('TRASPASO')
     
     $('#modalMov_footer').html(`
