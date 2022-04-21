@@ -26,6 +26,12 @@ export default [{
                             scope: 'user'
                         },
                         {
+                            scope: 'gate'
+                        },
+                        {
+                            scope: 'contab'
+                        },
+                        {
                             scope: 'admin'
                         }
                     ],
