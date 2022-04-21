@@ -466,18 +466,25 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
 
         //Servicios
         let services = []
+        let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
             let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
+            //let iva = Math.round(net * 0.19)
+            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
-                net = 0
-                iva = 0
-                total = 0
+                errorNet = true
             }
-
-            console.log(services)
+            if(!$.isNumeric(iva)){
+                errorIVA = true
+            }else{
+                if(iva!=0){
+                    if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                        errorIVA = true
+                    }
+                }
+            }
 
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
@@ -489,7 +496,21 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
                 paymentTotal: total,
                 date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
-        })        
+        })    
+        
+        if(errorNet){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorIVA){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
     
         let movementData = {
             movement: movement,
@@ -756,15 +777,24 @@ $('#optionModMovement').on('click', async function () {
 
             //Servicios
             let services = []
+            let errorNet = false, errorIVA = false
             $("#tableServicesBody > tr").each(function() {
                 let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-                let iva = Math.round(net * 0.19)
+                //let iva = Math.round(net * 0.19)
+                let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 let total = parseInt(net) + parseInt(iva)
                 
                 if(!$.isNumeric(net)){
-                    net = 0
-                    iva = 0
-                    total = 0
+                    errorNet = true
+                }
+                if(!$.isNumeric(iva)){
+                    errorIVA = true
+                }else{
+                    if(iva!=0){
+                        if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                            errorIVA = true
+                        }
+                    }
                 }
 
                 services.push({
@@ -778,6 +808,20 @@ $('#optionModMovement').on('click', async function () {
                     date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
                 })
             })
+
+            if(errorNet){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+    
+            if(errorIVA){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+                $('#modal').modal('show')
+                return
+            }
 
             let datetime = $('#movementDate').val() + ' ' + $('#movementTime').val()
             if(movement=='POR SALIR' || movement=='SALIDA'){
@@ -930,30 +974,54 @@ $('#optionModMovement').on('click', async function () {
         
         $('#saveMovement').on('click', async function () {
 
-             //Servicios
-             let services = []
-             $("#tableServicesBody > tr").each(function() {
-                 let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-                 let iva = Math.round(net * 0.19)
-                 let total = parseInt(net) + parseInt(iva)
+            //Servicios
+            let services = []
+            let errorNet = false, errorIVA = false
+            $("#tableServicesBody > tr").each(function() {
+                let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                //let iva = Math.round(net * 0.19)
+                let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+
+                let total = parseInt(net) + parseInt(iva)
                  
-                 if(!$.isNumeric(net)){
-                     net = 0
-                     iva = 0
-                     total = 0
-                 }
+                if(!$.isNumeric(net)){
+                    errorNet = true
+                }
+                if(!$.isNumeric(iva)){
+                    errorIVA = true
+                }else{
+                    if(iva!=0){
+                        if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                            errorIVA = true
+                        }
+                    }
+                }
  
-                 services.push({
-                     services: $($($(this).children()[0]).children()[0]).val(),
-                     paymentType: $($($(this).children()[1]).children()[0]).val(),
-                     paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                     paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
-                     paymentNet: net,
-                     paymentIVA: iva,
-                     paymentTotal: total,
-                     date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
-                 })
-             })
+                services.push({
+                    services: $($($(this).children()[0]).children()[0]).val(),
+                    paymentType: $($($(this).children()[1]).children()[0]).val(),
+                    paymentNumber: $($($(this).children()[2]).children()[0]).val(),
+                    paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
+                    paymentNet: net,
+                    paymentIVA: iva,
+                    paymentTotal: total,
+                    date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                })
+            })
+
+            if(errorNet){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+    
+            if(errorIVA){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+                $('#modal').modal('show')
+                return
+            }
 
             let movementData = {
                 id: internals.dataRowSelected.id,
@@ -979,9 +1047,9 @@ $('#optionModMovement').on('click', async function () {
                 paymentType: $('#movementPaymentType').val(),
                 paymentNumber: $('#movementPaymentNumber').val(),
                 paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-                paymentNet: net,
+                /*paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
+                paymentTotal: total,*/
                 services: services,
                 observation: $('#movementObservation').val()
             }
@@ -1090,15 +1158,24 @@ $('#optionCloseMovement').on('click', async function () {
     $('#saveMovement').on('click', async function () {
         //Servicios
         let services = []
+        let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
             let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
+            //let iva = Math.round(net * 0.19)
+            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
-                net = 0
-                iva = 0
-                total = 0
+                errorNet = true
+            }
+            if(!$.isNumeric(iva)){
+                errorIVA = true
+            }else{
+                if(iva!=0){
+                    if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                        errorIVA = true
+                    }
+                }
             }
 
             if(services.length==0){
@@ -1118,16 +1195,25 @@ $('#optionCloseMovement').on('click', async function () {
                 date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
+        
 
         $("#tableServicesExtraBody > tr").each(function() {
             let net = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
+            //let iva = Math.round(net * 0.19)
+            let iva = parseInt(replaceAll($($($(this).children()[6]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
-                net = 0
-                iva = 0
-                total = 0
+                errorNet = true
+            }
+            if(!$.isNumeric(iva)){
+                errorIVA = true
+            }else{
+                if(iva!=0){
+                    if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                        errorIVA = true
+                    }
+                }
             }
 
             
@@ -1148,6 +1234,20 @@ $('#optionCloseMovement').on('click', async function () {
                 date: date
             })
         })
+
+        if(errorNet){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorIVA){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
 
         let movementData = {
             id: internals.dataRowSelected.id,
@@ -1368,15 +1468,24 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
 
         //Servicios
         let services = []
+        let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
             let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
+            //let iva = Math.round(net * 0.19)
+            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
-                net = 0
-                iva = 0
-                total = 0
+                errorNet = true
+            }
+            if(!$.isNumeric(iva)){
+                errorIVA = true
+            }else{
+                if(iva!=0){
+                    if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                        errorIVA = true
+                    }
+                }
             }
 
             services.push({
@@ -1390,6 +1499,20 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
                 date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
+
+        if(errorNet){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorIVA){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
 
         let movementData = {
             id: internals.dataRowSelected.id,
@@ -1495,15 +1618,24 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
 
         //Servicios
         let services = []
+        let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
             let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-            let iva = Math.round(net * 0.19)
+            //let iva = Math.round(net * 0.19)
+            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
-                net = 0
-                iva = 0
-                total = 0
+                errorNet = true
+            }
+            if(!$.isNumeric(iva)){
+                errorIVA = true
+            }else{
+                if(iva!=0){
+                    if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                        errorIVA = true
+                    }
+                }
             }
 
             services.push({
@@ -1517,6 +1649,20 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
                 date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
             })
         })
+
+        if(errorNet){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor neto no válido</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorIVA){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
 
         let movementData = {
             movement: movement,
@@ -1546,6 +1692,8 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
+                    printVoucher('transferOut',saveMovement.data._id)
+                    printVoucher('transferIn',saveMovement.data._id)
 
                     $('#modal_title').html(`Almacenado`)
                     $('#modal_body').html(`<h5 class="alert-heading">Traspaso almacenado correctamente</h5>`)
@@ -3194,7 +3342,7 @@ async function printVoucher(type,id) {
 
     pdfY += 72
 
-    doc.text(voucher.containerNumber, pdfX + 80, pdfY + 2)
+    doc.text(voucher.containerNumber, pdfX + 90, pdfY + 2)
 
     doc.setFontSize(10)
     doc.setFontType('normal')
@@ -3205,33 +3353,42 @@ async function printVoucher(type,id) {
     doc.text(`Tracto`, pdfX, pdfY + 51)
     doc.text(`Guía`, pdfX, pdfY + 63)
     doc.text(`Sello`, pdfX, pdfY + 75)
-    doc.text(`Conductor RUT`, pdfX, pdfY + 87)
-    doc.text(`Conductor`, pdfX, pdfY + 99)
-    doc.text(`Cliente RUT`, pdfX, pdfY + 111)
+    doc.text(`RUT Conductor`, pdfX, pdfY + 87)
+    doc.text(`Nombre Conductor`, pdfX, pdfY + 99)
+    doc.text(`RUT Cliente`, pdfX, pdfY + 111)
     //doc.text(`Cliente`, pdfX, pdfY + 95)
     doc.setFontType('bold')
-    doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 127)
+    //doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 127)
+    doc.text(voucher.clientName.toUpperCase(), doc.internal.pageSize.width/2, pdfY + 127, 'center')
     doc.setFontType('normal')
     //doc.text(`Ubicación`, pdfX, pdfY + 105)
 
-    doc.text(voucher.containerLarge, pdfX + 80, pdfY + 15)
-    doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 80, pdfY + 27)
-    if(type=="in"){
-        doc.text('-', pdfX + 80, pdfY + 35)
+    doc.text(voucher.containerLarge, pdfX + 90, pdfY + 15)
+
+    console.log("voucher",voucher)
+
+    if(type=="transferIn" || type=="transferOut"){
+        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
     }else{
-        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 80, pdfY + 39)
+        doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
+    }
+
+    if(type=="in"){
+        doc.text('-', pdfX + 90, pdfY + 35)
+    }else{
+        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 39)
     }
     
-    doc.text(voucher.driverPlate, pdfX + 80, pdfY + 51)
-    doc.text(voucher.driverGuide, pdfX + 80, pdfY + 63)
-    doc.text(voucher.driverSeal, pdfX + 80, pdfY + 75)
-    doc.text(voucher.driverRUT, pdfX + 80, pdfY + 87)
-    doc.text(voucher.driverName, pdfX + 80, pdfY + 99)
-    doc.text(voucher.clientRUT, pdfX + 80, pdfY + 111)
+    doc.text(voucher.driverPlate, pdfX + 90, pdfY + 51)
+    doc.text(voucher.driverGuide, pdfX + 90, pdfY + 63)
+    doc.text(voucher.driverSeal, pdfX + 90, pdfY + 75)
+    doc.text(voucher.driverRUT, pdfX + 90, pdfY + 87)
+    doc.text(voucher.driverName, pdfX + 90, pdfY + 99)
+    doc.text(voucher.clientRUT, pdfX + 90, pdfY + 111)
 
     
-    //doc.text(voucher.clientName.toUpperCase(), pdfX + 80, pdfY + 95)
-    //doc.text('', pdfX + 80, pdfY + 105)
+    //doc.text(voucher.clientName.toUpperCase(), pdfX + 90, pdfY + 95)
+    //doc.text('', pdfX + 90, pdfY + 105)
 
 
     //doc.text(pdfX + 230, pdfY + 30, `Estado: ${internals.newSale.status}`, { align: 'center' }) // status right
@@ -3362,7 +3519,7 @@ function addService(btn,type){
                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,,'iva')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
