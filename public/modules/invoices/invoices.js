@@ -171,7 +171,7 @@ async function getClientsInvoiceEnabled() {
             el.extraDays = 0
 
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 if(el.extraDays<=5){
                     el.extraDays = 0
                 }else{
@@ -179,7 +179,7 @@ async function getClientsInvoiceEnabled() {
                 }
                 el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
             }else{
-                el.extraDays = moment().diff(moment(el.datetime), 'days')
+                el.extraDays = moment().diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 if(el.extraDays<=5){
                     el.extraDays = 0
                 }else{
@@ -416,7 +416,7 @@ async function loadContainers(id,onlyInvoice){
             let el = movementData.data[i]
             el.extraDays = 0
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 if(el.extraDays<=5){
                     el.extraDays = 0
                 }else{

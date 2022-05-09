@@ -231,7 +231,7 @@ async function loadContainers(id,onlyInvoice){
             let el = movementData.data[i]
             el.extraDays = 0
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 if(el.extraDays<=5){
                     el.extraDays = 0
                 }else{

@@ -6,7 +6,7 @@
   {{/extend}}
 
   <div id="loginCardContainer" style="background-image: url('/public/img/background.jpg'); background-repeat: no-repeat; background-attachment: fixed;
-background-size: 100% 100%;" class="container-fluid">
+background-size: 100% 100%;">
     <div class="row">
       <div class="col-md-12">
         <form method="post" action="/login">
@@ -18,7 +18,7 @@ background-size: 100% 100%;" class="container-fluid">
 
               <div class="form-group">
                 <div class="form-group">
-                  <label for="rut"><i class="fas fa-user"></i> Rut</label>
+                  <label for="rut"><i class="fas fa-user"></i> RUT</label>
                   <div class="input-group mb-3">
                     <input name="rut" id="rut" type="text" class="form-control" aria-label="rut" placeholder="11.111.111-1">
                   </div>
@@ -43,17 +43,19 @@ background-size: 100% 100%;" class="container-fluid">
               {{message}}
             </div>
             {{/if}}
-            <div id="loginCardFooter" style="border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
-              <button type="submit" class="btn btn-block" style="text-decoration: none;">Iniciar sesión</button>
+            <div id="loginCardFooter">
+              <button type="submit" class="btn btn-block" style="text-decoration: none; text-align: center;">Iniciar sesión</button>
             </div>
 
           </div>
 
         </form>
       </div>
-      <div class="col-md-8" style="background:rgba(255,255,255,0.8); border-radius:10px; padding:10px; text-align: center;">
-        <p>Desarrollado por</p>
-        <a href="https://michcom.cl/" target="_blank"><img src="/public/img/logo_michcom.png" alt="" style="max-width:150px"></a>
+      <div class="col-md-12" style=" border-radius:10px; padding:10px; text-align: center;">
+        <div id="loginMichcom" class="card bg-primary mb-3 center">
+          <p>Desarrollado por</p>
+          <a href="https://michcom.cl/" target="_blank"><img src="/public/img/logo_michcom.png" alt="" style="max-width:150px"></a>
+        </div>
       </div>
     </div>
   </div>

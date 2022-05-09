@@ -33,6 +33,7 @@ body {
     -webkit-box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
     -moz-box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
     box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
+    margin: 0 auto;
 }
 
 #loginCardFooter {
@@ -42,6 +43,8 @@ body {
     margin: 0;
     border-top: 1px #1E3274 solid;
     height: 70px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
 }
 
 #loginCardFooter button {
@@ -50,6 +53,7 @@ body {
     height: 70px;
     font-size: 20px;
     padding: 0;
+    width: 100%;
 }
 
 #loginCardFooter button:hover {
@@ -95,4 +99,19 @@ input {
 
 .alert-light {
     background-color: #f1b56f;
+}
+/*
+.row {
+    --bs-gutter-x: 0.0rem;
+}*/
+
+#loginMichcom {
+    width: 23rem;
+    height: 100% !important;
+    background-color:  rgba(255,255,255,0.8) !important;
+    border-radius: 10px;
+    -webkit-box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
+    -moz-box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
+    box-shadow: 7px 3px 18px 14px rgba(0,0,0,0.26);
+    margin: 0 auto;
 }

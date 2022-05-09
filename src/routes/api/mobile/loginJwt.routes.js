@@ -29,6 +29,9 @@ export default [{
                             scope: 'gate'
                         },
                         {
+                            scope: 'stacker'
+                        },
+                        {
                             scope: 'contab'
                         },
                         {

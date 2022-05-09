@@ -364,21 +364,41 @@ async function getMovementsEnabled() {
         let formatData= movementData.data.map(el => {
 
             el.extraDays = 0
+            console.log(el)
 
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime), 'days')
-                if(el.extraDays<=5){
-                    el.extraDays = 0
+                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
+                if(el.services.find(x => x.name==='Almacenamiento IMO')){
+                    if(el.extraDays<=3){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= 3
+                    }
                 }else{
-                    el.extraDays -= 5
+                    if(el.extraDays<=5){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= 5
+                    }
                 }
                 el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
             }else{
-                el.extraDays = moment().diff(moment(el.datetime), 'days')
-                if(el.extraDays<=5){
-                    el.extraDays = 0
+
+                el.extraDays = moment().diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
+                //console.log('extras',el.extraDays)
+                console.log(el.services.find(x => x.services.name==='Almacenamiento IMO'))
+                if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
+                    if(el.extraDays<=3){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= 3
+                    }
                 }else{
-                    el.extraDays -= 5
+                    if(el.extraDays<=5){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= 5
+                    }
                 }
             }
             el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
@@ -469,9 +489,9 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         let services = []
         let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -489,13 +509,29 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
 
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
-                paymentType: $($($(this).children()[1]).children()[0]).val(),
-                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
-                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                paymentTotal: total
+            })
+        })    
+
+        //Pagos
+        let payments = []
+        let errorAmount = false
+        $("#tablePaymentBody > tr").each(function() {
+            let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            
+            if(!$.isNumeric(amount)){
+                errorAmount = true
+            }else if(amount==0){
+                errorAmount = true
+            }
+
+            payments.push({
+                paymentType: $($($(this).children()[0]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                paymentAmount: amount
             })
         })    
         
@@ -509,6 +545,13 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         if(errorIVA){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -541,6 +584,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             paymentIVA: iva,
             paymentTotal: total,*/
             services: services,
+            payments: payments,
             observation: $('#movementObservation').val()
         }
 
@@ -616,25 +660,37 @@ $('#optionModMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
-    console.log("data",container)
-
-
     if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA' || container.movements[movementID].movement=='DESCONSOLIDADO'){
 
         $('#movementsModal').modal('show')
         $('#modalMov_body').html(createModalBody(container.movements[movementID].movement))
         $('#imgTexture').val('cai')
         setServiceList('ALL', container.services)
+        setPayments(container.payments)
         
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
             $('#modalMov_title').html(`Modifica Ingreso`)
 
             let extraDays = 0
-            extraDays = moment().diff(moment(container.movements[0].datetime), 'days')
-            if(extraDays<=5){
+            extraDays = moment().diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
+            /*if(extraDays<=5){
                 extraDays = 0
             }else{
                 extraDays -= 5
+            }*/
+
+            if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+                if(extraDays<=3){
+                    extraDays = 0
+                }else{
+                    extraDays -= 3
+                }
+            }else{
+                if(extraDays<=5){
+                    extraDays = 0
+                }else{
+                    extraDays -= 5
+                }
             }
 
             setExtraDays(extraDays)
@@ -643,12 +699,27 @@ $('#optionModMovement').on('click', async function () {
             $('#modalMov_title').html(`Modifica Salida`)
             //////MODIFICAR////
             let extraDays = 0
-            extraDays = moment(container.movements[movementID].datetime).diff(moment(container.movements[0].datetime), 'days')
-            if(extraDays<=5){
+            extraDays = moment(container.movements[movementID].datetime).diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
+            /*if(extraDays<=5){
                 extraDays = 0
             }else{
                 extraDays -= 5
+            }*/
+            if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+                if(extraDays<=3){
+                    extraDays = 0
+                }else{
+                    extraDays -= 3
+                }
+            }else{
+                if(extraDays<=5){
+                    extraDays = 0
+                }else{
+                    extraDays -= 5
+                }
             }
+
+
             setExtraDays(extraDays)
         }
 
@@ -781,9 +852,9 @@ $('#optionModMovement').on('click', async function () {
             let services = []
             let errorNet = false, errorIVA = false
             $("#tableServicesBody > tr").each(function() {
-                let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 //let iva = Math.round(net * 0.19)
-                let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 let total = parseInt(net) + parseInt(iva)
                 
                 if(!$.isNumeric(net)){
@@ -801,15 +872,32 @@ $('#optionModMovement').on('click', async function () {
 
                 services.push({
                     services: $($($(this).children()[0]).children()[0]).val(),
-                    paymentType: $($($(this).children()[1]).children()[0]).val(),
-                    paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                    paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                     paymentNet: net,
                     paymentIVA: iva,
-                    paymentTotal: total,
-                    date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                    paymentTotal: total
                 })
             })
+
+            
+            //Pagos
+            let payments = []
+            let errorAmount = false
+            $("#tablePaymentBody > tr").each(function() {
+                let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                
+                if(!$.isNumeric(amount)){
+                    errorAmount = true
+                }else if(amount==0){
+                    errorAmount = true
+                }
+
+                payments.push({
+                    paymentType: $($($(this).children()[0]).children()[0]).val(),
+                    paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                    date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                    paymentAmount: amount
+                })
+            })    
 
             if(errorNet){
                 $('#modal_title').html(`Error`)
@@ -821,6 +909,13 @@ $('#optionModMovement').on('click', async function () {
             if(errorIVA){
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
+            if(errorAmount){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
                 $('#modal').modal('show')
                 return
             }
@@ -853,8 +948,11 @@ $('#optionModMovement').on('click', async function () {
                 driverGuide: $('#movementDriverGuide').val(),
                 driverSeal: $('#movementDriverSeal').val(),
                 services: services,
+                payments: payments,
                 observation: $('#movementObservation').val()
             }
+
+            console.log(movementData)
             
             const res = validateMovementData(movementData)
             if(res.ok){
@@ -954,7 +1052,7 @@ $('#optionModMovement').on('click', async function () {
         /////////SERVICIOS/////////
 
         setServiceList('TRASPASO', container.services)
-
+        setPayments(container.payments)
 
         $('#movementObservation').val(container.movements[movementID].observation)
 
@@ -981,9 +1079,9 @@ $('#optionModMovement').on('click', async function () {
             let services = []
             let errorNet = false, errorIVA = false
             $("#tableServicesBody > tr").each(function() {
-                let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 //let iva = Math.round(net * 0.19)
-                let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
 
                 let total = parseInt(net) + parseInt(iva)
                  
@@ -1002,15 +1100,32 @@ $('#optionModMovement').on('click', async function () {
  
                 services.push({
                     services: $($($(this).children()[0]).children()[0]).val(),
-                    paymentType: $($($(this).children()[1]).children()[0]).val(),
-                    paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                    paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                     paymentNet: net,
                     paymentIVA: iva,
-                    paymentTotal: total,
-                    date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                    paymentTotal: total
                 })
             })
+
+            
+            //Pagos
+            let payments = []
+            let errorAmount = false
+            $("#tablePaymentBody > tr").each(function() {
+                let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                
+                if(!$.isNumeric(amount)){
+                    errorAmount = true
+                }else if(amount==0){
+                    errorAmount = true
+                }
+
+                payments.push({
+                    paymentType: $($($(this).children()[0]).children()[0]).val(),
+                    paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                    date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                    paymentAmount: amount
+                })
+            })    
 
             if(errorNet){
                 $('#modal_title').html(`Error`)
@@ -1022,6 +1137,13 @@ $('#optionModMovement').on('click', async function () {
             if(errorIVA){
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
+            if(errorAmount){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
                 $('#modal').modal('show')
                 return
             }
@@ -1054,6 +1176,7 @@ $('#optionModMovement').on('click', async function () {
                 paymentIVA: iva,
                 paymentTotal: total,*/
                 services: services,
+                payments: payments,
                 observation: $('#movementObservation').val()
             }
 
@@ -1094,9 +1217,10 @@ $('#optionCloseMovement').on('click', async function () {
     $('#imgTexture').val('cai')
 
     setServiceList('ALL', container.services)
+    setPayments(container.payments)
 
     let extraDays = 0
-    extraDays = moment().diff(moment(container.movements[0].datetime), 'days')
+    extraDays = moment().diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
     if(extraDays<=5){
         extraDays = 0
     }else{
@@ -1164,9 +1288,9 @@ $('#optionCloseMovement').on('click', async function () {
         let services = []
         let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -1182,29 +1306,19 @@ $('#optionCloseMovement').on('click', async function () {
                 }
             }
 
-            if(services.length==0){
-                paymentType = $($($(this).children()[1]).children()[0]).val()
-                paymentNumber = $($($(this).children()[2]).children()[0]).val()
-                date = $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
-            }
-
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
-                paymentType: $($($(this).children()[1]).children()[0]).val(),
-                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
-                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                paymentTotal: total
             })
         })
         
 
         $("#tableServicesExtraBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[6]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -1220,24 +1334,34 @@ $('#optionCloseMovement').on('click', async function () {
                 }
             }
 
-            
-            if($($($(this).children()[1]).children()[0]).prop('checked')){
-                paymentType = $($($(this).children()[2]).children()[0]).val()
-                paymentNumber = $($($(this).children()[3]).children()[0]).val()
-                date = $($($(this).children()[4]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
-            }
-
             services.push({
                 services: $($($(this).children()[0]).children()[1]).val(),
-                paymentType: paymentType,
-                paymentNumber: paymentNumber,
-                paymentAdvance: false,
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
-                date: date
+                paymentTotal: total
             })
         })
+
+        
+        //Pagos
+        let payments = []
+        let errorAmount = false
+        $("#tablePaymentBody > tr").each(function() {
+            let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            
+            if(!$.isNumeric(amount)){
+                errorAmount = true
+            }else if(amount==0){
+                errorAmount = true
+            }
+
+            payments.push({
+                paymentType: $($($(this).children()[0]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                paymentAmount: amount
+            })
+        })    
 
         if(errorNet){
             $('#modal_title').html(`Error`)
@@ -1249,6 +1373,13 @@ $('#optionCloseMovement').on('click', async function () {
         if(errorIVA){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -1275,6 +1406,7 @@ $('#optionCloseMovement').on('click', async function () {
             driverGuide: $('#movementDriverOutGuide').val(),
             driverSeal: $('#movementDriverOutSeal').val(),
             services: services,
+            payments: payments,
             observation: $('#movementObservation').val()
         }
 
@@ -1316,6 +1448,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#modalMov_body').html(createModalBody('TRASLADO'))
     $('#imgTexture').val('cai')
     setServiceList('ALL', container.services)
+    setPayments(container.payments)
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -1369,6 +1502,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementObservation').val(container.movements[movementID].observation)
 
     $(".classMove").prop('disabled',true)
+    $(".classPayment").prop('disabled',true)
     
     $('#saveMovement').on('click', async function () {
 
@@ -1419,6 +1553,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#modalMov_body').html(createModalBody('DESCONSOLIDADO'))
     $('#imgTexture').val('cai')
     setServiceList('DESCONSOLIDADO', container.services)
+    setPayments(container.payments)
     setPositionList()
 
     $("#btnMap").css('display','none')
@@ -1476,9 +1611,9 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         let services = []
         let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -1496,15 +1631,32 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
 
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
-                paymentType: $($($(this).children()[1]).children()[0]).val(),
-                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
-                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                paymentTotal: total
             })
         })
+
+        
+        //Pagos
+        let payments = []
+        let errorAmount = false
+        $("#tablePaymentBody > tr").each(function() {
+            let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            
+            if(!$.isNumeric(amount)){
+                errorAmount = true
+            }else if(amount==0){
+                errorAmount = true
+            }
+
+            payments.push({
+                paymentType: $($($(this).children()[0]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                paymentAmount: amount
+            })
+        })    
 
         if(errorNet){
             $('#modal_title').html(`Error`)
@@ -1516,6 +1668,13 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         if(errorIVA){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -1538,6 +1697,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             driverGuide: $('#movementDriverGuide').val(),
             driverSeal: $('#movementDriverSeal').val(),
             services: services,
+            payments: payments,
             observation: $('#movementObservation').val()
         }
         
@@ -1568,7 +1728,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
     $('#modalMov_body').html(createModalBody('TRASPASO'))
     $('#imgTexture').val('cai')
     setServiceList('TRASPASO')
-    
+
     $('#modalMov_footer').html(`
         <button class="btn btn-dark" data-dismiss="modal">
             <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
@@ -1627,9 +1787,9 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
         let services = []
         let errorNet = false, errorIVA = false
         $("#tableServicesBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -1647,13 +1807,30 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
 
             services.push({
                 services: $($($(this).children()[0]).children()[0]).val(),
-                paymentType: $($($(this).children()[1]).children()[0]).val(),
-                paymentNumber: $($($(this).children()[2]).children()[0]).val(),
-                paymentAdvance: $($($(this).children()[6]).children()[0]).is(":checked"),
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total,
-                date: $($($(this).children()[7]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD')
+                paymentTotal: total
+            })
+        })
+
+        
+        //Pagos
+        let payments = []
+        let errorAmount = false
+        $("#tablePaymentBody > tr").each(function() {
+            let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            
+            if(!$.isNumeric(amount)){
+                errorAmount = true
+            }else if(amount==0){
+                errorAmount = true
+            }
+
+            payments.push({
+                paymentType: $($($(this).children()[0]).children()[0]).val(),
+                paymentNumber: $($($(this).children()[1]).children()[0]).val(),
+                date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
+                paymentAmount: amount
             })
         })
 
@@ -1667,6 +1844,13 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
         if(errorIVA){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor de IVA no válido (puede dejar en 0 si es exento)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -1690,6 +1874,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             driverOutPlate: $('#movementDriverOutPlate').val(),
             driverOutGuide: $('#movementDriverOutGuide').val(),
             services: services,
+            payments: payments,
             observation: $('#movementObservation').val()
         }
 
@@ -1903,9 +2088,9 @@ function createModalBody(type){
                         <div class="col-md-6">
                             <h6>DATOS GENERALES</h6>
                         </div>`
-                /*body += `<div class="col-md-6">
+                body += `<div class="col-md-6">
                             <button class="btn btn-primary btn-sm" onclick="testing()">Rellenar</button>
-                        </div>`*/
+                        </div>`
 
                 body += `<div class="col-md-7">
                             ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
@@ -1944,7 +2129,114 @@ function createModalBody(type){
                 </div>
             </div>
         </div>
+
         <div class="col-md-8">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">`
+                    if(type=='TRASPASO' || type=='POR SALIR' || type=='SALIDA'){
+                        body += `<div class="col-md-12">
+                                    <h6>DATOS DE CONDUCTORES</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    Conductor Entrada
+                                                </div>
+                                                <div class="col-md-5" style="text-align: center">
+                                                    RUT
+                                                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDriverIn">
+                                                </div>
+                                                <div class="col-md-7" style="text-align: center">
+                                                    Nombre
+                                                    <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
+                                                </div>
+                                                <div class="col-md-4" style="text-align: center">
+                                                    Placa Patente
+                                                    <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDriverIn" onkeyup="toUpper(this)">
+                                                </div>
+                                                <div class="col-md-4" style="text-align: center">
+                                                    Guía Despacho
+                                                    <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    Sello Container
+                                                    <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    Conductor Salida
+                                                </div>
+                                                <div class="col-md-5" style="text-align: center">
+                                                    RUT
+                                                    <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove">
+                                                </div>
+                                                <div class="col-md-7" style="text-align: center">
+                                                    Nombre
+                                                    <input id="movementDriverOutName" type="text" class="form-control form-control-sm border-input classMove">
+                                                </div>
+                                                <div class="col-md-4" style="text-align: center">
+                                                    Placa Patente
+                                                    <input id="movementDriverOutPlate" type="text" class="form-control form-control-sm border-input classMove" onkeyup="toUpper(this)">
+                                                </div>
+                                                <div class="col-md-4" style="text-align: center">
+                                                    Guía Despacho
+                                                    <input id="movementDriverOutGuide" type="text" class="form-control form-control-sm border-input classMove">
+                                                </div>`
+                                                if(type=='POR SALIR' || type=='SALIDA'){
+                                                    body += `
+                                                            <div class="col-md-4">
+                                                                Sello Container
+                                                                <input id="movementDriverOutSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
+                                                            </div>`
+                                                }
+                                    body += `</div>
+                                        </div>
+                                    </div>
+                                </div>`
+                        
+                    }else{
+                        body += `<div class="col-md-12">
+                                    <h6>DATOS DE CONDUCTOR</h6>
+                                </div>
+                                <div class="col-md-5">
+                                    RUT
+                                    <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                                </div>
+                                <div class="col-md-7">
+                                    Nombre
+                                    <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                                </div>
+                                <div class="col-md-4">
+                                    Placa Patente
+                                    <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated" onkeyup="toUpper(this)">
+                                </div>
+                                <div class="col-md-4">
+                                    Guía Despacho
+                                    <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                                </div>
+                                <div class="col-md-4">
+                                    Sello Container
+                                    <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                                </div>`
+                    }
+
+        body += `   </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-12">
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
@@ -1978,261 +2270,173 @@ function createModalBody(type){
                                         }
                                     </select>
                                 </div>`
-        if(type!='TRASPASO'){
+            if(type!='TRASPASO'){
 
-            body += `<div class="form-check col-md-2" style="text-align: center;">
-                        <br/>
-                        <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
-                        <label class="form-check-label" for="flexCheckDefault">
-                            Ingresa Stacker
-                        </label>
-                    </div>
-                    <div class="col-md-2">
-                        Grúa
-                        <select id="movementCrane" class="custom-select custom-select-sm classStacker">
-                            <option value="0">SELECCIONE...</option>
-                            ${                      
-                                cranes.reduce((acc,el)=>{
-                                    acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                    return acc
-                                },'')
-                            }
-                        </select>
-                    </div>`
-            if(type=='TRASLADO' || type=='DESCONSOLIDADO'){
-                body += `<div class="col-md-2" style="text-align: center">
-                            Paño
-                            <select id="movementSiteOld" class="custom-select custom-select-sm classMove">
+                body += `<div class="form-check col-md-2" style="text-align: center;">
+                            <br/>
+                            <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                Ingresa Stacker
+                            </label>
+                        </div>
+                        <div class="col-md-2">
+                            Grúa
+                            <select id="movementCrane" class="custom-select custom-select-sm classStacker">
                                 <option value="0">SELECCIONE...</option>
                                 ${                      
-                                    sites.reduce((acc,el)=>{
+                                    cranes.reduce((acc,el)=>{
                                         acc += '<option value="'+el._id+'">'+el.name+'</option>'
                                         return acc
                                     },'')
                                 }
-                            </select>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="col-md-2" style="text-align: center">
-                            Fila
-                            <select id="movementPositionRowOld" class="custom-select custom-select-sm classMove">
-                                <option value="0">SEL</option>
-                            </select>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="col-md-2" style="text-align: center">
-                            Posición
-                            <select id="movementPositionPositionOld" class="custom-select custom-select-sm classMove">
-                                <option value="0">SEL</option>   
-                            </select>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="col-md-2" style="text-align: center">
-                            Altura
-                            <select id="movementPositionLevelOld" class="custom-select custom-select-sm classMove" style="text-align: center">
-                                <option value="0">SEL</option>  
-                            </select>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-
-                        <div class="col-md-4">
-                        </div>
-                        <div class="col-md-2">
-                            <select id="movementSite" class="custom-select custom-select-sm classOut">
-                                <option value="0">SELECCIONE...</option>
-                                ${                      
-                                    sites.reduce((acc,el)=>{
-                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                        return acc
-                                    },'')
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="movementPositionRow" class="custom-select custom-select-sm classOut">
-                                <option value="0">SEL</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="movementPositionPosition" class="custom-select custom-select-sm classOut">
-                                <option value="0">SEL</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="movementPositionLevel" class="custom-select custom-select-sm classOut">
-                                <option value="0">SEL</option>
                             </select>
                         </div>`
-
-            }else{
-                body += `<div class="col-md-2">
-                            Paño
-                            <select id="movementSite" class="custom-select custom-select-sm classOut classStacker">
-                                <option value="0">SELECCIONE...</option>
-                                ${                      
-                                    sites.reduce((acc,el)=>{
-                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                        return acc
-                                    },'')
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            Fila
-                            <select id="movementPositionRow" class="custom-select custom-select-sm classOut classStacker">
-                                <option value="0">SEL</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            Posición
-                            <select id="movementPositionPosition" class="custom-select custom-select-sm classOut classStacker">
-                                <option value="0">SEL</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            Altura
-                            <select id="movementPositionLevel" class="custom-select custom-select-sm classOut classStacker">
-                                <option value="0">SEL</option>
-                            </select>
-                        </div>`
-            
-            }
-        
-            
-        }else{
-            body += `<div class="form-check col-md-2" style="text-align: center;">
-                        <br/>
-                        <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
-                        <label class="form-check-label" for="flexCheckDefault">
-                            Ingresa Stacker
-                        </label>
-                    </div>
-                    <div class="col-md-3">
-                        Grúa
-                        <select id="movementCrane" class="custom-select custom-select-sm classStacker">
-                            <option value="0">SELECCIONE...</option>
-                            ${                      
-                                cranes.reduce((acc,el)=>{
-                                    acc += '<option value="'+el._id+'">'+el.name+'</option>'
-                                    return acc
-                                },'')
-                            }
-                        </select>
-                    </div>
-                    <div class="form-check col-md-7">
-                    </div>`
-        }
-
-            body += `</div>
-                </div>`
-
-            body += `<div class="col-md-3">
-                    Color
-                    <br/>
-                    <button class="btn btn-sm btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
-                    <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="cai">
-
-                    ${ getTextureTable(containerTypes)}
-                
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-12">
-    </div>
-
-    <div class="col-md-4">
-        <div class="card border-primary">
-            <div class="card-body">
-                <div class="row">`
-                if(type=='TRASPASO' || type=='POR SALIR' || type=='SALIDA'){
-                    body += `<div class="col-md-12">
-                                <h6>DATOS DE CONDUCTORES</h6>
+                if(type=='TRASLADO' || type=='DESCONSOLIDADO'){
+                    body += `<div class="col-md-2" style="text-align: center">
+                                Paño
+                                <select id="movementSiteOld" class="custom-select custom-select-sm classMove">
+                                    <option value="0">SELECCIONE...</option>
+                                    ${                      
+                                        sites.reduce((acc,el)=>{
+                                            acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                            return acc
+                                        },'')
+                                    }
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
                             </div>
-                            <div class="col-md-12">
-                                Conductor Entrada
+                            <div class="col-md-2" style="text-align: center">
+                                Fila
+                                <select id="movementPositionRowOld" class="custom-select custom-select-sm classMove">
+                                    <option value="0">SEL</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
                             </div>
-                            <div class="col-md-5" style="text-align: center">
-                                RUT
-                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDriverIn">
+                            <div class="col-md-2" style="text-align: center">
+                                Posición
+                                <select id="movementPositionPositionOld" class="custom-select custom-select-sm classMove">
+                                    <option value="0">SEL</option>   
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
                             </div>
-                            <div class="col-md-7" style="text-align: center">
-                                Nombre
-                                <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
+                            <div class="col-md-2" style="text-align: center">
+                                Altura
+                                <select id="movementPositionLevelOld" class="custom-select custom-select-sm classMove" style="text-align: center">
+                                    <option value="0">SEL</option>  
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
                             </div>
-                            <div class="col-md-4" style="text-align: center">
-                                Placa Patente
-                                <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDriverIn" onkeyup="toUpper(this)">
-                            </div>
-                            <div class="col-md-4" style="text-align: center">
-                                Guía Despacho
-                                <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
-                            </div>
+
                             <div class="col-md-4">
-                                Sello Container
-                                <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
                             </div>
-
-                            <div class="col-md-12">
-                                <br/>
-                                Conductor Salida
+                            <div class="col-md-2">
+                                <select id="movementSite" class="custom-select custom-select-sm classOut">
+                                    <option value="0">SELECCIONE...</option>
+                                    ${                      
+                                        sites.reduce((acc,el)=>{
+                                            acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                            return acc
+                                        },'')
+                                    }
+                                </select>
                             </div>
-                            <div class="col-md-5" style="text-align: center">
-                                RUT
-                                <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove">
+                            <div class="col-md-2">
+                                <select id="movementPositionRow" class="custom-select custom-select-sm classOut">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>
-                            <div class="col-md-7" style="text-align: center">
-                                Nombre
-                                <input id="movementDriverOutName" type="text" class="form-control form-control-sm border-input classMove">
+                            <div class="col-md-2">
+                                <select id="movementPositionPosition" class="custom-select custom-select-sm classOut">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>
-                            <div class="col-md-4" style="text-align: center">
-                                Placa Patente
-                                <input id="movementDriverOutPlate" type="text" class="form-control form-control-sm border-input classMove" onkeyup="toUpper(this)">
-                            </div>
-                            <div class="col-md-4" style="text-align: center">
-                                Guía Despacho
-                                <input id="movementDriverOutGuide" type="text" class="form-control form-control-sm border-input classMove">
+                            <div class="col-md-2">
+                                <select id="movementPositionLevel" class="custom-select custom-select-sm classOut">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>`
-                    if(type=='POR SALIR' || type=='SALIDA'){
-                        body += `
-                                <div class="col-md-4">
-                                    Sello Container
-                                    <input id="movementDriverOutSeal" type="text" class="form-control form-control-sm border-input classMove classDriverIn">
-                                </div>`
-                    }
+
                 }else{
-                    body += `<div class="col-md-12">
-                                <h6>DATOS DE CONDUCTOR</h6>
+                    body += `<div class="col-md-2">
+                                Paño
+                                <select id="movementSite" class="custom-select custom-select-sm classOut classStacker">
+                                    <option value="0">SELECCIONE...</option>
+                                    ${                      
+                                        sites.reduce((acc,el)=>{
+                                            acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                            return acc
+                                        },'')
+                                    }
+                                </select>
                             </div>
-                            <div class="col-md-5">
-                                RUT
-                                <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                            <div class="col-md-2">
+                                Fila
+                                <select id="movementPositionRow" class="custom-select custom-select-sm classOut classStacker">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>
-                            <div class="col-md-7">
-                                Nombre
-                                <input id="movementDriverName" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                            <div class="col-md-2">
+                                Posición
+                                <select id="movementPositionPosition" class="custom-select custom-select-sm classOut classStacker">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>
-                            <div class="col-md-4">
-                                Placa Patente
-                                <input id="movementDriverPlate" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated" onkeyup="toUpper(this)">
-                            </div>
-                            <div class="col-md-4">
-                                Guía Despacho
-                                <input id="movementDriverGuide" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
-                            </div>
-                            <div class="col-md-4">
-                                Sello Container
-                                <input id="movementDriverSeal" type="text" class="form-control form-control-sm border-input classMove classDeconsolidated">
+                            <div class="col-md-2">
+                                Altura
+                                <select id="movementPositionLevel" class="custom-select custom-select-sm classOut classStacker">
+                                    <option value="0">SEL</option>
+                                </select>
                             </div>`
+                
                 }
+            
+                
+            }else{
+                body += `<div class="form-check col-md-2" style="text-align: center;">
+                            <br/>
+                            <input class="form-check-input classMove" type="checkbox" value="" id="movementStacker">
+                            <label class="form-check-label" for="flexCheckDefault">
+                                Ingresa Stacker
+                            </label>
+                        </div>
+                        <div class="col-md-3">
+                            Grúa
+                            <select id="movementCrane" class="custom-select custom-select-sm classStacker">
+                                <option value="0">SELECCIONE...</option>
+                                ${                      
+                                    cranes.reduce((acc,el)=>{
+                                        acc += '<option value="'+el._id+'">'+el.name+'</option>'
+                                        return acc
+                                    },'')
+                                }
+                            </select>
+                        </div>
+                        <div class="form-check col-md-7">
+                        </div>`
+            }
 
-    body += `       </div>
+                body += `</div>
+                    </div>`
+
+                body += `<div class="col-md-3">
+                        Color
+                        <br/>
+                        <button class="btn btn-sm btn-dark classOut classMove" data-toggle="collapse" data-target="#tableTextures">Cambiar&nbsp;<i class="fas fa-caret-down"></i></button>
+                        <img id="imgTexture" src="/public/img/textures/cai.jpg" style="width: 50px; border: 3px solid #AAB3B4;" value="cai">
+
+                        ${ getTextureTable(containerTypes)}
+                    
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-8">
+
+        <div class="col-md-12">
+        </div>
+
+
+        <div class="col-md-6">
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
@@ -2255,13 +2459,9 @@ function createModalBody(type){
                                 <thead>
                                     <tr>
                                         <th>Servicio</th>
-                                        <th>Medio Pago</th>
-                                        <th>N° Transacción</th>
                                         <th>Neto</th>
                                         <th>IVA</th>
                                         <th>TOTAL</th>
-                                        <th>Pago Anticipado</th>
-                                        <th>Fecha Pago</th>
                                         <th>Quitar</th>
                                     </tr>
                                 </thead>
@@ -2274,10 +2474,6 @@ function createModalBody(type){
                                 <thead>
                                     <tr>
                                         <th>Días Extra</th>
-                                        <th>Pagar por separado</th>
-                                        <th class="classExtra" style="display: none;">Medio Pago</th>
-                                        <th class="classExtra" style="display: none;">N° Transacción</th>
-                                        <th class="classExtra" style="display: none;">Fecha Pago</th>
                                         <th>Neto</th>
                                         <th>IVA</th>
                                         <th>TOTAL</th>
@@ -2286,68 +2482,8 @@ function createModalBody(type){
                                 <tbody id="tableServicesExtraBody">
                                     
                                 </tbody>
-                            </table>`
-                            /*<input class="form-check-input classMove" type="checkbox" value="" id="movementPaymentAdvance">
-                            <label class="form-check-label" for="flexCheckDefault">
-                                PAGO ANTICIPADO
-                            </label>
+                            </table>
                         </div>
-                        <div class="col-md-3">
-                            Tipo de Pago
-                            <select id="movementPaymentType" class="custom-select classMove classPayment">
-                                <option value="0">SELECCIONAR</option>
-                                <option value="EFECTIVO">EFECTIVO</option>
-                                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                                <option value="TRANSBANK">TRANSBANK</option>
-                            </select>
-                            <input id="movementPaymentNumber" type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
-
-                        </div>
-                        <div class="col-md-3">
-                            Servicio`
-                            if(type=='TRASPASO'){
-                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
-                                    ${                      
-                                        services.reduce((acc,el)=>{
-                                            if(el.name=='Traspaso'){
-                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                                            }
-                                            return acc
-                                        },'')
-                                    }
-                                </select>`
-                            }else if(type=='DESCONSOLIDADO'){
-                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)" disabled>
-                                    ${                      
-                                        services.reduce((acc,el)=>{
-                                            if(el.name=='Desconsolidado'){
-                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                                            }
-                                            return acc
-                                        },'')
-                                    }
-                                </select>`
-                            }else{
-                                body += `<select id="movementService" class="custom-select classMove" onchange="updatePayment(this)">
-                                    <option value="0" data-net="0">SELECCIONAR</option>
-                                    ${                      
-                                        services.reduce((acc,el)=>{
-                                            if(el.name!='Traspaso'){
-                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                                            }
-                                            return acc
-                                        },'')
-                                    }
-                                </select>`
-                            }
-                        body += `</div>
-                        <div class="col-md-3">
-                            VALOR
-                            <input id="movementPaymentNet" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
-                            <input id="movementPaymentIVA" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment">
-                            <input id="movementPaymentTotal" type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove">
-                        </div>`*/
-                    body += `</div>
                         <div class="col-md-7">
                         </div>
                         <div class="col-md-2" style="text-align: right">
@@ -2371,6 +2507,57 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-2">
                             <input id="movementTotalTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6>DATOS DE PAGO</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <button id="btnAddPayment" class="btn btn-sm btn-info classPayment" onclick="addPayment()"><i class="fas fa-plus"></i> Agregar Pago <i class="fas fa-hand-holding-usd"></i></button>
+                        </div>
+                        <div class="col-md-6">
+                        </div>
+
+                        <div class="form-check col-md-12 table-responsive">
+                            <table id="tablePayment" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Forma de Pago</th>
+                                        <th>N° Voucher</th>
+                                        <th>Fecha</th>
+                                        <th>Monto</th>
+                                        <th>Quitar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablePaymentBody">
+                                    
+                                </tbody>
+                            </table>
+                            
+                        </div>
+                        <div class="col-md-7">
+                        </div>
+                        <div class="col-md-2" style="text-align: right">
+                            Total Neto
+                        </div>
+                        <div class="col-md-2">
+                            <input id="movementPaymentTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                        <div class="col-md-7">
+                        </div>
+                        <div class="col-md-2" style="text-align: right">
+                            Saldo por pagar
+                        </div>
+                        <div class="col-md-2">
+                            <input id="movementPaymentBalance" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
                     </div>
                 </div>
@@ -2416,31 +2603,13 @@ function setServiceList(type,array){
                 </select>
             </td>
             <td>
-                <select class="custom-select custom-select-sm classMove classPayment">
-                    <option value="0">SELECCIONAR</option>
-                    <option value="EFECTIVO">EFECTIVO</option>
-                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                    <option value="TRANSBANK">TRANSBANK</option>
-                    <option value="CRÉDITO">CRÉDITO</option>
-                </select>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this)" disabled>
             </td>
             <td>
-                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
-            </td>
-            <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
-            </td>
-            <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
-            </td>
-            <td style="text-align: center;">
-                <input class="form-check-input classMove" type="checkbox" value="">
-            </td>
-            <td>
-                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
             </td>
             <td>
             </td>
@@ -2474,31 +2643,13 @@ function setServiceList(type,array){
                                 </select>
                             </td>
                             <td>
-                                <select class="custom-select custom-select-sm classMove classPayment">
-                                    <option value="0">SELECCIONAR</option>
-                                    <option value="EFECTIVO">EFECTIVO</option>
-                                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                                    <option value="TRANSBANK">TRANSBANK</option>
-                                    <option value="CRÉDITO">CRÉDITO</option>
-                                </select>
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this)" disabled>
                             </td>
                             <td>
-                                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
-                            </td>
-                            <td>
-                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
-                            </td>
-                            <td>
-                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
                             </td>
                             <td>
                                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
-                            </td>
-                            <td style="text-align: center;">
-                                <input class="form-check-input classMove" type="checkbox" value="">
-                            </td>
-                            <td style="text-align: center;">
-                                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
                             </td>
                             <td>
                             </td>
@@ -2525,30 +2676,13 @@ function setServiceList(type,array){
                     </select>
                 </td>
                 <td>
-                    <select class="custom-select custom-select-sm classMove classDeconsolidated classPayment">
-                        <option value="0">SELECCIONAR</option>
-                        <option value="EFECTIVO">EFECTIVO</option>
-                        <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                        <option value="TRANSBANK">TRANSBANK</option>
-                    </select>
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this)" disabled>
                 </td>
                 <td>
-                    <input type="text" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" placeholder="N° Transacción">
-                </td>
-                <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this)">
-                </td>
-                <td>
-                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classDeconsolidated classPayment" onkeyup="updatePayment(this,'iva')">
+                    <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
                 </td>
                 <td>
                     <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
-                </td>
-                <td style="text-align: center;">
-                    <input class="form-check-input classMove classDeconsolidated" type="checkbox" value="">
-                </td>
-                <td style="text-align: center;">
-                    <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD-MM-YYYY')}">
                 </td>
                 <td>
                 </td>
@@ -2571,18 +2705,10 @@ function setServiceList(type,array){
         for(let j=0; j<array.length;j++){
             let row = $('#tableServicesBody').children()[j]
             $($($(row).children()[0]).children()[0]).val(array[j].services._id)
-            $($($(row).children()[1]).children()[0]).val(array[j].paymentType)
-            $($($(row).children()[2]).children()[0]).val(array[j].paymentNumber)
-            $($($(row).children()[3]).children()[0]).val(`$ ${dot_separators(array[j].paymentNet)}`)
-            $($($(row).children()[4]).children()[0]).val(`$ ${dot_separators(array[j].paymentIVA)}`)
-            $($($(row).children()[5]).children()[0]).val(`$ ${dot_separators(array[j].paymentTotal)}`)
-            $($($(row).children()[6]).children()[0]).prop('checked',array[j].paymentAdvance)
+            $($($(row).children()[1]).children()[0]).val(`$ ${dot_separators(array[j].paymentNet)}`)
+            $($($(row).children()[2]).children()[0]).val(`$ ${dot_separators(array[j].paymentIVA)}`)
+            $($($(row).children()[3]).children()[0]).val(`$ ${dot_separators(array[j].paymentTotal)}`)
 
-            if(array[j].paymentAdvance){//Si el pago fue anticipado, se indicará la fecha registrada, caso contrario será la fecha actual
-                if(array[j].date){
-                    $($($(row).children()[7]).children()[0]).val(moment.utc(array[j].date).format('DD/MM/YYYY'))
-                }
-            }
         }
     }
 
@@ -2615,24 +2741,6 @@ function setExtraDays(quantity,toClose){
                         },'')
                     }
                 </select>
-            </td>
-            <td style="text-align: center;">
-                <input id="chkExtra" class="form-check-input classMove" type="checkbox" value="">
-            </td>
-            <td class="classExtra" style="display: none;">
-                <select class="custom-select classMove classPayment classExtra classExtra" style="display: none;">
-                    <option value="0">SELECCIONAR</option>
-                    <option value="EFECTIVO">EFECTIVO</option>
-                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                    <option value="TRANSBANK">TRANSBANK</option>
-                    <option value="CRÉDITO">CRÉDITO</option>
-                </select>
-            </td>
-            <td class="classExtra" style="display: none;">
-                <input type="text" class="form-control border-input classMove classPayment classExtra" placeholder="N° Transacción" style="display: none;">
-            </td>
-            <td class="classExtra" style="text-align: center; display: none;">
-                <input type="text" class="form-control border-input classServiceDate classExtra" value="${moment().format('DD-MM-YYYY')}" style="display: none;">
             </td>`
 
     net = net*quantity
@@ -2640,10 +2748,10 @@ function setExtraDays(quantity,toClose){
     let total = parseInt(net) + parseInt(iva)
     
     extraRow += `<td>
-                <input type="text" style="text-align: right" value="$ ${dot_separators(net)}" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this)" ${disabled}>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(net)}" class="form-control border-input classMove" onkeyup="updatePayment(this)" disabled>
             </td>
             <td>
-                <input type="text" style="text-align: right" value="$ ${dot_separators(iva)}" class="form-control border-input classMove classPayment" onkeyup="updatePayment(this,'iva')" ${disabled}>
+                <input type="text" style="text-align: right" value="$ ${dot_separators(iva)}" class="form-control border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ ${dot_separators(total)}" class="form-control border-input classMove" disabled>
@@ -2670,6 +2778,9 @@ function setExtraDays(quantity,toClose){
         //internals.initDate = start.format('YYYY-MM-DD')
         //internals.endDate = end.format('YYYY-MM-DD')
     })
+
+    calculateTotal()
+
 }
 
 function getTextureTable(containerTypes){
@@ -2702,10 +2813,10 @@ function changeTexture(by,texture){
 async function updatePayment(input,iva) {
     
     if($($(input).children()[0]).html()){//Si se selecciona un servicio
-        $($($(input).parent().parent().children()[3]).children()[0]).val($(input).find(":selected").attr('data-net'))
+        $($($(input).parent().parent().children()[1]).children()[0]).val($(input).find(":selected").attr('data-net'))
     }
 
-    new Cleave($($(input).parent().parent().children()[3]).children()[0], {
+    new Cleave($($(input).parent().parent().children()[1]).children()[0], {
         prefix: '$ ',
         numeral: true,
         numeralThousandsGroupStyle: 'thousand',
@@ -2716,20 +2827,35 @@ async function updatePayment(input,iva) {
     })
 
     if(!iva){
-        let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let net = replaceAll($($($(input).parent().parent().children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
         let iva = Math.round(net * 0.19)
         let total = parseInt(net) + parseInt(iva)
 
-        $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
-        $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
+        $($($(input).parent().parent().children()[2]).children()[0]).val(`$ ${dot_separators(iva)}`)
+        $($($(input).parent().parent().children()[3]).children()[0]).val(`$ ${dot_separators(total)}`)
     }else{
-        let net = replaceAll($($($(input).parent().parent().children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
-        let iva = replaceAll($($($(input).parent().parent().children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let net = replaceAll($($($(input).parent().parent().children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let iva = replaceAll($($($(input).parent().parent().children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
         let total = parseInt(net) + parseInt(iva)
 
-        $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(iva)}`)
-        $($($(input).parent().parent().children()[5]).children()[0]).val(`$ ${dot_separators(total)}`)
+        $($($(input).parent().parent().children()[2]).children()[0]).val(`$ ${dot_separators(iva)}`)
+        $($($(input).parent().parent().children()[3]).children()[0]).val(`$ ${dot_separators(total)}`)
     }
+
+    calculateTotal()
+}
+
+async function updatePaymentPay(input) {
+
+    new Cleave($(input), {
+        prefix: '$ ',
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalScale: 0,
+        numeralPositiveOnly: true,
+        numeralDecimalMark: ",",
+        delimiter: "."
+    })
 
     calculateTotal()
 }
@@ -2737,9 +2863,9 @@ async function updatePayment(input,iva) {
 async function calculateTotal(){
     let totalNet = 0, totalIVA = 0, totalTotal = 0
     $("#tableServicesBody > tr").each(function() {
-        let net = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let total = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let total = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
         
         if(!$.isNumeric(net)){
             net = 0
@@ -2753,9 +2879,9 @@ async function calculateTotal(){
     })
 
     $("#tableServicesExtraBody > tr").each(function() {
-        let net = parseInt(replaceAll($($($(this).children()[5]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = parseInt(replaceAll($($($(this).children()[6]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let total = parseInt(replaceAll($($($(this).children()[7]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let total = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
         
         if(!$.isNumeric(net)){
             net = 0
@@ -2772,6 +2898,21 @@ async function calculateTotal(){
     $("#movementTotalNet").val(`$ ${dot_separators(totalNet)}`)
     $("#movementTotalIVA").val(`$ ${dot_separators(totalIVA)}`)
     $("#movementTotalTotal").val(`$ ${dot_separators(totalTotal)}`)
+
+
+    let totalPayment = 0
+    $("#tablePaymentBody > tr").each(function() {
+        let amount = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        
+        if(!$.isNumeric(amount)){
+            amount = 0
+        }
+        totalPayment += amount
+      
+    })
+
+    $("#movementPaymentTotal").val(`$ ${dot_separators(totalPayment)}`)
+    $("#movementPaymentBalance").val(`$ ${dot_separators(totalTotal-totalPayment)}`)
 
 }
 
@@ -3428,7 +3569,7 @@ async function printVoucher(type,id) {
 
     }else{
 
-        let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn), 'days')-5
+        let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
 
         doc.text(`NETO`, pdfX, pdfY + 27)
         doc.text(`DÍAS EXTRA (${extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 39)
@@ -3511,31 +3652,16 @@ function addService(btn,type){
                 </select>
             </td>
             <td>
-                <select class="custom-select custom-select-sm classMove classPayment">
-                    <option value="0">SELECCIONAR</option>
-                    <option value="EFECTIVO">EFECTIVO</option>
-                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                    <option value="TRANSBANK">TRANSBANK</option>
-                    <option value="CRÉDITO">CRÉDITO</option>
-                </select>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this)" disabled>
             </td>
             <td>
-                <input type="text" class="form-control form-control-sm border-input classMove classPayment" placeholder="N° Transacción">
-            </td>
-            <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this)">
-            </td>
-            <td>
-                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove classPayment" onkeyup="updatePayment(this,'iva')">
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
             </td>
             <td style="text-align: center;">
                 <input class="form-check-input classMove" type="checkbox" value="">
-            </td>
-            <td style="text-align: center;">
-                <input type="text" class="form-control form-control-sm border-input classServiceDate" value="${moment().format('DD/MM/YYYY')}">
             </td>
             <td>
                 <button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Quitar Servicio"><i class="fas fa-times"></i></button>
@@ -3558,6 +3684,92 @@ function addService(btn,type){
 function deleteService(btnRow, btn){
     $(btnRow).parent().parent().remove()
     $('#'+btn).removeAttr('disabled')
+    calculateTotal()
+}
+
+function addPayment(){
+
+    $("#tablePaymentBody").append(`
+        <tr>
+            <td>
+                <select class="custom-select classPayment">
+                    <option value="0">SELECCIONAR</option>
+                    <option value="EFECTIVO">EFECTIVO</option>
+                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                    <option value="TRANSBANK">TRANSBANK</option>
+                </select>
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm border-input classPayment" placeholder="N° Transacción">
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm border-input classPayment classPaymentDate" value="${moment().format('DD-MM-YYYY')}">
+            </td>
+            <td>
+                <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classPayment" onkeyup="updatePaymentPay(this)">
+            </td>
+            <td>
+                <button class="btn btn-sm btn-danger classOut" onclick="deletePayment(this)" title="Quitar Pago"><i class="fas fa-times"></i></button>
+            </td>
+        </tr>
+    `)
+
+
+    $('.classPaymentDate').daterangepicker({
+        opens: 'left',
+        locale: dateRangePickerDefaultLocale,
+        singleDatePicker: true,
+        autoApply: true
+    }, function(start, end, label) {
+        //internals.initDate = start.format('YYYY-MM-DD')
+        //internals.endDate = end.format('YYYY-MM-DD')
+    })
+}
+
+function deletePayment(btnRow){
+    $(btnRow).parent().parent().remove()
+}
+
+function setPayments(array){
+
+    for(let i=0; i<array.length; i++){
+
+        $("#tablePaymentBody").append(`
+            <tr>
+                <td>
+                    <select class="custom-select classPayment">
+                        <option value="0">SELECCIONAR</option>
+                        <option value="EFECTIVO" ${(array[i].paymentType=='EFECTIVO') ? 'selected' : ''}>EFECTIVO</option>
+                        <option value="TRANSFERENCIA" ${(array[i].paymentType=='TRANSFERENCIA') ? 'selected' : ''}>TRANSFERENCIA</option>
+                        <option value="TRANSBANK" ${(array[i].paymentType=='TRANSBANK') ? 'selected' : ''}>TRANSBANK</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm border-input classPayment" placeholder="N° Transacción" value="${array[i].paymentNumber}">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm border-input classPayment classPaymentDate" value="${moment(array[i].date).utc().format('DD-MM-YYYY')}">
+                </td>
+                <td>
+                    <input type="text" style="text-align: right" class="form-control form-control-sm border-input classPayment" onkeyup="updatePaymentPay(this)" value="$ ${dot_separators(array[i].paymentAmount)}">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-danger classPayment" onclick="deletePayment(this)" title="Quitar Pago"><i class="fas fa-times"></i></button>
+                </td>
+            </tr>
+        `)
+    }
+
+
+    $('.classPaymentDate').daterangepicker({
+        opens: 'left',
+        locale: dateRangePickerDefaultLocale,
+        singleDatePicker: true,
+        autoApply: true
+    }, function(start, end, label) {
+        //internals.initDate = start.format('YYYY-MM-DD')
+        //internals.endDate = end.format('YYYY-MM-DD')
+    })
 }
 
 

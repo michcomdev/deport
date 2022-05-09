@@ -14,6 +14,7 @@ const containerSchema = new Schema({
     transferIn: { type: Number },
     transferOut: { type: Number },
     movements: [{
+        users: { type: Schema.Types.ObjectId, ref: 'users' },
         createdAt: { type: Date, default: Date.now()},
         movement: { type: String },
         datetime: { type: Date },
@@ -49,6 +50,12 @@ const containerSchema = new Schema({
         paymentNet: { type: Number },
         paymentIVA: { type: Number },
         paymentTotal: { type: Number }
+    }],
+    payments: [{
+        date: { type: Date },
+        paymentType: { type: String },
+        paymentNumber: { type: String },
+        paymentAmount: { type: Number }
     }]
 })
 

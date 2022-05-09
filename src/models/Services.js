@@ -4,7 +4,8 @@ const Schema = mongoose.Schema
 
 const serviceSchema = new Schema({
     name: { type: String },
-    net: { type: Number }
+    net: { type: Number },
+    days: { type: Number }
 }, {
     versionKey: false
 })

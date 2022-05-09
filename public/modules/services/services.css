@@ -1,0 +1,21 @@
+h2{
+    display: flex;
+    justify-content: center;
+}
+
+#filterBtn {
+    margin-top: 14px;
+    background-color:#1C508A;
+    color: beige;
+}
+
+.servicesFilters {
+    text-transform:uppercase;
+}
+
+#servicesTable thead tr {
+    background-color:#1C508A;
+}
+#servicesTable thead th {
+    color: beige;
+}

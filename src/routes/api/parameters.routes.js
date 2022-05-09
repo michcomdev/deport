@@ -74,27 +74,6 @@ export default [
     },
     {
         method: 'GET',
-        path: '/api/services',
-        options: {
-            description: 'get all services data',
-            notes: 'return all data from services',
-            tags: ['api'],
-            handler: async (request, h) => {
-                try {                    
-                    let services = await Services.find().lean()
-                    return services
-                } catch (error) {
-                    console.log(error)
-
-                    return h.response({
-                        error: 'Internal Server Error'
-                    }).code(500)
-                }
-            }
-        }
-    },
-    {
-        method: 'GET',
         path: '/api/parameters',
         options: {
             description: 'get all parameters data',

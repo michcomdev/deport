@@ -1,0 +1,80 @@
+{{!< layout/default}}
+{{#extend "css" }}
+    <link rel="stylesheet" type="text/css" href="/public/modules/services/services.css">
+{{/extend}}
+
+<h2 class="text-center">SERVICIOS</h2>
+
+<br>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="row">
+            <div class="col-md-2 col-xs-12">
+                <br>
+                <button class="btn btn-success btn-block" id="optionCreateService">
+                    <i class="fas fa-trailer"></i> NUEVO SERVICIO
+                </button>
+                <hr>
+                <button class="btn btn-primary btn-block" id="optionModService" disabled>
+                    <i class="fas fa-trailer"></i> MODIFICAR SERVICIO
+                </button>
+                <!--<button class="btn btn-dark btn-block" id="optionDeleteService" disabled>
+                    <i class="fas fa-user-times"></i> ELIMINAR ServiceE
+                </button>-->
+            </div>
+            <br>
+            <div class="col-md-10 col-xs-12 table-responsive">
+                <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th>SERVICIO</th>
+                            <th>VALOR NETO</th>
+                            <th>DÍAS LIBRES</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div id="loadingServices">
+                    <center>
+                        <i class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                        <span class="sr-only">Cargando...</span>
+                    </center>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalService" role="dialog" aria-labelledby="modal">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalService_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalService_body"></div>
+            <div class="modal-footer" id="modalService_footer"></div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modal" role="dialog" aria-labelledby="modal">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+{{#extend "js"}}
+    <script src="/public/modules/services/services.js"></script>
+{{/extend}}

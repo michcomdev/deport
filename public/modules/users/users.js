@@ -77,6 +77,8 @@ async function getUsersEnabled() {
 
             if (el.scope == 'gate') {
                 el.scope = 'Gate Control'
+            }else if (el.scope == 'stacker') {
+                el.scope = 'Stacker'
             }else if (el.scope == 'contab') {
                 el.scope = 'Contabilidad'
             }else if (el.scope == 'admin') {
@@ -173,10 +175,11 @@ $('#optionCreateUser').on('click', async function () { // CREAR USUARIO
 
 $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
     handleModal(internals.users.data)
-    console.log('adas', internals);
 
     if (internals.users.data.scope == 'Gate Control') {
         internals.users.data.scope = 'gate'
+    }else if (internals.users.data.scope == 'Stacker') {
+            internals.users.data.scope = 'stacker'
     }else if (internals.users.data.scope == 'Contabilidad') {
         internals.users.data.scope = 'contab'
     }else if (internals.users.data.scope == 'Administrador') {
@@ -193,9 +196,6 @@ $('#optionModUser').on('click', function () { //MODIFICAR USUARIO
         internals.users.data.password = $('#userPassword').val().trim()
         internals.users.data.scope = $('#userRole').val()
         internals.users.data.email = ($('#userEmail').val()).trim()
-
-        console.log(internals.users.data)
-
 
         let validate = await validateUserData(internals.users.data,'update')
 
@@ -417,6 +417,7 @@ function handleModal(userSelected) {
                 Rol
                 <select id="userRole" class="custom-select">
                     <option value="gate">Gate Control</option>
+                    <option value="stacker">Stacker</option>
                     <option value="contab">Contabilidad</option>
                     <option value="admin">Administrador</option>
                 </select>
@@ -465,8 +466,6 @@ function handleModal(userSelected) {
 async function validateUserData(userData, type) { // VERIFICACION
     let validationCounter = 0
     let errorMessage = ''
-
-    console.log("here",userData)
 
     // 5 puntos
     if (userData.rut.length >= 6) { // 1

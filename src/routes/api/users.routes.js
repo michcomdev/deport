@@ -54,7 +54,7 @@ export default [
                         findUser.status = 'enabled'
                         findUser.scope = payload.scope
                         if(payload.password){
-                            findUser.password = payload.password
+                            findUser.password = payload.password = hashPassword(payload.password)
                         }
                         // findUser.permissions = {
                         //     superadmin: payload.permissions.superadmin

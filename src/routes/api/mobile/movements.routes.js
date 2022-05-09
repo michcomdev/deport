@@ -264,6 +264,7 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
+                    let credentials = request.auth.credentials
                     let movement = new Containers({
                         clients: payload.client,
                         containerInitials: payload.containerInitials,
@@ -272,6 +273,7 @@ export default [
                         containerTexture: payload.containerTexture,
                         containerLarge: payload.containerLarge,
                         movements: [{
+                            users: credentials._id,
                             movement: payload.movement,
                             datetime: payload.datetime,
                             code: payload.code,
@@ -346,6 +348,7 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
+                    let credentials = request.auth.credentials
 
                     let container = await Containers.findById(payload.id)
                     //let i = payload.movementID
@@ -356,6 +359,7 @@ export default [
                         //let i = container.movements.length -1
                         
                         container.movements.push({
+                            users: credentials._id,
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
                             position: payload.position,
@@ -477,12 +481,14 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
+                    let credentials = request.auth.credentials
 
                     let container = await Containers.findById(payload.id)
 
                     if(container){
                         
                         container.movements.push({
+                            users: credentials._id,
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
                             cranes: payload.cranes,
@@ -524,6 +530,7 @@ export default [
             handler: async (request, h) => {
                 try {
                     let payload = request.payload
+                    let credentials = request.auth.credentials
 
                     let container = await Containers.findById(payload.id)
 
@@ -532,6 +539,7 @@ export default [
                         let i = container.movements.length - 1
 
                         container.movements.push({
+                            users: credentials._id,
                             movement: payload.movement,//MOVIMIENTO,//MOVIMIENTO
                             datetime: Date.now(),//FECHA HORA
                             code: container.movements[i].code,
