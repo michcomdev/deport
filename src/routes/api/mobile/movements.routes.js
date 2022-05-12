@@ -280,6 +280,7 @@ export default [
                             cranes: payload.cranes,
                             sites: payload.sites,
                             position: payload.position,
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
@@ -324,6 +325,7 @@ export default [
                         position: Joi.number().allow(0).optional(),
                         level: Joi.number().allow(0).optional()
                     }),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
@@ -363,6 +365,7 @@ export default [
                             movement: payload.movement,
                             datetime: Date.now(), //payload.datetime,
                             position: payload.position,
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
@@ -457,6 +460,7 @@ export default [
                         position: Joi.number().allow(0).optional(),
                         level: Joi.number().allow(0).optional()
                     }),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
@@ -546,6 +550,7 @@ export default [
                             cranes: payload.cranes,//GRÚA
                             sites: payload.sites, //SITIO
                             position: payload.position, //UBICACION
+                            driverForeigner: container.movements[i].driverForeigner,
                             driverRUT: container.movements[i].driverRUT,
                             driverName: container.movements[i].driverName,
                             driverPlate: container.movements[i].driverPlate,

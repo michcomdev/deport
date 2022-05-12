@@ -6,9 +6,17 @@ let internals = {
     dataRowSelected: {}
 }
 
+let services
+
 $(document).ready(async function () {
     chargeClientsTable()
+    getParameters()
 })
+
+async function getParameters() {
+    let servicesData = await axios.get('api/services')
+    services = servicesData.data
+}
 
 function chargeClientsTable() {
     try {
@@ -123,7 +131,47 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
         $('#clientRUT').focus()
     }, 500)
 
+    $('.chkRate').change(function () {
+        if($(this).prop('checked')){
+            $(this).parent().parent().addClass('table-infoSoft')
+            $($($(this).parent().parent().children()[1]).children()[0]).removeAttr('disabled')
+        }else{
+            $(this).parent().parent().removeClass('table-infoSoft')
+            $($($(this).parent().parent().children()[1]).children()[0]).attr('disabled',true)
+            $($($(this).parent().parent().children()[1]).children()[0]).val($($($(this).parent().parent().children()[1]).children()[0]).attr('data-default'))
+        }
+    })
+
+
     $('#saveClient').on('click', async function () {
+
+        //Tarifas
+        let rates = []
+        let errorAmount = false
+        $("#tableRatesBody > tr").each(function() {
+            if($($($(this).children()[2]).children()[0]).prop("checked")){
+
+                let amount = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                if(!$.isNumeric(amount)){
+                    errorAmount = true
+                }
+
+                rates.push({
+                    services: $($($(this).children()[1]).children()[0]).attr("id"),
+                    net: amount
+                })
+            }
+            
+        })
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de tarifa no válido(s)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+
         let clientData = {
             //rut: removeExtraSpaces($('#clientRUT').val()),
             rut: $('#clientRUT').val(),
@@ -139,7 +187,8 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
                 deconsolidated: $('#serviceDeconsolidated').is(":checked"),
                 portage: $('#servicePortage').is(":checked"),
                 transport: $('#serviceTransport').is(":checked"),
-            }
+            },
+            rates: rates
         }
 
         const res = validateClientData(clientData)
@@ -175,45 +224,6 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
 
 });
 
-$('#optionDeleteClient').on('click', function () {
-    swal.fire({
-        title: '{{ lang.deleteClient.swalDeleteTitle }}',
-        type: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonClass: 'btn btn-primary',
-        cancelButtonClass: 'btn btn-danger',
-        buttonsStyling: false,
-        confirmButtonText: '{{ lang.deleteClient.swalConfirmButtonText }}',
-        cancelButtonText: '{{ lang.deleteClient.swalCancelButtonText }}',
-    }).then((result) => {
-        if (result.value) {
-            ajax({
-                url: 'api/client',
-                type: 'DELETE',
-                data: {
-                    _id: internals.dataRowSelected._id
-                }
-            }).then(res => {
-                if (res.err) {
-                    toastr.warning(res.err)
-                } else if (res.ok) {
-                    $('#optionModClient').prop('disabled', true)
-                    $('#optionDeleteClient').prop('disabled', true)
-
-                    toastr.success('{{ lang.deleteClient.swalToastrOK }}')
-
-                    datatableClients
-                        .row(clientRowSelected)
-                        .remove()
-                        .draw()
-
-                }
-            })
-        }
-    })
-})
 
 $('#optionModClient').on('click', async function () { // CREAR CLIENTE
 
@@ -240,6 +250,17 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
         }
     })
 
+    $('.chkRate').change(function () {
+        if($(this).prop('checked')){
+            $(this).parent().parent().addClass('table-infoSoft')
+            $($($(this).parent().parent().children()[1]).children()[0]).removeAttr('disabled')
+        }else{
+            $(this).parent().parent().removeClass('table-infoSoft')
+            $($($(this).parent().parent().children()[1]).children()[0]).attr('disabled',true)
+            $($($(this).parent().parent().children()[1]).children()[0]).val($($($(this).parent().parent().children()[1]).children()[0]).attr('data-default'))
+        }
+    })
+
     $('#clientRUT').val(client.rut)
     $('#clientName').val(client.name)
     $('#clientNameFull').val(client.nameFull)
@@ -253,11 +274,50 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
     $('#servicePortage').prop('checked',client.services.portage)
     $('#serviceTransport').prop('checked',client.services.transport)
 
+    $("#tableRatesBody > tr").each(function() {
+
+        let serviceRate = client.rates.find(x => x.services === $($($(this).children()[1]).children()[0]).attr("id"))
+        if(serviceRate){
+            $("#"+serviceRate.services).val(serviceRate.net)
+            $("#"+serviceRate.services).parent().parent().addClass('table-infoSoft')
+            $("#"+serviceRate.services).removeAttr('disabled')
+            $("#chk_"+serviceRate.services).prop("checked",true)
+        }
+        
+    })
+
+
     setTimeout(() => {
         $('#clientRUT').focus()
     }, 500)
 
     $('#saveClient').on('click', async function () {
+        //Tarifas
+        let rates = []
+        let errorAmount = false
+        $("#tableRatesBody > tr").each(function() {
+            if($($($(this).children()[2]).children()[0]).prop("checked")){
+
+                let amount = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                if(!$.isNumeric(amount)){
+                    errorAmount = true
+                }
+
+                rates.push({
+                    services: $($($(this).children()[1]).children()[0]).attr("id"),
+                    net: amount
+                })
+            }
+            
+        })
+
+        if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de tarifa no válido(s)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
         let clientData = {
             id: internals.dataRowSelected._id,
             rut: $('#clientRUT').val(),
@@ -273,7 +333,8 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
                 deconsolidated: $('#serviceDeconsolidated').is(":checked"),
                 portage: $('#servicePortage').is(":checked"),
                 transport: $('#serviceTransport').is(":checked"),
-            }
+            },
+            rates: rates
         }
         
         const res = validateClientData(clientData)
@@ -333,13 +394,13 @@ function validateClientData(clientData) {
     }
     
 
-    if (isEmail(clientData.email)) {
+    /*if (isEmail(clientData.email)) {
         validationCounter++
         $('#clientEmail').css('border', '1px solid #3498db')
     } else {
         errorMessage += `<br>E-Mail`
         $('#clientEmail').css('border', '1px solid #e74c3c')
-    }
+    }*/
 
     if (clientData.services.storage || clientData.services.deconsolidated || clientData.services.portage || clientData.services.transport) {
         validationCounter++
@@ -348,7 +409,7 @@ function validateClientData(clientData) {
     }
 
 
-    if (validationCounter >= 4) {
+    if (errorMessage=='') {
         return { ok: clientData }
     } else {
         toastr.warning('Falta datos:<br>'+errorMessage)
@@ -363,30 +424,30 @@ function setModal(){
             <div class="row">
                 <div class="col-md-4" style="margin-top:10px;">
                     RUT
-                    <input id="clientRUT" type="text" class="form-control border-input">
+                    <input id="clientRUT" type="text" class="form-control form-control-sm border-input">
                 </div>
                 <div class="col-md-8" style="margin-top:10px;">
                     Nombre (o nombre de fantasía SII)
-                    <input id="clientName" type="text" class="form-control border-input">
+                    <input id="clientName" type="text" class="form-control form-control-sm border-input">
                 </div>
 
                 <div class="col-md-12" style="margin-top:10px;">
                     <br/>
                     Nombre Facturación (nombre completo SII)
-                    <input id="clientNameFull" type="text" class="form-control border-input">
+                    <input id="clientNameFull" type="text" class="form-control form-control-sm border-input">
                 </div>
                 <div class="col-md-4" style="margin-top:10px;">
                     Correo Electrónico
-                    <input id="clientEmail" type="text" class="form-control border-input">
+                    <input id="clientEmail" type="text" class="form-control form-control-sm border-input">
                 </div>
 
                 <div class="col-md-4" style="margin-top:10px;">
                     Nombre Contacto
-                    <input id="clientContact" type="text" class="form-control border-input">
+                    <input id="clientContact" type="text" class="form-control form-control-sm border-input">
                 </div>
                 <div class="col-md-4" style="margin-top:10px;">
                     Teléfono Contacto
-                    <input id="clientContactPhone" type="text" class="form-control border-input">
+                    <input id="clientContactPhone" type="text" class="form-control form-control-sm border-input">
                 </div>
 
                 <div class="col-md-4" style="margin-top:10px;">
@@ -407,13 +468,47 @@ function setModal(){
 
                 <div class="col-md-4" style="margin-top:10px;">
                     <br/>
-                    Servicios
+                    Servicios Habilitados
                     <br/><input type="checkbox" id="serviceStorage" checked> Almacenamiento
                     <br/><input type="checkbox" id="serviceDeconsolidated"> Desconsolidado
                     <br/><input type="checkbox" id="servicePortage"> Porteo
                     <br/><input type="checkbox" id="serviceTransport"> Transporte
                 </div>
+                <div class="col-md-8" style="margin-top:10px;">
+                    <br/>
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <h4>Tarifas especiales</h4>
+                            <table id="tableRates" class="table table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Neto</th>
+                                        <th>Tarifa Especial</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableRatesBody">
+                                    ${
+                                        services.reduce((acc,el)=>{
+                                            acc += `<tr>
+                                                        <td>${el.name}</td>
+                                                        <td>
+                                                            <input id="${el._id}" data-default="${el.net}" class="form-control-sm form-control-sm" value="${el.net}" style="text-align: right;" disabled />
+                                                        </td>
+                                                        <td>
+                                                            <input id="chk_${el._id}" type="checkbox" class="chkRate form-control-sm form-control-sm"/>
+                                                        </td>
+                                                    </tr>`
+                                            return acc
+                                        },'')
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         `
+        
 }

@@ -25,11 +25,13 @@ const containerSchema = new Schema({
             position: { type: Number},
             level: { type: Number}
         },
+        driverForeigner: { type: Boolean, default: false },
         driverRUT: { type: String },
         driverName: { type: String },
         driverPlate: { type: String },
         driverGuide: { type: String },
         driverSeal: { type: String },
+        driverOutForeigner: { type: Boolean, default: false },
         driverOutRUT: { type: String },
         driverOutName: { type: String },
         driverOutPlate: { type: String },

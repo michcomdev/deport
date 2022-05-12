@@ -257,7 +257,7 @@ export default [
                             let containerState = 'N/A'
                             if(el.services.find(x => x.services.name == 'Almacenamiento Vacío') || el.services.find(x => x.services.name == 'Desconsolidado')){
                                 containerState = 'VACÍO'
-                            }else if(el.services.find(x => x.services.name == 'Almacenamiento Full')){
+                            }else if(el.services.find(x => x.services.name == 'Almacenamiento Full') || el.services.find(x => x.services.name == 'Almacenamiento IMO')){
                                 containerState = 'LLENO'
                             }
 
@@ -294,6 +294,9 @@ export default [
                             }else if(el.movements[lastMov].movement=='TRASPASO'){
                                 datetimeIn = el.movements[lastMov].datetime
                                 datetimeOut = el.movements[lastMov].datetime
+                            }else if(el.movements[lastMov].movement=='DESCONSOLIDADO'){
+                                datetimeIn = el.movements[0].datetime //Modificar por último "ingreso"
+                                datetimeOut = '-'
                             }else{
                                 datetimeIn = el.movements[lastMov].datetime
                                 datetimeOut = '-' //Modificar por 5 días y/o +extras
@@ -319,7 +322,8 @@ export default [
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }
                                 }else{
@@ -340,7 +344,8 @@ export default [
                                             driverName: el.movements[lastMov-1].driverName,
                                             driverPlate: el.movements[lastMov-1].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }else{
                                         acc.push({
@@ -360,7 +365,8 @@ export default [
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }
                                 }
@@ -383,7 +389,8 @@ export default [
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }
                                 }else if(status=='RETIRADO'){
@@ -404,7 +411,8 @@ export default [
                                             driverName: el.movements[lastMov-1].driverName,
                                             driverPlate: el.movements[lastMov-1].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
 
                                     }else if(el.movements[lastMov].movement=='TRASPASO'){
@@ -424,7 +432,8 @@ export default [
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }
                                 }else{
@@ -445,7 +454,8 @@ export default [
                                             driverName: el.movements[lastMov].driverName,
                                             driverPlate: el.movements[lastMov].driverPlate,
                                             services: el.services,
-                                            payments: el.payments
+                                            payments: el.payments,
+                                            movements: el.movements
                                         })
                                     }
                                 }
@@ -637,6 +647,7 @@ export default [
                             movement: payload.movement,
                             datetime: payload.datetime,
                             position: payload.position,
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
@@ -696,6 +707,7 @@ export default [
                         position: Joi.number().allow(0).optional(),
                         level: Joi.number().allow(0).optional()
                     }),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
@@ -774,6 +786,7 @@ export default [
                             datetime: payload.datetime,
                             //datetime: Date.now(), //payload.datetime,
                             position: payload.position,
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
@@ -837,6 +850,7 @@ export default [
                         position: Joi.number().allow(0).optional(),
                         level: Joi.number().allow(0).optional()
                     }),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
@@ -956,11 +970,13 @@ export default [
                             users: credentials._id,
                             movement: payload.movement,
                             datetime: payload.datetime,
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
                             driverGuide: payload.driverGuide,
                             driverSeal: payload.driverSeal,
+                            driverOutForeigner: payload.driverOutForeigner,
                             driverOutRUT: payload.driverOutRUT,
                             driverOutName: payload.driverOutName,
                             driverOutPlate: payload.driverOutPlate,
@@ -1008,11 +1024,13 @@ export default [
                     containerTexture: Joi.string().optional().allow(''),
                     containerLarge: Joi.string().optional().allow(''),
                     cranes: Joi.string().optional().allow(''),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
                     driverGuide: Joi.string().optional().allow(''),
                     driverSeal: Joi.string().optional().allow(''),
+                    driverOutForeigner: Joi.boolean().optional(),
                     driverOutRUT: Joi.string().optional().allow(''),
                     driverOutName: Joi.string().optional().allow(''),
                     driverOutPlate: Joi.string().optional().allow(''),
@@ -1060,11 +1078,13 @@ export default [
                             users: credentials._id,
                             movement: payload.movement,
                             datetime: payload.datetime, //Date.now()
+                            driverForeigner: payload.driverForeigner,
                             driverRUT: payload.driverRUT,
                             driverName: payload.driverName,
                             driverPlate: payload.driverPlate,
                             driverGuide: payload.driverGuide,
                             driverSeal: payload.driverSeal,
+                            driverOutForeigner: payload.driverOutForeigner,
                             driverOutRUT: payload.driverOutRUT,
                             driverOutName: payload.driverOutName,
                             driverOutPlate: payload.driverOutPlate,
@@ -1127,11 +1147,13 @@ export default [
                     containerTexture: Joi.string().optional().allow(''),
                     containerLarge: Joi.string().optional().allow(''),
                     cranes: Joi.string().optional().allow(''),
+                    driverForeigner: Joi.boolean().optional(),
                     driverRUT: Joi.string().optional().allow(''),
                     driverName: Joi.string().optional().allow(''),
                     driverPlate: Joi.string().optional().allow(''),
                     driverGuide: Joi.string().optional().allow(''),
                     driverSeal: Joi.string().optional().allow(''),
+                    driverOutForeigner: Joi.boolean().optional(),
                     driverOutRUT: Joi.string().optional().allow(''),
                     driverOutName: Joi.string().optional().allow(''),
                     driverOutPlate: Joi.string().optional().allow(''),

@@ -19,3 +19,15 @@ h2{
 #clientsTable thead th {
     color: beige;
 }
+
+.table-infoSoft>td, .table-infoSoft>th{
+    background-color: #a9d3f0;
+}
+
+#modalClient{
+    font-size: 13px;
+}
+
+#tableClients{
+    font-size: 13px;
+}

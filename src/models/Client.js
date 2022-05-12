@@ -18,7 +18,11 @@ const clientSchema = new Schema({
         deconsolidated: { type: Boolean },
         portage: { type: Boolean },
         transport: { type: Boolean }
-    }
+    },
+    rates: [{
+        services: { type: Schema.Types.ObjectId, ref: 'services' },
+        net: { type: Number }
+    }]
 }, {
     versionKey: false
 })

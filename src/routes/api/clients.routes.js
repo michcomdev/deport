@@ -86,6 +86,7 @@ export default [
                     client.status = payload.status
                     client.credit = payload.credit
                     client.services = payload.services
+                    client.rates = payload.rates
 
                     const response = await client.save()
 
@@ -116,6 +117,10 @@ export default [
                         portage: Joi.boolean().required(),
                         transport: Joi.boolean().required()
                     }),
+                    rates: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        net: Joi.number().allow(0).optional()
+                    }))
                 })
             }
         }
@@ -148,7 +153,8 @@ export default [
                         status: payload.status,
                         debt: 'SIN DEUDA',
                         credit: payload.credit,
-                        services: payload.services
+                        services: payload.services,
+                        rates: payload.rates
                     })
 
                     const response = await client.save()
@@ -179,6 +185,10 @@ export default [
                         portage: Joi.boolean().required(),
                         transport: Joi.boolean().required()
                     }),
+                    rates: Joi.array().items(Joi.object().keys({
+                        services: Joi.string().optional().allow(''),
+                        net: Joi.number().allow(0).optional()
+                    }))
                 })
             }
         }

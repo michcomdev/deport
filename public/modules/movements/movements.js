@@ -57,6 +57,7 @@ $(document).ready(async function () {
             $('body').addClass('modal-open')
         }*/
     })
+    
 })
 
 async function getParameters() {
@@ -97,8 +98,12 @@ async function setPositionList(editSite, editRow, editPosition, editLevel) {
         $("#movementPositionPositionOld").html('<option value="0">SEL</option>')
         $("#movementPositionLevelOld").html('<option value="0">SEL</option>')
 
+        $("#movementSiteOld").val(editSite)
+
         let siteData = await axios.post('/api/siteSingle', {id: editSite})
         siteMap = siteData.data.rows
+
+        
 
         for(let i=0; i<siteMap.length; i++){
             if(editRow==siteMap[i].row){
@@ -363,47 +368,56 @@ async function getMovementsEnabled() {
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
 
+
+            /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
             el.extraDays = 0
-            console.log(el)
+            deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+
+            let momentEndDate = moment()
 
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
-                if(el.services.find(x => x.name==='Almacenamiento IMO')){
-                    if(el.extraDays<=3){
-                        el.extraDays = 0
-                    }else{
-                        el.extraDays -= 3
-                    }
-                }else{
-                    if(el.extraDays<=5){
-                        el.extraDays = 0
-                    }else{
-                        el.extraDays -= 5
-                    }
-                }
+                momentEndDate = moment(el.datetimeOut)
                 el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
-            }else{
+            }
+                
+            if(el.services.find(x => x.services.name==='Desconsolidado')){
+                let deconDate = el.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
 
-                el.extraDays = moment().diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
-                //console.log('extras',el.extraDays)
-                console.log(el.services.find(x => x.services.name==='Almacenamiento IMO'))
-                if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
-                    if(el.extraDays<=3){
-                        el.extraDays = 0
-                    }else{
-                        el.extraDays -= 3
-                    }
+                //Días Extras posteriores a Desconsolidado
+                deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+                let serviceDays = el.services.find(x => x.services.name==='Desconsolidado').services.days
+                if(deconExtraDays<=serviceDays){
+                    deconExtraDays = 0
                 }else{
-                    if(el.extraDays<=5){
-                        el.extraDays = 0
-                    }else{
-                        el.extraDays -= 5
-                    }
+                    deconExtraDays -= serviceDays
+                }
+
+                el.extraDays = moment(deconDate).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
+            }else{
+                el.extraDays = momentEndDate.diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
+            }
+        
+            if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
+                let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+                if(el.extraDays<=serviceDays){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= serviceDays
+                }
+            }else{
+                if(el.extraDays<=5){
+                    el.extraDays = 0
+                }else{
+                    el.extraDays -= 5
                 }
             }
-            el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
-            
 
+            el.extraDays += deconExtraDays
+            
+            /////////////////////////////////////////
+
+
+            el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
 
             el.status = 'EN SITIO'
             if(el.movement=='SALIDA' || el.movement=='TRASPASO'){
@@ -425,6 +439,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Llegada`)
     $('#modalMov_body').html(createModalBody())
+
     $('#imgTexture').val('cai')
     
     setServiceList('ALL')
@@ -441,6 +456,9 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         </button>
     `)
 
+    $('#divPrintIn').html('')
+    $('#divPrintOut').html('')
+
     $("#btnMap").css('display','none')
     $("#btnHistory").css('display','none')
 
@@ -454,11 +472,27 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     };
     var mask = IMask(element, maskOptions)
 
+    $('#movementDriverForeigner').change(function () {
+        if(!$(this).prop('checked')){
+            let rut = validateRut($('#movementDriverRUT').val())
+            if(rut){
+                $('#movementDriverRUT').val(rut)
+                getDriver(rut)
+            }
+        }else{
+            getDriver($('#movementDriverRUT').val())
+        }
+    })
+
     $('#movementDriverRUT').on('keyup', function () {
-        let rut = validateRut($(this).val())
-        if(rut){
-            $(this).val(rut)
-            getDriver(rut)
+        if(!$('#movementDriverForeigner').prop('checked')){
+            let rut = validateRut($(this).val())
+            if(rut){
+                $(this).val(rut)
+                getDriver(rut)
+            }
+        }else{
+            getDriver($('#movementDriverRUT').val())
         }
     })
 
@@ -571,6 +605,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
                 position: parseInt($('#movementPositionPosition').val()),
                 level: parseInt($('#movementPositionLevel').val())
             },
+            driverForeigner: $('#movementDriverForeigner').prop('checked'),
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
@@ -667,61 +702,56 @@ $('#optionModMovement').on('click', async function () {
         $('#imgTexture').val('cai')
         setServiceList('ALL', container.services)
         setPayments(container.payments)
+
+
+        /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
+        extraDays = 0
+        deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+        let momentEndDate = moment()
         
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
             $('#modalMov_title').html(`Modifica Ingreso`)
 
-            let extraDays = 0
-            extraDays = moment().diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
-            /*if(extraDays<=5){
-                extraDays = 0
-            }else{
-                extraDays -= 5
-            }*/
-
-            if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
-                if(extraDays<=3){
-                    extraDays = 0
-                }else{
-                    extraDays -= 3
-                }
-            }else{
-                if(extraDays<=5){
-                    extraDays = 0
-                }else{
-                    extraDays -= 5
-                }
-            }
-
-            setExtraDays(extraDays)
-
         }else if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
             $('#modalMov_title').html(`Modifica Salida`)
-            //////MODIFICAR////
-            let extraDays = 0
-            extraDays = moment(container.movements[movementID].datetime).diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
-            /*if(extraDays<=5){
+
+            momentEndDate = moment(container.movements[movementID].datetime)
+        }
+        
+        if(container.services.find(x => x.services.name==='Desconsolidado')){
+            let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
+            //Días Extras posteriores a Desconsolidado
+            deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+            let serviceDays = container.services.find(x => x.services.name==='Desconsolidado').services.days
+            if(deconExtraDays<=serviceDays){
+                deconExtraDays = 0
+            }else{
+                deconExtraDays -= serviceDays
+            }
+
+            extraDays = moment(deconDate).diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
+        }else{
+            extraDays = momentEndDate.diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
+        }
+
+        if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+            let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+            if(extraDays<=serviceDays){
+                extraDays = 0
+            }else{
+                extraDays -= serviceDays
+            }
+        }else{
+            if(extraDays<=5){
                 extraDays = 0
             }else{
                 extraDays -= 5
-            }*/
-            if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
-                if(extraDays<=3){
-                    extraDays = 0
-                }else{
-                    extraDays -= 3
-                }
-            }else{
-                if(extraDays<=5){
-                    extraDays = 0
-                }else{
-                    extraDays -= 5
-                }
             }
-
-
-            setExtraDays(extraDays)
         }
+
+        //extraDays += deconExtraDays
+
+        setExtraDays(extraDays,deconExtraDays)
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -731,11 +761,16 @@ $('#optionModMovement').on('click', async function () {
             <button class="btn btn-primary" id="saveMovement">
                 <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
             </button>
-            
-            <button class="btn btn-info" id="printMovementIn" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
+        `)
+
+        $('#divPrintIn').html(`
+            <button class="btn btn-info btn-sm" id="printMovementIn" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
                 <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO
             </button>
-            <button class="btn btn-info" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')" disabled>
+        `)
+        
+        $('#divPrintOut').html(`
+            <button class="btn btn-info btn-sm" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')" disabled>
                 <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA
             </button>
         `)
@@ -806,18 +841,21 @@ $('#optionModMovement').on('click', async function () {
 
         
         if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            $('#movementDriverForeigner').prop('checked',container.movements[0].driverForeigner)
             $('#movementDriverRUT').val(container.movements[0].driverRUT)
             $('#movementDriverName').val(container.movements[0].driverName)
             $('#movementDriverPlate').val(container.movements[0].driverPlate)
             $('#movementDriverGuide').val(container.movements[0].driverGuide)
             $('#movementDriverSeal').val(container.movements[0].driverSeal)
 
+            $('#movementDriverOutForeigner').prop('checked',container.movements[movementID].driverOutForeigner)
             $('#movementDriverOutRUT').val(container.movements[movementID].driverRUT)
             $('#movementDriverOutName').val(container.movements[movementID].driverName)
             $('#movementDriverOutPlate').val(container.movements[movementID].driverPlate)
             $('#movementDriverOutGuide').val(container.movements[movementID].driverGuide)
             $('#movementDriverOutSeal').val(container.movements[movementID].driverSeal)
         }else{
+            $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
             $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
             $('#movementDriverName').val(container.movements[movementID].driverName)
             $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
@@ -827,11 +865,27 @@ $('#optionModMovement').on('click', async function () {
         
         $('#movementObservation').val(container.movements[movementID].observation)
 
+        $('#movementDriverForeigner').change(function () {
+            if(!$(this).prop('checked')){
+                let rut = validateRut($('#movementDriverRUT').val())
+                if(rut){
+                    $('#movementDriverRUT').val(rut)
+                    getDriver(rut)
+                }
+            }else{
+                getDriver($('#movementDriverRUT').val())
+            }
+        })
+
         $('#movementDriverRUT').on('keyup', function () {
-            let rut = validateRut($(this).val())
-            if(rut){
-                $(this).val(rut)
-                getDriver(rut)
+            if(!$('#movementDriverForeigner').prop('checked')){
+                let rut = validateRut($(this).val())
+                if(rut){
+                    $(this).val(rut)
+                    getDriver(rut)
+                }
+            }else{
+                getDriver($('#movementDriverRUT').val())
             }
         })
 
@@ -942,6 +996,7 @@ $('#optionModMovement').on('click', async function () {
                     position: parseInt($('#movementPositionPosition').val()),
                     level: parseInt($('#movementPositionLevel').val())
                 },
+                driverForeigner: $('#movementDriverForeigner').prop('checked'),
                 driverRUT: $('#movementDriverRUT').val(),
                 driverName: $('#movementDriverName').val(),
                 driverPlate: $('#movementDriverPlate').val(),
@@ -952,8 +1007,6 @@ $('#optionModMovement').on('click', async function () {
                 observation: $('#movementObservation').val()
             }
 
-            console.log(movementData)
-            
             const res = validateMovementData(movementData)
             if(res.ok){
                 let saveMovement = await axios.post('/api/movementUpdate', res.ok)
@@ -991,11 +1044,16 @@ $('#optionModMovement').on('click', async function () {
             <button class="btn btn-primary" id="saveMovement">
                 <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
             </button>
-            
-            <button class="btn btn-info" id="printMovementTransfer" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER ENTRADA
+        `)
+
+        $('#divPrintIn').html(`
+            <button class="btn btn-info btn-sm" id="printMovementTransfer" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
+                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO
             </button>
-            <button class="btn btn-info" id="printMovementTransfer" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
+        `)
+        
+        $('#divPrintOut').html(`
+            <button class="btn btn-info btn-sm" id="printMovementTransfer" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
                 <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA
             </button>
         `)
@@ -1039,11 +1097,13 @@ $('#optionModMovement').on('click', async function () {
             $('.classStacker').attr('disabled',true)
         }
 
+        $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
         $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
         $('#movementDriverName').val(container.movements[movementID].driverName)
         $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
         $('#movementDriverGuide').val(container.movements[movementID].driverGuide)
         $('#movementDriverSeal').val(container.movements[movementID].driverSeal)
+        $('#movementDriverOutForeigner').prop('checked',container.movements[movementID].driverOutForeigner)
         $('#movementDriverOutRUT').val(container.movements[movementID].driverOutRUT)
         $('#movementDriverOutName').val(container.movements[movementID].driverOutName)
         $('#movementDriverOutPlate').val(container.movements[movementID].driverOutPlate)
@@ -1056,19 +1116,52 @@ $('#optionModMovement').on('click', async function () {
 
         $('#movementObservation').val(container.movements[movementID].observation)
 
+
+        $('#movementDriverForeigner').change(function () {
+            if(!$(this).prop('checked')){
+                let rut = validateRut($('#movementDriverRUT').val())
+                if(rut){
+                    $('#movementDriverRUT').val(rut)
+                    getDriver(rut)
+                }
+            }else{
+                getDriver($('#movementDriverRUT').val())
+            }
+        })
+
+        $('#movementDriverOutForeigner').change(function () {
+            if(!$(this).prop('checked')){
+                let rut = validateRut($('#movementDriverOutRUT').val())
+                if(rut){
+                    $('#movementDriverOutRUT').val(rut)
+                    getDriver(rut,true)
+                }
+            }else{
+                getDriver($('#movementDriverOutRUT').val(),true)
+            }
+        })
+
         $('#movementDriverRUT').on('keyup', function () {
-            let rut = validateRut($(this).val())
-            if(rut){
-                $(this).val(rut)
-                getDriver(rut)
+            if(!$('#movementDriverForeigner').prop('checked')){
+                let rut = validateRut($(this).val())
+                if(rut){
+                    $(this).val(rut)
+                    getDriver(rut)
+                }
+            }else{
+                getDriver($('#movementDriverRUT').val())
             }
         })
 
         $('#movementDriverOutRUT').on('keyup', function () {
-            let rut = validateRut($(this).val())
-            if(rut){
-                $(this).val(rut)
-                getDriver(rut)
+            if(!$('#movementDriverOutForeigner').prop('checked')){
+                let rut = validateRut($(this).val())
+                if(rut){
+                    $(this).val(rut)
+                    getDriver(rut,true)
+                }
+            }else{
+                getDriver($('#movementDriverOutRUT').val(),true)
             }
         })
 
@@ -1159,22 +1252,17 @@ $('#optionModMovement').on('click', async function () {
                 containerTexture: $('#imgTexture').val(),
                 containerLarge: $('#movementContainerLarge').val(),
                 cranes: $('#movementCrane').val(),
+                driverForeigner: $('#movementDriverForeigner').prop('checked'),
                 driverRUT: $('#movementDriverRUT').val(),
                 driverName: $('#movementDriverName').val(),
                 driverPlate: $('#movementDriverPlate').val(),
                 driverGuide: $('#movementDriverGuide').val(),
                 driverSeal: $('#movementDriverSeal').val(),
+                driverOutForeigner: $('#movementDriverOutForeigner').prop('checked'),
                 driverOutRUT: $('#movementDriverOutRUT').val(),
                 driverOutName: $('#movementDriverOutName').val(),
                 driverOutPlate: $('#movementDriverOutPlate').val(),
                 driverOutGuide: $('#movementDriverOutGuide').val(),
-                services: $('#movementService').val(),
-                paymentType: $('#movementPaymentType').val(),
-                paymentNumber: $('#movementPaymentNumber').val(),
-                paymentAdvance: $('#movementPaymentAdvance').is(":checked"),
-                /*paymentNet: net,
-                paymentIVA: iva,
-                paymentTotal: total,*/
                 services: services,
                 payments: payments,
                 observation: $('#movementObservation').val()
@@ -1219,15 +1307,45 @@ $('#optionCloseMovement').on('click', async function () {
     setServiceList('ALL', container.services)
     setPayments(container.payments)
 
-    let extraDays = 0
-    extraDays = moment().diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
-    if(extraDays<=5){
-        extraDays = 0
+    /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
+    extraDays = 0
+    deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+    let momentEndDate = moment()
+    
+    if(container.services.find(x => x.services.name==='Desconsolidado')){
+        let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
+        //Días Extras posteriores a Desconsolidado
+        deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+        let serviceDays = container.services.find(x => x.services.name==='Desconsolidado').services.days
+        if(deconExtraDays<=serviceDays){
+            deconExtraDays = 0
+        }else{
+            deconExtraDays -= serviceDays
+        }
+
+        extraDays = moment(deconDate).diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
     }else{
-        extraDays -= 5
+        extraDays = momentEndDate.diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
     }
 
-    setExtraDays(extraDays)
+    if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
+    }else{
+        if(extraDays<=5){
+            extraDays = 0
+        }else{
+            extraDays -= 50
+        }
+    }
+
+    //extraDays += deconExtraDays
+
+    setExtraDays(extraDays,deconExtraDays)
 
     
     $('#modalMov_footer').html(`
@@ -1262,6 +1380,7 @@ $('#optionCloseMovement').on('click', async function () {
     //$('#movementPositionRow').val(container.movements[movementID].position.row)
     //$('#movementPositionPosition').val(container.movements[movementID].position.position)
     //$('#movementPositionLevel').val(container.movements[movementID].position.level)
+    $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
     $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
     $('#movementDriverName').val(container.movements[movementID].driverName)
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
@@ -1273,11 +1392,27 @@ $('#optionCloseMovement').on('click', async function () {
 
     $(".classOut").prop('disabled',true)
 
+    $('#movementDriverOutForeigner').change(function () {
+        if(!$(this).prop('checked')){
+            let rut = validateRut($('#movementDriverOutRUT').val())
+            if(rut){
+                $('#movementDriverOutRUT').val(rut)
+                getDriver(rut,true)
+            }
+        }else{
+            getDriver($('#movementDriverOutRUT').val(),true)
+        }
+    })
+
     $('#movementDriverOutRUT').on('keyup', function () {
-        let rut = validateRut($(this).val())
-        if(rut){
-            $(this).val(rut)
-            getDriver(rut,true)
+        if(!$('#movementDriverOutForeigner').prop('checked')){
+            let rut = validateRut($(this).val())
+            if(rut){
+                $(this).val(rut)
+                getDriver(rut,true)
+            }
+        }else{
+            getDriver($('#movementDriverOutRUT').val(),true)
         }
     })
 
@@ -1316,9 +1451,9 @@ $('#optionCloseMovement').on('click', async function () {
         
 
         $("#tableServicesExtraBody > tr").each(function() {
-            let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let net = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
-            let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+            let iva = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             let total = parseInt(net) + parseInt(iva)
             
             if(!$.isNumeric(net)){
@@ -1335,7 +1470,7 @@ $('#optionCloseMovement').on('click', async function () {
             }
 
             services.push({
-                services: $($($(this).children()[0]).children()[1]).val(),
+                services: $($($(this).children()[1]).children()[1]).val(),
                 paymentNet: net,
                 paymentIVA: iva,
                 paymentTotal: total
@@ -1400,6 +1535,7 @@ $('#optionCloseMovement').on('click', async function () {
                 position: parseInt($('#movementPositionPosition').val()),
                 level: parseInt($('#movementPositionLevel').val())
             },
+            driverForeigner: $('#movementDriverOutForeigner').prop('checked'),
             driverRUT: $('#movementDriverOutRUT').val(),
             driverName: $('#movementDriverOutName').val(),
             driverPlate: $('#movementDriverOutPlate').val(),
@@ -1492,7 +1628,7 @@ $('#optionMovMovement').on('click', async function () {
 
     setPositionList(container.movements[movementID].sites,container.movements[movementID].position.row,container.movements[movementID].position.position,container.movements[movementID].position.level)
 
-
+    $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
     $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
     $('#movementDriverName').val(container.movements[movementID].driverName)
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
@@ -1591,6 +1727,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     //$('#movementPositionRow').val(container.movements[movementID].position.row)
     //$('#movementPositionPosition').val(container.movements[movementID].position.position)
     //$('#movementPositionLevel').val(container.movements[movementID].position.level)
+    $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
     $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
     $('#movementDriverName').val(container.movements[movementID].driverName)
     $('#movementDriverPlate').val(container.movements[movementID].driverPlate)
@@ -1691,6 +1828,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
                 position: parseInt($('#movementPositionPosition').val()),
                 level: parseInt($('#movementPositionLevel').val())
             },
+            driverForeigner: $('#movementDriverForeigner').prop('checked'),
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
@@ -1749,19 +1887,51 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
     };
     var mask = IMask(element, maskOptions)
 
+    $('#movementDriverForeigner').change(function () {
+        if(!$(this).prop('checked')){
+            let rut = validateRut($('#movementDriverRUT').val())
+            if(rut){
+                $('#movementDriverRUT').val(rut)
+                getDriver(rut)
+            }
+        }else{
+            getDriver($('#movementDriverRUT').val())
+        }
+    })
+
+    $('#movementDriverOutForeigner').change(function () {
+        if(!$(this).prop('checked')){
+            let rut = validateRut($('#movementDriverOutRUT').val())
+            if(rut){
+                $('#movementDriverOutRUT').val(rut)
+                getDriver(rut,true)
+            }
+        }else{
+            getDriver($('#movementDriverOutRUT').val(),true)
+        }
+    })
+
     $('#movementDriverRUT').on('keyup', function () {
-        let rut = validateRut($(this).val())
-        if(rut){
-            $(this).val(rut)
-            getDriver(rut)
+        if(!$('#movementDriverForeigner').prop('checked')){
+            let rut = validateRut($(this).val())
+            if(rut){
+                $(this).val(rut)
+                getDriver(rut)
+            }
+        }else{
+            getDriver($('#movementDriverRUT').val())
         }
     })
 
     $('#movementDriverOutRUT').on('keyup', function () {
-        let rut = validateRut($(this).val())
-        if(rut){
-            $(this).val(rut)
-            getDriver(rut,true)
+        if(!$('#movementDriverOutForeigner').prop('checked')){
+            let rut = validateRut($(this).val())
+            if(rut){
+                $(this).val(rut)
+                getDriver(rut,true)
+            }
+        }else{
+            getDriver($('#movementDriverOutRUT').val(),true)
         }
     })
     updatePayment($($($('#tableServicesBody').children().last()).children()[0]).children()[0]) //Obtiene valor por defecto de desconsolidado
@@ -1864,11 +2034,13 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             containerTexture: $('#imgTexture').val(),
             containerLarge: $('#movementContainerLarge').val(),
             cranes: $('#movementCrane').val(),
+            driverForeigner: $('#movementDriverForeigner').prop('checked'),
             driverRUT: $('#movementDriverRUT').val(),
             driverName: $('#movementDriverName').val(),
             driverPlate: $('#movementDriverPlate').val(),
             driverGuide: $('#movementDriverGuide').val(),
             driverSeal: $('#movementDriverSeal').val(),
+            driverOutForeigner: $('#movementDriverOutForeigner').prop('checked'),
             driverOutRUT: $('#movementDriverOutRUT').val(),
             driverOutName: $('#movementDriverOutName').val(),
             driverOutPlate: $('#movementDriverOutPlate').val(),
@@ -1937,13 +2109,23 @@ function validateMovementData(movementData) {
 
         if(movementData.movement=='POR SALIR' || movementData.movement=='SALIDA'){
            
-            if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer Válido'
-
-                $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+            if(movementData.driverForeigner){
+                if(movementData.driverRUT==''){
+                    errorMessage += '<br>RUT Chofer'
+                    $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                }
             }else{
-                $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                if(!validateRut(movementData.driverRUT)){
+                    errorMessage += '<br>RUT Chofer Válido'
+
+                    $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                }
             }
+
             if(movementData.driverName==''){
                 errorMessage += '<br>Nombre Chofer'
                 $('#movementDriverOutName').css('border', '1px solid #E74C3C')
@@ -1959,12 +2141,23 @@ function validateMovementData(movementData) {
 
         }else if(movementData.movement=='TRASPASO'){
 
-            if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer Entrada'
-                $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+            if(movementData.driverForeigner){
+                if(movementData.driverRUT==''){
+                    errorMessage += '<br>RUT Chofer Entrada'
+                    $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                }
             }else{
-                $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                if(!validateRut(movementData.driverRUT)){
+                    errorMessage += '<br>RUT Chofer Entrada Válido'
+
+                    $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                }
             }
+
             if(movementData.driverName==''){
                 errorMessage += '<br>Nombre Chofer Entrada'
                 $('#movementDriverName').css('border', '1px solid #E74C3C')
@@ -1978,12 +2171,24 @@ function validateMovementData(movementData) {
                 $('#movementDriverPlate').css('border', '1px solid #CED4DA')
             }
            
-            if(!validateRut(movementData.driverOutRUT)){
-                errorMessage += '<br>RUT Chofer Salida'
-                $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+
+            if(movementData.driverOutForeigner){
+                if(movementData.driverOutRUT==''){
+                    errorMessage += '<br>RUT Chofer Salida'
+                    $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                }
             }else{
-                $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                if(!validateRut(movementData.driverOutRUT)){
+                    errorMessage += '<br>RUT Chofer Salida Válido'
+
+                    $('#movementDriverOutRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverOutRUT').css('border', '1px solid #CED4DA')
+                }
             }
+
             if(movementData.driverOutName==''){
                 errorMessage += '<br>Nombre Chofer Salida'
                 $('#movementDriverOutName').css('border', '1px solid #E74C3C')
@@ -1998,13 +2203,24 @@ function validateMovementData(movementData) {
             }
 
         }else{
-            if(!validateRut(movementData.driverRUT)){
-                errorMessage += '<br>RUT Chofer Válido'
-    
-                $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+
+            if(movementData.driverForeigner){
+                if(movementData.driverRUT==''){
+                    errorMessage += '<br>RUT Chofer'
+                    $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                }
             }else{
-                $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                if(!validateRut(movementData.driverRUT)){
+                    errorMessage += '<br>RUT Chofer Válido'
+
+                    $('#movementDriverRUT').css('border', '1px solid #E74C3C')
+                }else{
+                    $('#movementDriverRUT').css('border', '1px solid #CED4DA')
+                }
             }
+
             if(movementData.driverName==''){
                 errorMessage += '<br>Nombre Chofer'
                 $('#movementDriverName').css('border', '1px solid #E74C3C')
@@ -2102,7 +2318,7 @@ function createModalBody(type){
                         </div>
                         <div class="col-md-10">
                             Cliente
-                            <select id="movementClient" class="custom-select custom-select-sm classOut classMove">
+                            <select id="movementClient" class="custom-select custom-select-sm classOut classMove" onchange="setClientRates()">
                                 <option value="0">SELECCIONE...</option>
                                 ${
                                     clients.reduce((acc,el)=>{
@@ -2146,7 +2362,7 @@ function createModalBody(type){
                                                     Conductor Entrada
                                                 </div>
                                                 <div class="col-md-5" style="text-align: center">
-                                                    RUT
+                                                    RUT - Marcar si es extranjero: <input class="classMove" type="checkbox" value="" id="movementDriverForeigner">
                                                     <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDriverIn">
                                                 </div>
                                                 <div class="col-md-7" style="text-align: center">
@@ -2177,7 +2393,7 @@ function createModalBody(type){
                                                     Conductor Salida
                                                 </div>
                                                 <div class="col-md-5" style="text-align: center">
-                                                    RUT
+                                                    RUT - Marcar si es extranjero: <input class="classMove" type="checkbox" value="" id="movementDriverOutForeigner">
                                                     <input id="movementDriverOutRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove">
                                                 </div>
                                                 <div class="col-md-7" style="text-align: center">
@@ -2209,7 +2425,7 @@ function createModalBody(type){
                                     <h6>DATOS DE CONDUCTOR</h6>
                                 </div>
                                 <div class="col-md-5">
-                                    RUT
+                                    RUT - Marcar si es extranjero: <input class="classMove" type="checkbox" value="" id="movementDriverForeigner">
                                     <input id="movementDriverRUT" type="text" placeholder="11.111.111-0" class="form-control form-control-sm border-input classMove classDeconsolidated">
                                 </div>
                                 <div class="col-md-7">
@@ -2321,7 +2537,7 @@ function createModalBody(type){
                             </div>
                             <div class="col-md-2" style="text-align: center">
                                 Altura
-                                <select id="movementPositionLevelOld" class="custom-select custom-select-sm classMove" style="text-align: center">
+                                <select id="movementPositionLevelOld" class="custom-select custom-select-sm classMove">
                                     <option value="0">SEL</option>  
                                 </select>
                                 <i class="fas fa-chevron-down"></i>
@@ -2473,6 +2689,7 @@ function createModalBody(type){
                             <table id="tableServicesExtra" class="display nowrap table table-condensed" cellspacing="0" width="100%" style="display: none;">
                                 <thead>
                                     <tr>
+                                        <th>Ítem</th>
                                         <th>Días Extra</th>
                                         <th>Neto</th>
                                         <th>IVA</th>
@@ -2619,11 +2836,15 @@ function setServiceList(type,array){
     if(array){
         if(array.length>1){
             for(let i=1; i<array.length;i++){
-                let trClass = ''
+                let trClass = '', btnDelete = ''
                 if(array[i].services.name=='Porteo'){
+                    $("#btnServicePortage").prop('disabled', true)
                     trClass = 'table-primarySoft'
+                    btnDelete = `<button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, 'btnServicePortage')" title="Quitar Servicio"><i class="fas fa-times"></i></button>`
                 }else if(array[i].services.name=='Transporte'){
+                    $("#btnServiceTransport").prop('disabled', true)
                     trClass = 'table-infoSoft'
+                    btnDelete = `<button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, 'btnServiceTransport')" title="Quitar Servicio"><i class="fas fa-times"></i></button>`
                 }
 
                 if(array[i].services.name!='Día(s) Extra'){
@@ -2652,6 +2873,7 @@ function setServiceList(type,array){
                                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
                             </td>
                             <td>
+                                ${btnDelete}
                             </td>
                         </tr>
                     `)
@@ -2715,20 +2937,19 @@ function setServiceList(type,array){
     calculateTotal()
 }
 
-function setExtraDays(quantity,toClose){
+function setExtraDays(quantity,quantityDecon){
 
-    let disabled = 'disabled'
-    if(toClose){
-        disabled = ''
-    }
-    let net = 0
+    let net = 0, iva = 0, total = 0
 
 
     $("#tableServicesExtra").css('display','table')
     
     let extraRow = `<tr class="table-dangerSoft">
+            <td>
+                Almacenamiento
+            </td>
             <td style="text-align: center;">
-                <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" ${disabled}>
+                <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" disabled>
             
                 <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
                     ${
@@ -2744,8 +2965,8 @@ function setExtraDays(quantity,toClose){
             </td>`
 
     net = net*quantity
-    let iva = Math.round(net * 0.19)
-    let total = parseInt(net) + parseInt(iva)
+    iva = Math.round(net * 0.19)
+    total = parseInt(net) + parseInt(iva)
     
     extraRow += `<td>
                 <input type="text" style="text-align: right" value="$ ${dot_separators(net)}" class="form-control border-input classMove" onkeyup="updatePayment(this)" disabled>
@@ -2758,6 +2979,44 @@ function setExtraDays(quantity,toClose){
             </td>
 
         </tr>`
+
+    if(quantityDecon>0){
+        extraRow += `<tr class="table-dangerSoft">
+                <td>
+                    Post Consolidado
+                </td>
+                <td style="text-align: center;">
+                    <input type="text" style="text-align: center" value="${quantityDecon}" class="form-control border-input classMove classPayment" disabled>
+                
+                    <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
+                        ${
+                            services.reduce((acc,el)=>{
+                                if(el.name=='Día(s) Extra'){
+                                    net = el.net
+                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                }
+                                return acc
+                            },'')
+                        }
+                    </select>
+                </td>`
+
+        net = net*quantityDecon
+        iva = Math.round(net * 0.19)
+        total = parseInt(net) + parseInt(iva)
+        
+        extraRow += `<td>
+                    <input type="text" style="text-align: right" value="$ ${dot_separators(net)}" class="form-control border-input classMove" onkeyup="updatePayment(this)" disabled>
+                </td>
+                <td>
+                    <input type="text" style="text-align: right" value="$ ${dot_separators(iva)}" class="form-control border-input classMove" onkeyup="updatePayment(this,'iva')" disabled>
+                </td>
+                <td>
+                    <input type="text" style="text-align: right" value="$ ${dot_separators(total)}" class="form-control border-input classMove" disabled>
+                </td>
+
+            </tr>`
+    }
 
     $("#tableServicesExtraBody").append(extraRow)
 
@@ -2810,30 +3069,57 @@ function changeTexture(by,texture){
     }
 }
 
-async function updatePayment(input,iva) {
+async function updatePayment(input,special) {
+
     
-    if($($(input).children()[0]).html()){//Si se selecciona un servicio
-        $($($(input).parent().parent().children()[1]).children()[0]).val($(input).find(":selected").attr('data-net'))
-    }
 
-    new Cleave($($(input).parent().parent().children()[1]).children()[0], {
-        prefix: '$ ',
-        numeral: true,
-        numeralThousandsGroupStyle: 'thousand',
-        numeralDecimalScale: 0,
-        numeralPositiveOnly: true,
-        numeralDecimalMark: ",",
-        delimiter: "."
-    })
-
-    if(!iva){
+    if(!special){
+        if($($(input).children()[0]).html()){//Si se selecciona un servicio
+            $($($(input).parent().parent().children()[1]).children()[0]).val($(input).find(":selected").attr('data-net'))
+        }
+    
+        new Cleave($($(input).parent().parent().children()[1]).children()[0], {
+            prefix: '$ ',
+            numeral: true,
+            numeralThousandsGroupStyle: 'thousand',
+            numeralDecimalScale: 0,
+            numeralPositiveOnly: true,
+            numeralDecimalMark: ",",
+            delimiter: "."
+        })
         let net = replaceAll($($($(input).parent().parent().children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
         let iva = Math.round(net * 0.19)
         let total = parseInt(net) + parseInt(iva)
 
         $($($(input).parent().parent().children()[2]).children()[0]).val(`$ ${dot_separators(iva)}`)
         $($($(input).parent().parent().children()[3]).children()[0]).val(`$ ${dot_separators(total)}`)
-    }else{
+
+    }else if(special=='extra'){
+        if($($(input).children()[0]).html()){//Si se selecciona un servicio
+            $($($(input).parent().parent().children()[2]).children()[0]).val('$'+dot_separators($($(input).children()[0]).attr('data-net')))
+        }
+    
+        let net = replaceAll($($($(input).parent().parent().children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
+        let iva = Math.round(net * 0.19)
+        let total = parseInt(net) + parseInt(iva)
+
+        $($($(input).parent().parent().children()[3]).children()[0]).val(`$ ${dot_separators(iva)}`)
+        $($($(input).parent().parent().children()[4]).children()[0]).val(`$ ${dot_separators(total)}`)
+
+    }else if(special=='iva'){
+        if($($(input).children()[0]).html()){//Si se selecciona un servicio
+            $($($(input).parent().parent().children()[1]).children()[0]).val($(input).find(":selected").attr('data-net'))
+        }
+    
+        new Cleave($($(input).parent().parent().children()[1]).children()[0], {
+            prefix: '$ ',
+            numeral: true,
+            numeralThousandsGroupStyle: 'thousand',
+            numeralDecimalScale: 0,
+            numeralPositiveOnly: true,
+            numeralDecimalMark: ",",
+            delimiter: "."
+        })
         let net = replaceAll($($($(input).parent().parent().children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
         let iva = replaceAll($($($(input).parent().parent().children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', '')
         let total = parseInt(net) + parseInt(iva)
@@ -2879,9 +3165,9 @@ async function calculateTotal(){
     })
 
     $("#tableServicesExtraBody > tr").each(function() {
-        let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let iva = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
-        let total = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let net = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let iva = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+        let total = parseInt(replaceAll($($($(this).children()[4]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
         
         if(!$.isNumeric(net)){
             net = 0
@@ -3091,7 +3377,6 @@ async function selectClient(btn) {
                     createClient()
                 })
 
-
                 $('#tableSearchClients tbody').off("click")
         
                 $('#tableSearchClients tbody').on('click', 'tr', function () {
@@ -3135,6 +3420,7 @@ async function selectClient(btn) {
 
     if (clientSelectedData.value) {
         $('#movementClient').val(clientSelectedData.value._id)
+        setClientRates()
     }
 }
 
@@ -3366,14 +3652,16 @@ async function getClients(){
 
 async function getDriver(rut,out){
 
-    let driver = await axios.post('api/driverSingle', {rut: rut})
-    if (driver.data.length > 0) {
-        if(out){
-            $('#movementDriverOutName').val(driver.data[0].name)
-            $('#movementDriverOutPlate').val(driver.data[0].lastPlate)
-        }else{
-            $('#movementDriverName').val(driver.data[0].name)
-            $('#movementDriverPlate').val(driver.data[0].lastPlate)
+    if(rut.length>0){
+        let driver = await axios.post('api/driverSingle', {rut: rut})
+        if (driver.data.length > 0) {
+            if(out){
+                $('#movementDriverOutName').val(driver.data[0].name)
+                $('#movementDriverOutPlate').val(driver.data[0].lastPlate)
+            }else{
+                $('#movementDriverName').val(driver.data[0].name)
+                $('#movementDriverPlate').val(driver.data[0].lastPlate)
+            }
         }
     }
 }
@@ -3455,6 +3743,8 @@ async function showMap(){
 
 async function printVoucher(type,id) {
 
+    let indexPages = 1    
+
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
     let voucher = movement.data
 
@@ -3464,154 +3754,146 @@ async function printVoucher(type,id) {
 
     //let doc = new jsPDF('p', 'pt', 'letter')
     let doc = new jsPDF('p', 'pt', [302, 451])
-
-    let pdfX = 20
-    let pdfY = 20
-
-    doc.setFontSize(10)
-
-    doc.addImage(logoImg, 'PNG', 90, pdfY, 120, 60, 'center')
-    pdfY += 60
-    doc.text(`DEPÓSITO CONTENEDORES DDMC LTDA.`, doc.internal.pageSize.width/2, pdfY + 20, 'center')
-    doc.text(`Los Aromos 451 Aguas Buenas - San Antonio`, doc.internal.pageSize.width/2, pdfY + 30, 'center')
-
-    doc.setFontSize(12)
-    doc.setFontType('bold')
-
-    if(type=="in"){
-        doc.text(`INGRESO N°: ${(voucher.numberIn) ? (voucher.numberIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
-    }else if(type=="out"){
-        doc.text(`SALIDA N°: ${(voucher.numberOut) ? (voucher.numberOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
-    }else if(type=="transferIn"){
-        doc.text(`ENTRADA TRASPASO N°: ${(voucher.transferIn) ? (voucher.transferIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
-    }else if(type=="transferOut"){
-        doc.text(`SALIDA TRASPASO N°: ${(voucher.transferOut) ? (voucher.transferOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
-    }
-
-    pdfY += 72
-
-    doc.text(voucher.containerNumber, pdfX + 90, pdfY + 2)
-
-    doc.setFontSize(10)
-    doc.setFontType('normal')
-    doc.text(`Contenedor`, pdfX, pdfY)
-    doc.text(`Tipo`, pdfX, pdfY + 15)
-    doc.text(`Llegada`, pdfX, pdfY + 27)
-    doc.text(`Salida`, pdfX, pdfY + 39)
-    doc.text(`Tracto`, pdfX, pdfY + 51)
-    doc.text(`Guía`, pdfX, pdfY + 63)
-    doc.text(`Sello`, pdfX, pdfY + 75)
-    doc.text(`RUT Conductor`, pdfX, pdfY + 87)
-    doc.text(`Nombre Conductor`, pdfX, pdfY + 99)
-    doc.text(`RUT Cliente`, pdfX, pdfY + 111)
-    //doc.text(`Cliente`, pdfX, pdfY + 95)
-    doc.setFontType('bold')
-    //doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 127)
-    doc.text(voucher.clientName.toUpperCase(), doc.internal.pageSize.width/2, pdfY + 127, 'center')
-    doc.setFontType('normal')
-    //doc.text(`Ubicación`, pdfX, pdfY + 105)
-
-    doc.text(voucher.containerLarge, pdfX + 90, pdfY + 15)
-
-    console.log("voucher",voucher)
-
-    if(type=="transferIn" || type=="transferOut"){
-        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
-    }else{
-        doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
-    }
-
-    if(type=="in"){
-        doc.text('-', pdfX + 90, pdfY + 35)
-    }else{
-        doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 39)
-    }
     
-    doc.text(voucher.driverPlate, pdfX + 90, pdfY + 51)
-    doc.text(voucher.driverGuide, pdfX + 90, pdfY + 63)
-    doc.text(voucher.driverSeal, pdfX + 90, pdfY + 75)
-    doc.text(voucher.driverRUT, pdfX + 90, pdfY + 87)
-    doc.text(voucher.driverName, pdfX + 90, pdfY + 99)
-    doc.text(voucher.clientRUT, pdfX + 90, pdfY + 111)
-
+    for(let i=0; i<indexPages; i++){
     
-    //doc.text(voucher.clientName.toUpperCase(), pdfX + 90, pdfY + 95)
-    //doc.text('', pdfX + 90, pdfY + 105)
+        let pdfX = 20
+        let pdfY = 20
 
+        doc.setFontSize(10)
 
-    //doc.text(pdfX + 230, pdfY + 30, `Estado: ${internals.newSale.status}`, { align: 'center' }) // status right
-    //doc.text(pdfX + 230, pdfY + 45, `Fecha: ${moment(auxHourPdf).format('DD/MM/YYYY HH:mm')}`, { align: 'center' }) // creationDate right
-    pdfY += 139
+        doc.addImage(logoImg, 'PNG', 90, pdfY, 120, 60, 'center')
+        pdfY += 60
+        doc.text(`DEPÓSITO CONTENEDORES DDMC LTDA.`, doc.internal.pageSize.width/2, pdfY + 20, 'center')
+        doc.text(`Los Aromos 451 Aguas Buenas - San Antonio`, doc.internal.pageSize.width/2, pdfY + 30, 'center')
 
-    doc.setLineWidth(0.5)
-    doc.line(pdfX, pdfY, pdfX + 220, pdfY)
-
-    if(!voucher.extraDayNet || type=="in"){
-        doc.text(`NETO`, pdfX, pdfY + 27)
-        doc.text(`IVA`, pdfX, pdfY + 39)
+        doc.setFontSize(12)
         doc.setFontType('bold')
-        doc.text(`TOTAL`, pdfX, pdfY + 51)
-        doc.setFontType('normal')
 
-        doc.text(`$`, pdfX + 150, pdfY + 27)
-        doc.text(`$`, pdfX + 150, pdfY + 39)
+        if(type=="in"){
+            doc.text(`INGRESO N°: ${(voucher.numberIn) ? (voucher.numberIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        }else if(type=="out"){
+            doc.text(`SALIDA N°: ${(voucher.numberOut) ? (voucher.numberOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        }else if(type=="transferIn"){
+            doc.text(`ENTRADA TRASPASO N°: ${(voucher.transferIn) ? (voucher.transferIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        }else if(type=="transferOut"){
+            doc.text(`SALIDA TRASPASO N°: ${(voucher.transferOut) ? (voucher.transferOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        }
+
+        pdfY += 72
+
+        doc.text(voucher.containerNumber, pdfX + 90, pdfY + 2)
+
+        doc.setFontSize(10)
+        doc.setFontType('normal')
+        doc.text(`Contenedor`, pdfX, pdfY)
+        doc.text(`Tipo`, pdfX, pdfY + 15)
+        doc.text(`Llegada`, pdfX, pdfY + 27)
+        doc.text(`Salida`, pdfX, pdfY + 39)
+        doc.text(`Tracto`, pdfX, pdfY + 51)
+        doc.text(`Guía`, pdfX, pdfY + 63)
+        doc.text(`Sello`, pdfX, pdfY + 75)
+        doc.text(`RUT Conductor`, pdfX, pdfY + 87)
+        doc.text(`Nombre Conductor`, pdfX, pdfY + 99)
+        doc.text(`RUT Cliente`, pdfX, pdfY + 111)
+        //doc.text(`Cliente`, pdfX, pdfY + 95)
         doc.setFontType('bold')
-        doc.text(`$`, pdfX + 150, pdfY + 51)
+        //doc.text(voucher.clientName.toUpperCase(), pdfX, pdfY + 127)
+        doc.text(voucher.clientName.toUpperCase(), doc.internal.pageSize.width/2, pdfY + 127, 'center')
         doc.setFontType('normal')
+        //doc.text(`Ubicación`, pdfX, pdfY + 105)
 
-        doc.text(voucher.service, pdfX, pdfY + 15)
-        doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
-        doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 39, 'right')
-        doc.setFontType('bold')
-        doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 51, 'right')
-        doc.setFontType('normal')
-        pdfY += 63
+        doc.text(voucher.containerLarge, pdfX + 90, pdfY + 15)
 
-    }else{
+        if(type=="transferIn" || type=="transferOut"){
+            doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
+        }else{
+            doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
+        }
 
-        let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
+        if(type=="in"){
+            doc.text('-', pdfX + 90, pdfY + 35)
+        }else{
+            doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 39)
+        }
+        
+        doc.text(voucher.driverPlate, pdfX + 90, pdfY + 51)
+        doc.text(voucher.driverGuide, pdfX + 90, pdfY + 63)
+        doc.text(voucher.driverSeal, pdfX + 90, pdfY + 75)
+        doc.text(voucher.driverRUT, pdfX + 90, pdfY + 87)
+        doc.text(voucher.driverName, pdfX + 90, pdfY + 99)
+        doc.text(voucher.clientRUT, pdfX + 90, pdfY + 111)
 
-        doc.text(`NETO`, pdfX, pdfY + 27)
-        doc.text(`DÍAS EXTRA (${extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 39)
-        doc.text(`IVA`, pdfX, pdfY + 51)
-        doc.setFontType('bold')
-        doc.text(`TOTAL`, pdfX, pdfY + 63)
-        doc.setFontType('normal')
+        
+        //doc.text(voucher.clientName.toUpperCase(), pdfX + 90, pdfY + 95)
+        //doc.text('', pdfX + 90, pdfY + 105)
 
 
-        doc.text(`$`, pdfX + 150, pdfY + 27)
-        doc.text(`$`, pdfX + 150, pdfY + 39)
-        doc.text(`$`, pdfX + 150, pdfY + 51)
-        doc.setFontType('bold')
-        doc.text(`$`, pdfX + 150, pdfY + 63)
-        doc.setFontType('normal')
+        //doc.text(pdfX + 230, pdfY + 30, `Estado: ${internals.newSale.status}`, { align: 'center' }) // status right
+        //doc.text(pdfX + 230, pdfY + 45, `Fecha: ${moment(auxHourPdf).format('DD/MM/YYYY HH:mm')}`, { align: 'center' }) // creationDate right
+        pdfY += 139
 
-        doc.text(voucher.service, pdfX, pdfY + 15)
-        doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
-        doc.text(dot_separators(voucher.extraDayNet), pdfX + 210, pdfY + 39, 'right')
-        doc.text(dot_separators(voucher.iva+voucher.extraDayIva), pdfX + 210, pdfY + 51, 'right')
-        doc.setFontType('bold')
-        doc.text(dot_separators(voucher.total+voucher.extraDayTotal), pdfX + 210, pdfY + 63, 'right')
-        doc.setFontType('normal')
-        pdfY += 75
+        doc.setLineWidth(0.5)
+        doc.line(pdfX, pdfY, pdfX + 220, pdfY)
+
+        if(!voucher.extraDayNet || type=="in"){
+            doc.text(`NETO`, pdfX, pdfY + 27)
+            doc.text(`IVA`, pdfX, pdfY + 39)
+            doc.setFontType('bold')
+            doc.text(`TOTAL`, pdfX, pdfY + 51)
+            doc.setFontType('normal')
+
+            doc.text(`$`, pdfX + 150, pdfY + 27)
+            doc.text(`$`, pdfX + 150, pdfY + 39)
+            doc.setFontType('bold')
+            doc.text(`$`, pdfX + 150, pdfY + 51)
+            doc.setFontType('normal')
+
+            doc.text(voucher.service, pdfX, pdfY + 15)
+            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
+            doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 39, 'right')
+            doc.setFontType('bold')
+            doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 51, 'right')
+            doc.setFontType('normal')
+            pdfY += 63
+
+        }else{
+
+            let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
+
+            doc.text(`NETO`, pdfX, pdfY + 27)
+            doc.text(`DÍAS EXTRA (${extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 39)
+            doc.text(`IVA`, pdfX, pdfY + 51)
+            doc.setFontType('bold')
+            doc.text(`TOTAL`, pdfX, pdfY + 63)
+            doc.setFontType('normal')
+
+
+            doc.text(`$`, pdfX + 150, pdfY + 27)
+            doc.text(`$`, pdfX + 150, pdfY + 39)
+            doc.text(`$`, pdfX + 150, pdfY + 51)
+            doc.setFontType('bold')
+            doc.text(`$`, pdfX + 150, pdfY + 63)
+            doc.setFontType('normal')
+
+            doc.text(voucher.service, pdfX, pdfY + 15)
+            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
+            doc.text(dot_separators(voucher.extraDayNet), pdfX + 210, pdfY + 39, 'right')
+            doc.text(dot_separators(voucher.iva+voucher.extraDayIva), pdfX + 210, pdfY + 51, 'right')
+            doc.setFontType('bold')
+            doc.text(dot_separators(voucher.total+voucher.extraDayTotal), pdfX + 210, pdfY + 63, 'right')
+            doc.setFontType('normal')
+            pdfY += 75
+        }
+
+
+        doc.setLineWidth(0.5)
+        doc.line(pdfX, pdfY, pdfX + 220, pdfY)
+
+        if(i+1!=indexPages){
+            doc.addPage()
+        }
     }
-
-
-    doc.setLineWidth(0.5)
-    doc.line(pdfX, pdfY, pdfX + 220, pdfY)
-
-
-    /*doc.setFontType('normal')
-    doc.text(pdfX + 380, pdfY + 60, 'TOTAL:')
-    doc.text(pdfX + 450, pdfY + 60, '$')
-    doc.setFontType('bold')
-    doc.setFontSize(12)
-    //doc.text(pdfX + 470, pdfY + 60, dot_separators(internals.newSale.total))
-    var subtotalvar =  dot_separators(internals.newSale.total) 
-    var textWidth = doc.getStringUnitWidth(subtotalvar) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-    var textOffset = doc.internal.pageSize.width - textWidth - 50;
-    doc.text(textOffset, pdfY + 60, subtotalvar)
-*/
 
     doc.autoPrint()
     window.open(doc.output('bloburl'), '_blank')
@@ -3659,9 +3941,6 @@ function addService(btn,type){
             </td>
             <td>
                 <input type="text" style="text-align: right" value="$ 0" class="form-control form-control-sm border-input classMove" disabled>
-            </td>
-            <td style="text-align: center;">
-                <input class="form-check-input classMove" type="checkbox" value="">
             </td>
             <td>
                 <button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, '${btnService}')" title="Quitar Servicio"><i class="fas fa-times"></i></button>
@@ -3771,6 +4050,76 @@ function setPayments(array){
         //internals.endDate = end.format('YYYY-MM-DD')
     })
 }
+
+async function setClientRates(){
+
+    if($('#movementClient').val()!=0){
+
+        let clientRateData = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
+        let clientRates = clientRateData.data
+
+        console.log('services',services)
+        if(clientRates.rates.length>0){
+            console.log('clientRates',clientRates.rates)
+
+            $("#tableServicesBody > tr").each(function() {
+                
+                $($($($(this).children()[0]).children()[0]).children()).each(function() {
+                    console.log($(this).html(),$(this).val(),$(this).attr('data-net'))
+                    let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+                    if(serviceRate){//Si el cliente tiene la tarifa especial asignada, se asignarán los valores
+                        $(this).attr('data-net',serviceRate.net)
+                    }else{
+                        console.log($(this).val())
+                        if(services.find(x => x._id === $(this).val())){
+                            $(this).attr('data-net',services.find(x => x._id === $(this).val()).net)
+                        }
+                    }
+                })
+
+                updatePayment($($($(this).children()[0]).children()[0]))
+            })
+
+            $("#tableServicesExtraBody > tr").each(function() {
+                $($($($(this).children()[1]).children()[1]).children()).each(function() {
+                    let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+                    if(serviceRate){
+                        $(this).attr('data-net',serviceRate.net)
+                    }else{
+                        if(services.find(x => x._id === $(this).val())){
+                            $(this).attr('data-net',services.find(x => x._id === $(this).val()).net)
+                        }
+                    }
+                })
+
+                updatePayment($($($(this).children()[1]).children()[1]), 'extra')
+            })
+
+
+        }else{
+            $("#tableServicesBody > tr").each(function() {
+                $($($($(this).children()[0]).children()[0]).children()).each(function() {
+                    if(services.find(x => x._id === $(this).val())){
+                        $(this).attr('data-net',services.find(x => x._id === $(this).val()).net)
+                    }
+                })
+
+                updatePayment($($($(this).children()[0]).children()[0]))
+            })
+
+            $("#tableServicesExtraBody > tr").each(function() {
+                $($($($(this).children()[1]).children()[1]).children()).each(function() {
+                    if(services.find(x => x._id === $(this).val())){
+                        $(this).attr('data-net',services.find(x => x._id === $(this).val()).net)
+                    }
+                })
+
+                updatePayment($($($(this).children()[1]).children()[1]), 'extra')
+            })
+        }
+    }
+}
+
 
 
 function autocomplete(inp, arr) {
