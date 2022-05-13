@@ -763,15 +763,23 @@ $('#optionModMovement').on('click', async function () {
             </button>
         `)
 
+        let numberIn = '', numberOut = ''
+        if(container.numberIn){
+            numberIn = 'N° ' + container.numberIn
+        }
+        if(container.numberOut){
+            numberOut = 'N° ' + container.numberOut
+        }
+
         $('#divPrintIn').html(`
             <button class="btn btn-info btn-sm" id="printMovementIn" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO
+                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${numberIn}
             </button>
         `)
         
         $('#divPrintOut').html(`
             <button class="btn btn-info btn-sm" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')" disabled>
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA
+                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${numberOut}
             </button>
         `)
 
@@ -1046,15 +1054,25 @@ $('#optionModMovement').on('click', async function () {
             </button>
         `)
 
+        console.log(container)
+
+        let transferIn = '', transferOut = ''
+        if(container.transferIn){
+            transferIn = 'N° ' + container.transferIn
+        }
+        if(container.transferOut){
+            transferOut = 'N° ' + container.transferOut
+        }
+
         $('#divPrintIn').html(`
-            <button class="btn btn-info btn-sm" id="printMovementTransfer" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO
+            <button class="btn btn-info btn-sm" id="printMovementTransferIn" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
+                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${transferIn}
             </button>
         `)
         
         $('#divPrintOut').html(`
-            <button class="btn btn-info btn-sm" id="printMovementTransfer" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA
+            <button class="btn btn-info btn-sm" id="printMovementTransferOut" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
+                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${transferOut}
             </button>
         `)
 

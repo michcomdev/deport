@@ -1,4 +1,5 @@
 import Client from '../../models/Client'
+import Logs from '../../models/Logs'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -66,6 +67,7 @@ export default [
                 try {
 
                     let payload = request.payload
+                    let credentials = request.auth.credentials
 
                     let clients = await Client.find({
                         _id: { $ne: payload.id },
@@ -87,6 +89,14 @@ export default [
                     client.credit = payload.credit
                     client.services = payload.services
                     client.rates = payload.rates
+
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateClient',
+                        data: client
+                    })
+
+                    await log.save()
 
                     const response = await client.save()
 
@@ -136,6 +146,7 @@ export default [
                 try {
 
                     let payload = request.payload   
+                    let credentials = request.auth.credentials
 
                     let clients = await Client.find({rut: payload.rut})
 
@@ -156,6 +167,14 @@ export default [
                         services: payload.services,
                         rates: payload.rates
                     })
+
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'saveeClient',
+                        data: client
+                    })
+
+                    await log.save()
 
                     const response = await client.save()
 

@@ -551,6 +551,9 @@ function drawTablesContainers(){
             $("#invoiceTotal").val(dot_separators(totalTotal))
         }
     }
+
+    $("#badgeContainer").text(invoiceContainers.containers.length)
+    $("#badgeContainerInvoice").text(invoiceContainers.containersInvoice.length)
 }
 
 $('#addInvoice').on('click', function () { // CREAR FACTURA
@@ -872,6 +875,28 @@ $('#optionDeleteMovement').on('click', function () {
 })
 
 
+function changeTabs(to){
+    if(to=='containers'){
+        $("#linkContainersInvoice").removeClass('active')
+        $("#linkContainers").addClass('active')
+        $("#badgeContainerInvoice").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeContainer").removeClass('badge-success').addClass('badge-secondary')
+
+
+        $("#divInvoiceContainers").css('display','none')
+        $("#divContainers").css('display','block')
+    }else if(to=='invoice'){
+        $("#linkContainers").removeClass('active')
+        $("#linkContainersInvoice").addClass('active')
+        $("#badgeContainer").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeContainerInvoice").removeClass('badge-success').addClass('badge-secondary')
+
+        $("#divContainers").css('display','none')
+        $("#divInvoiceContainers").css('display','block')
+    }
+    
+}
+
 function validateInvoiceData(invoiceData) {
     let errorMessage = ''
 
@@ -951,7 +976,20 @@ function createModalBody(){
         <div class="col-md-12">
             <br/>
         </div>
-        <div class="col-md-5 table-responsive" id="divContainers" style="max-height: 590px">
+
+        <div class="col-md-12">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a id="linkContainers" class="nav-link active" href="#" onclick="changeTabs('containers')">Containers sin Facturar <span id="badgeContainer" class="badge badge-secondary">0</span></a>
+                </li>
+                <li class="nav-item">
+                    <a id="linkContainersInvoice" class="nav-link" href="#" onclick="changeTabs('invoice')"> A Facturar <span id="badgeContainerInvoice" class="badge badge-success">0</span></a>
+                </li>
+            </ul>
+        </div>
+
+
+        <div class="col-md-12 table-responsive" id="divContainers" style="max-height: 590px">
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
@@ -959,11 +997,16 @@ function createModalBody(){
                             Containers sin Facturar
                         </div>
                         <div class="col-md-4 col-xs-12">
+                            <button class="btn btn-primary" title="Agregar Contenedores" id="addContainers">
+                                <i class="fas fa-chevron-right"></i>Agregar a Factura
+                            </button>
+                        </div>
+                        <!--<div class="col-md-4 col-xs-12">
                             <button class="btn btn-sm btn-secondary btn-block" id="expandContainers">
                                 <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir
                             </button>
                         </div>
-                        <!--<div class="form-check col-md-3  col-xs-12">
+                        <div class="form-check col-md-3  col-xs-12">
                             <br/>
                             <input class="form-check-input" type="checkbox" value="" id="searchInvoiceDateCheck">
                             <label class="form-check-label" for="flexCheckDefault">
@@ -1006,21 +1049,8 @@ function createModalBody(){
                 </div>
             </div>
         </div>
-        <div class="col-md-1" style="text-align: center">
-            <br/>
-            <br/>
-            <button class="btn btn-primary" title="Agregar Contenedores" id="addContainers">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-            <br/>
-            <br/>
-            <br/>
-            <button class="btn btn-primary" title="Quitar Contenedores" id="removeContainers">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-        </div>
         
-        <div class="col-md-6 table-responsive" id="divInvoiceContainers" style="max-height: 590px">
+        <div class="col-md-12 table-responsive" id="divInvoiceContainers" style="max-height: 590px; display: none">
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
@@ -1028,10 +1058,15 @@ function createModalBody(){
                             A Facturar
                         </div>
                         <div class="col-md-4 col-xs-12">
+                            <button class="btn btn-primary" title="Quitar Contenedores" id="removeContainers">
+                                <i class="fas fa-chevron-left"></i>Quitar de Factura
+                            </button>
+                        </div>
+                        <!--<div class="col-md-4 col-xs-12">
                             <button class="btn btn-sm btn-secondary btn-block" id="expandInvoiceContainers">
                                 <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-right"></i> Expandir
                             </button>
-                        </div>
+                        </div>-->
                         <div class="col-md-12 col-xs-12">
                             <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                                 <thead id="tableHeadContainersInvoice">

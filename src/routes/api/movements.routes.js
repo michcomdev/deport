@@ -3,6 +3,7 @@ import Parameters from '../../models/Parameters'
 //import Client from '../../models/Client'
 import ContainerTypes from '../../models/ContainerTypes'
 import Drivers from '../../models/Drivers'
+import Logs from '../../models/Logs'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
 
@@ -662,8 +663,6 @@ export default [
                         services: payload.services,
                         payments: payload.payments
                     }
-
-                    console.log(query)
                     
                     let movement = new Containers(query)
 
@@ -673,6 +672,14 @@ export default [
                     if(payload.sites!=0){
                         movement.movements[0].sites = payload.sites
                     }
+
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'saveContainer',
+                        data: movement
+                    })
+
+                    await log.save()
 
                     const response = await movement.save()
 
@@ -817,6 +824,14 @@ export default [
                         }
     
                     }
+
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainer',
+                        data: container
+                    })
+
+                    await log.save()
                     
                     const response = await container.save()
 
@@ -915,6 +930,14 @@ export default [
                         })
                     }
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainerPosition',
+                        data: container
+                    })
+
+                    await log.save()
+
                     const response = await container.save()
 
                     return response
@@ -999,6 +1022,14 @@ export default [
                     parameters.transferOut++
                     await parameters.save()
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'saveContainerTransfer',
+                        data: movement
+                    })
+
+                    await log.save()
+
                     const response = await movement.save()
 
                     setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
@@ -1073,6 +1104,10 @@ export default [
 
                     if(container){
                         //let i = container.movements.length -1
+
+                        if(payload.client){
+                            container.clients = payload.client
+                        }
                         
                         container.movements.push({
                             users: credentials._id,
@@ -1121,10 +1156,19 @@ export default [
                         }
                     }
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainerTransfer',
+                        data: container
+                    })
+
+                    await log.save()
+
                     const response = await container.save()
 
                     setDriver(payload.driverRUT,payload.driverName,payload.driverPlate)
-
+                    setDriver(payload.driverOutRUT,payload.driverOutName,payload.driverOutPlate)
+                    
                     return response
 
                 } catch (error) {

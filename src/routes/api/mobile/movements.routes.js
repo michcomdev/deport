@@ -1,4 +1,5 @@
 import Containers from '../../../models/Containers'
+import Logs from '../../../models/Logs'
 //import Client from '../../../models/Client'
 // import ContainerTypes from '../../../models/ContainerTypes'
 import Joi from 'joi'
@@ -295,6 +296,14 @@ export default [
                         }]
                     })
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'createContainer',
+                        data: movement
+                    })
+
+                    await log.save()
+
                     const response = await movement.save()
 
                     return response
@@ -428,6 +437,14 @@ export default [
                         container.movements[i].observation = payload.observation
                     }*/
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainer',
+                        data: container
+                    })
+
+                    await log.save()
+
                     const response = await container.save()
 
                     return response
@@ -501,6 +518,14 @@ export default [
     
                     }
 
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainer',
+                        data: container
+                    })
+
+                    await log.save()
+
                     const response = await container.save()
 
                     return response
@@ -561,6 +586,14 @@ export default [
                             observation: payload.observation //OBSERVACION
                         })
                     }
+
+                    let log = new Logs({
+                        users: credentials._id,
+                        type: 'updateContainerPosition',
+                        data: container
+                    })
+
+                    await log.save()
 
                     const response = await container.save()
 
