@@ -745,6 +745,8 @@ function viewInvoice() { // VER/MODIFICAR FACTURA
     loadContainers(internals.dataRowSelectedInvoice.clients, false)
     loadContainers(internals.dataRowSelectedInvoice.clients, internals.dataRowSelectedInvoice._id)
 
+    changeTabs('invoice')
+
     $('#addContainers').on('click', async function () {
         $('#tableBodyContainers > tr').each(function(){
             if($($($(this).children()[0]).children()[0]).prop('checked')){

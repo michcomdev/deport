@@ -114,6 +114,8 @@ async function loadInvoices(id){
         endDate: endDate
     })
     let invoices = invoicesData.data
+
+    $("#badgeInvoices").text(invoices.length)
     
     if($.fn.DataTable.isDataTable('#tableInvoices')){
         internals.invoices.table.clear().destroy()
@@ -175,7 +177,8 @@ async function loadInvoices(id){
         $('#tableInvoices tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected')
-                
+                $("#tableBodyContainers").html('')
+
             } else {
                 internals.invoices.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
@@ -201,6 +204,7 @@ async function loadContainers(id,onlyInvoice){
     }
 
     $("#tableBodyContainers").html('')
+    $("#badgeContainersInvoice").text(0)
 
     let startDate = '2000-01-01', endDate = '3000-01-01'
     if($('#searchInvoiceDateCheck').prop('checked')){
@@ -225,6 +229,7 @@ async function loadContainers(id,onlyInvoice){
     }
 
     movementData = await axios.post('api/movementsInvoiceByFilter',query)
+    $("#badgeContainersInvoice").text(movementData.data.length)
     
     if (movementData.data.length > 0) {
         for(let i=0; i<movementData.data.length; i++){
@@ -284,6 +289,7 @@ async function loadContainers(id,onlyInvoice){
                     invoiceContainers.containers.push(el)
                 }
             }
+
             if(i+1==movementData.data.length){
                 drawTablesContainers()
             }
@@ -506,8 +512,7 @@ function drawTablesContainers(){
         let el = invoiceContainers.containersInvoice[j]
 
         $("#tableBodyContainersInvoice").append(`
-            <tr onclick="autoCheck(this)">
-                <td><input type="checkbox" /><input type="hidden" value="${el.id}"></td>
+            <tr>
                 <td>${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
                 <td>${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
                 <td>${el.containerNumber}</td>
@@ -532,147 +537,6 @@ function drawTablesContainers(){
             $("#invoiceTotal").val(dot_separators(totalTotal))
         }
     }
-}
-
-
-
-function viewInvoice() { // VER/MODIFICAR FACTURA
-    $('#invoiceModal').modal('show');
-    $('#modalInv_title').html(`Ver Factura`)
-    $('#modalInv_body').html(createModalBody())
-
-    $('#modalInv_footer').html(`
-        <button class="btn btn-dark" data-dismiss="modal">
-            <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
-        </button>
-
-        <button class="btn btn-dark" id="saveInvoice">
-            <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
-        </button>
-    `)
-    //autocomplete(document.getElementById("searchNumber"), allContainers)
-    activateButtons()
-
-    $('#invoiceType').val(internals.dataRowSelectedInvoice.type)
-    $('#invoiceRUT').val(internals.dataRowSelectedInvoice.rut)
-    $('#invoiceName').val(internals.dataRowSelectedInvoice.name)
-    $('#invoiceNumber').val(internals.dataRowSelectedInvoice.number)
-    $('#invoiceDate').val(internals.dataRowSelectedInvoice.date)
-    $('#invoicePaymentDate').val(internals.dataRowSelectedInvoice.paymentDate)
-    
-    $('#invoiceRUT').on('keyup', function () {
-        let rut = $('#invoiceRUT').val();
-        if (isRut(rut) && rut.length >= 7) {
-            $('#invoiceRUT').val(rutFunc($('#invoiceRUT').val()))
-        }
-    })
-
-    $('#searchContainerInvoiceDate').daterangepicker({
-        opens: 'left',
-        locale: dateRangePickerDefaultLocale,
-        startDate: moment().add(-1,'months')
-        //endDate: moment()
-    }, function(start, end, label) {
-        //internals.initDate = start.format('YYYY-MM-DD')
-        //internals.endDate = end.format('YYYY-MM-DD')
-    })
-
-    $('.invoiceDates').daterangepicker({
-        opens: 'left',
-        locale: dateRangePickerDefaultLocale,
-        singleDatePicker: true,
-        autoApply: true,
-    }, function(start, end, label) {
-    })
-
-    loadContainers(internals.dataRowSelectedInvoice.clients, false)
-    loadContainers(internals.dataRowSelectedInvoice.clients, internals.dataRowSelectedInvoice._id)
-
-    $('#addContainers').on('click', async function () {
-        $('#tableBodyContainers > tr').each(function(){
-            if($($($(this).children()[0]).children()[0]).prop('checked')){
-                let arrayItem = invoiceContainers.containers.find(x => x.id === $($($(this).children()[0]).children()[1]).val())
-
-                invoiceContainers.containersInvoice.push(arrayItem)
-                /*$('#tableBodyContainersInvoice').append('<tr onclick="autoCheck(this)">'+$(this).html()+'</tr>')
-                $(this).remove()*/
-
-                const index = invoiceContainers.containers.indexOf(arrayItem)
-                if (index > -1) {
-                    invoiceContainers.containers.splice(index, 1)
-                }
-            }
-        })
-        drawTablesContainers()
-    })
-
-    $('#removeContainers').on('click', async function () {
-        $('#tableBodyContainersInvoice > tr').each(function(){
-            if($($($(this).children()[0]).children()[0]).prop('checked')){
-                let arrayItem = invoiceContainers.containersInvoice.find(x => x.id === $($($(this).children()[0]).children()[1]).val())
-                invoiceContainers.containers.push(arrayItem)
-
-                //$('#tableBodyContainers').append('<tr onclick="autoCheck(this)">'+$(this).html()+'</tr>')
-                //$(this).remove()
-                
-                const index = invoiceContainers.containersInvoice.indexOf(arrayItem)
-                if (index > -1) {
-                    invoiceContainers.containersInvoice.splice(index, 1)
-                }
-            }
-        })
-        drawTablesContainers()
-    })
-
-    $('#saveInvoice').on('click', async function () {
-
-        let invoiceData = {
-            id: internals.dataRowSelectedInvoice._id,
-            clients: internals.dataRowSelectedInvoice.clients,
-            type: $('#invoiceType').val(),
-            rut: $('#invoiceRUT').val(),
-            number: $('#invoiceNumber').val(),
-            name: $('#invoiceName').val(),
-            date: $('#invoiceDate').data('daterangepicker').startDate.format('YYYY-MM-DD'),
-            paymentType: $('#invoicePaymentType').val(),
-            paymentDate: $('#invoicePaymentDate').data('daterangepicker').startDate.format('YYYY-MM-DD'),
-            paymentNet: parseInt(replaceAll($('#invoiceNet').val(), '.', '').replace(' ', '')),
-            paymentIVA: parseInt(replaceAll($('#invoiceIVA').val(), '.', '').replace(' ', '')),
-            paymentTotal: parseInt(replaceAll($('#invoiceTotal').val(), '.', '').replace(' ', '')),
-            containers: invoiceContainers.containersInvoice.reduce((acc,el)=>{
-                acc.push({
-                    containers: el.id
-                })
-                return acc
-            },[])
-        }
-        
-        const res = validateInvoiceData(invoiceData)
-        if(res.ok){
-            let saveMovement = await axios.post('/api/invoiceSave', res.ok)
-
-            if(saveMovement.data){
-                if(saveMovement.data._id){
-
-                    loadInvoices(internals.dataRowSelected._id)
-                    $('#invoiceModal').modal('hide')
-
-                    $('#modal_title').html(`Almacenado`)
-                    $('#modal_body').html(`<h5 class="alert-heading">Contenedor almacenado correctamente</h5>`)
-                    //chargeClientsTable()
-                }else{
-                    $('#modal_title').html(`Error`)
-                    $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
-                }
-            }else{
-                $('#modal_title').html(`Error`)
-                $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
-            }
-            $('#modal').modal('show');
-        }
-
-    })
-
 }
 
 
@@ -790,6 +654,49 @@ async function selectClientSearch(btn) {
     if (clientSelectedData.value) {
         $('#searchClient').val(clientSelectedData.value._id)
     }
+}
+
+function changeTabs(to){
+    if(to=='invoice'){
+        $("#linkInvoices").addClass('active')
+        $("#linkContainersInvoice").removeClass('active')
+        $("#linkServices").removeClass('active')
+
+        $("#badgeInvoices").removeClass('badge-success').addClass('badge-secondary')
+        $("#badgeContainersInvoice").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeServices").removeClass('badge-secondary').addClass('badge-success')
+
+        $("#divInvoices").css('display','block')
+        $("#divContainersInvoice").css('display','none')
+        $("#divServices").css('display','none')
+
+    }else if(to=='containersInvoice'){
+        $("#linkInvoices").removeClass('active')
+        $("#linkContainersInvoice").addClass('active')
+        $("#linkServices").removeClass('active')
+
+        $("#badgeInvoices").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeContainersInvoice").removeClass('badge-success').addClass('badge-secondary')
+        $("#badgeServices").removeClass('badge-secondary').addClass('badge-success')
+
+        $("#divInvoices").css('display','none')
+        $("#divContainersInvoice").css('display','block')
+        $("#divServices").css('display','none')
+
+    }else if(to=='services'){
+        $("#linkInvoices").removeClass('active')
+        $("#linkContainersInvoice").removeClass('active')
+        $("#linkServices").addClass('active')
+
+        $("#badgeInvoices").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeContainersInvoice").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeServices").removeClass('badge-success').addClass('badge-secondary')
+
+        $("#divInvoices").css('display','none')
+        $("#divContainersInvoice").css('display','none')
+        $("#divServices").css('display','block')
+    }
+    
 }
 
 function autocomplete(inp, arr) {

@@ -435,6 +435,11 @@ async function getMovementsEnabled() {
     }
 }
 
+$('#sendMail').on('click', async function () {
+    let email = await axios.post('api/sendMail',{id: '627be1774a15be6ebc60667c', type: 'INGRESO', driverName: 'YUSNEIVY', pdf: ''})
+    console.log(email)
+})
+
 $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Llegada`)
@@ -557,7 +562,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             
             if(!$.isNumeric(amount)){
                 errorAmount = true
-            }else if(amount==0){
+            }else if(amount<=0){
                 errorAmount = true
             }
 
@@ -586,6 +591,14 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         if(errorAmount){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+        if(totalBalance<0){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -629,7 +642,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
-                    printVoucher('in',saveMovement.data._id)
+                    printVoucher('in',saveMovement.data._id, true) //true==envío por email
 
                     $('#modal_title').html(`Almacenado`)
                     $('#modal_body').html(`<h5 class="alert-heading">Contenedor almacenado correctamente</h5>`)
@@ -949,7 +962,7 @@ $('#optionModMovement').on('click', async function () {
                 
                 if(!$.isNumeric(amount)){
                     errorAmount = true
-                }else if(amount==0){
+                }else if(amount<=0){
                     errorAmount = true
                 }
 
@@ -981,6 +994,15 @@ $('#optionModMovement').on('click', async function () {
                 $('#modal').modal('show')
                 return
             }
+
+            let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+            if(totalBalance<0){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
 
             let datetime = $('#movementDate').val() + ' ' + $('#movementTime').val()
             if(movement=='POR SALIR' || movement=='SALIDA'){
@@ -1226,7 +1248,7 @@ $('#optionModMovement').on('click', async function () {
                 
                 if(!$.isNumeric(amount)){
                     errorAmount = true
-                }else if(amount==0){
+                }else if(amount<=0){
                     errorAmount = true
                 }
 
@@ -1255,6 +1277,14 @@ $('#optionModMovement').on('click', async function () {
             if(errorAmount){
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
+            let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+            if(totalBalance<0){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
                 $('#modal').modal('show')
                 return
             }
@@ -1504,7 +1534,7 @@ $('#optionCloseMovement').on('click', async function () {
             
             if(!$.isNumeric(amount)){
                 errorAmount = true
-            }else if(amount==0){
+            }else if(amount<=0){
                 errorAmount = true
             }
 
@@ -1533,6 +1563,14 @@ $('#optionCloseMovement').on('click', async function () {
         if(errorAmount){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+        if(totalBalance<0){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -1572,7 +1610,7 @@ $('#optionCloseMovement').on('click', async function () {
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
-                    printVoucher('out',saveMovement.data._id)
+                    printVoucher('out',saveMovement.data._id, true)
 
                     $('#modal_title').html(`Almacenado`)
                     $('#modal_body').html(`<h5 class="alert-heading">Datos actualizados correctamente</h5>`)
@@ -1801,7 +1839,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             
             if(!$.isNumeric(amount)){
                 errorAmount = true
-            }else if(amount==0){
+            }else if(amount<=0){
                 errorAmount = true
             }
 
@@ -1830,6 +1868,14 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         if(errorAmount){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+        if(totalBalance<0){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -2010,7 +2056,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             
             if(!$.isNumeric(amount)){
                 errorAmount = true
-            }else if(amount==0){
+            }else if(amount<=0){
                 errorAmount = true
             }
 
@@ -2039,6 +2085,14 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
         if(errorAmount){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de Pago no válidos</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+
+        let totalBalance = parseInt(replaceAll($("#movementPaymentBalance").val(), '.', '').replace('$', '').replace(' ', ''))
+        if(totalBalance<0){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Saldo a pago no puede ser negativo</h6>`)
             $('#modal').modal('show')
             return
         }
@@ -2074,7 +2128,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             if(saveMovement.data){
                 if(saveMovement.data._id){
                     $('#movementsModal').modal('hide')
-                    printVoucher('transferOut',saveMovement.data._id)
+                    printVoucher('transferOut',saveMovement.data._id, true)
                     printVoucher('transferIn',saveMovement.data._id)
 
                     $('#modal_title').html(`Almacenado`)
@@ -3759,16 +3813,19 @@ async function showMap(){
     
 }
 
-async function printVoucher(type,id) {
+async function printVoucher(type,id,sendEmail) {
 
-    let indexPages = 1    
+    let indexPages = 1
+    let typeMail = ''
 
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
     let voucher = movement.data
-
     //TESTING//
     if(!voucher.driverGuide) voucher.driverGuide='0'
     if(!voucher.driverSeal) voucher.driverSeal='0'
+    
+    
+    console.log(voucher)
 
     //let doc = new jsPDF('p', 'pt', 'letter')
     let doc = new jsPDF('p', 'pt', [302, 451])
@@ -3789,12 +3846,16 @@ async function printVoucher(type,id) {
         doc.setFontType('bold')
 
         if(type=="in"){
+            typeMail = 'INGRESO'
             doc.text(`INGRESO N°: ${(voucher.numberIn) ? (voucher.numberIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
         }else if(type=="out"){
+            typeMail = 'SALIDA'
             doc.text(`SALIDA N°: ${(voucher.numberOut) ? (voucher.numberOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
         }else if(type=="transferIn"){
+            typeMail = 'TRASPASO'
             doc.text(`ENTRADA TRASPASO N°: ${(voucher.transferIn) ? (voucher.transferIn) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
         }else if(type=="transferOut"){
+            typeMail = 'TRASPASO'
             doc.text(`SALIDA TRASPASO N°: ${(voucher.transferOut) ? (voucher.transferOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
         }
 
@@ -3823,17 +3884,24 @@ async function printVoucher(type,id) {
 
         doc.text(voucher.containerLarge, pdfX + 90, pdfY + 15)
 
+        voucher.datetimeInMail = '-'
+        voucher.datetimeOutMail = '-'
+
         if(type=="transferIn" || type=="transferOut"){
             doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
+            voucher.datetimeOutMail = moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm')
         }else{
             doc.text(moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 27)
+            voucher.datetimeInMail = moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm')
         }
 
         if(type=="in"){
             doc.text('-', pdfX + 90, pdfY + 35)
         }else{
             doc.text(moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm'), pdfX + 90, pdfY + 39)
+            voucher.datetimeOutMail = moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm')
         }
+        
         
         doc.text(voucher.driverPlate, pdfX + 90, pdfY + 51)
         doc.text(voucher.driverGuide, pdfX + 90, pdfY + 63)
@@ -3876,7 +3944,7 @@ async function printVoucher(type,id) {
             pdfY += 63
 
         }else{
-
+        ////////REVISAR!!!!!!///////
             let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
 
             doc.text(`NETO`, pdfX, pdfY + 27)
@@ -3911,11 +3979,47 @@ async function printVoucher(type,id) {
         if(i+1!=indexPages){
             doc.addPage()
         }
+
+        /*if(i==0 && sendEmail){
+            //let pdf = btoa(doc.output())
+            let pdf = ''
+            let email = await axios.post('api/sendMail',
+                {
+                    id: id, 
+                    type: typeMail, 
+                    driverName: voucher.driverName, 
+                    logoImg: logoImg, 
+                    pdf: pdf,
+                    voucher: voucher
+                }
+            )
+            console.log(email)
+        }*/
     }
 
     doc.autoPrint()
     window.open(doc.output('bloburl'), '_blank')
     //doc.save(`Nota de venta ${internals.newSale.number}.pdf`)
+
+    if(sendEmail){
+        //ENVÍO DE EMAIL A CLIENTE
+        let pdf = ''
+        let email = await axios.post('api/sendMail',
+            {
+                id: id, 
+                type: typeMail,
+                pdf: pdf,
+                voucher: voucher
+            }
+        )
+        console.log(email)
+
+        //OK accepted.length>0 OK
+        //ERROR
+        //SIN CORREO 'No Email'
+
+        
+    }
 }
 
 function addService(btn,type){

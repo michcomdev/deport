@@ -40,11 +40,25 @@
     <div class="col-md-12 col-xs-12">
         <br/>
     </div>
+
+    <div class="col-md-12">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a id="linkInvoices" class="nav-link active" href="#" onclick="changeTabs('invoice')">Facturas <span id="badgeInvoices" class="badge badge-secondary">0</span></a>
+            </li>
+            <li class="nav-item">
+                <a id="linkContainersInvoice" class="nav-link" href="#" onclick="changeTabs('containersInvoice')"> Containers Factura <span id="badgeContainersInvoice" class="badge badge-success">0</span></a>
+            </li>
+            <li class="nav-item">
+                <a id="linkServices" class="nav-link" href="#" onclick="changeTabs('services')"> Resumen Servicios</a>
+            </li>
+        </ul>
+    </div>
     
-    <div class="col-md-6">
+    <div id="divInvoices" class="col-md-12">
         <div class="card border-primary">
-            <div class="card-header bg-primary text-white">FACTURAS</div>
-            <!--<div class="card-body table-responsive">-->
+            <!--<div class="card-header bg-primary text-white">FACTURAS</div>
+            <div class="card-body table-responsive">-->
             <div class="card-body tablesParent">
                 <table id="tableInvoices" class="display nowrap table table-condensed tables" cellspacing="0">
                     <thead>
@@ -65,14 +79,13 @@
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div id="divContainersInvoice" class="col-md-12" style="display: none;">
         <div class="card border-primary">
-            <div class="card-header bg-primary text-white">CONTAINERS</div>
+            <!--<div class="card-header bg-primary text-white">CONTAINERS</div>-->
             <div class="card-body tablesParent">
                 <table id="tableContainersInvoice" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
                     <thead id="tableHeadContainersInvoice">
                         <tr>
-                            <th>SEL.</th>
                             <th>FECHA INGRESO</th>
                             <th>FECHA SALIDA</th>
                             <th>CONTENEDOR</th>
@@ -91,9 +104,9 @@
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div id="divServices" class="col-md-12" style="display: none;">
         <div class="card border-primary">
-            <div class="card-header bg-primary text-white">RESUMEN SERVICIOS</div>
+            <!--<div class="card-header bg-primary text-white">RESUMEN SERVICIOS</div>-->
             <div class="card-body table-responsive tablesParent">
                 <table id="tableServices" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
                     <thead id="tableHeadServices">

@@ -6,6 +6,7 @@ import Drivers from '../../models/Drivers'
 import Logs from '../../models/Logs'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
+import nodemailer from 'nodemailer'
 
 dotEnv.config()
 
@@ -1245,6 +1246,77 @@ export default [
             }
         }
     },
+    {
+        method: 'POST',
+        path: '/api/sendMail',
+        options: {
+            description: 'modify transfer movement',
+            notes: 'modify transfer movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+
+                    let container = await Containers.findById(payload.id).populate(['clients'])
+                    
+                    if(isEmail(container.clients.email)){
+                        let response = await sendEmail({
+                            clientMail: container.clients.email, 
+                            type: payload.type,
+                            pdf: payload.pdf,
+                            voucher: payload.voucher
+                        })
+                        return response
+
+                    }else{
+
+                        return 'No Email'
+                    }
+
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    id: Joi.string().required(),
+                    type: Joi.string().required(),
+                    pdf: Joi.string().optional().allow(''),
+                    voucher: Joi.object().keys({
+                        numberIn: Joi.number().allow(0).optional(),
+                        numberOut: Joi.number().allow(0).optional(),
+                        transferIn: Joi.number().allow(0).optional(),
+                        transferOut: Joi.number().allow(0).optional(),
+                        clientName: Joi.string().optional().allow(''),
+                        clientRUT: Joi.string().optional().allow(''),
+                        containerNumber: Joi.string().optional().allow(''),
+                        containerLarge: Joi.string().optional().allow(''),
+                        datetimeIn: Joi.string().optional().allow(''),
+                        datetimeInMail: Joi.string().optional().allow(''),
+                        datetimeOut: Joi.string().optional().allow(''),
+                        datetimeOutMail: Joi.string().optional().allow(''),
+                        driverGuide: Joi.string().optional().allow(''),
+                        driverName: Joi.string().optional().allow(''),
+                        driverPlate: Joi.string().optional().allow(''),
+                        driverRUT: Joi.string().optional().allow(''),
+                        driverSeal: Joi.string().optional().allow(''),
+                        service: Joi.string().optional().allow(''),
+                        net: Joi.number().allow(0).optional(),
+                        iva: Joi.number().allow(0).optional(),
+                        total: Joi.number().allow(0).optional(),
+                        extraDayNet: Joi.number().allow(0).optional(),
+                        extraDayIva: Joi.number().allow(0).optional(),
+                        extraDayServiceNet: Joi.number().allow(0).optional(),
+                        extraDayTotal: Joi.number().allow(0).optional()
+                    })
+                })
+            }
+        }
+    }
 ]
 
 //Almacenaje de conductor
@@ -1267,4 +1339,101 @@ async function setDriver(rut,name,plate){
 
         await driverUpdate.save()
     }
+}
+
+
+const sendEmail = async ({ // sendEmail
+    clientMail,
+    type,
+    pdf,
+    voucher
+}) => {
+    try {
+        let transporter = nodemailer.createTransport({
+            host: 'smtp.office365.com',
+            port: 587,
+            secure: false, // true for 465, false for other ports
+            /*auth: {
+                user: 'elatorre@michcom.cl',
+                pass: 'Enzo2021*'
+            },*/
+            auth: {
+                user: process.env.EMAIL_SENDER,
+                pass: process.env.EMAIL_SENDER_PASSWORD
+            },
+            tls: {
+                // do not fail on invalid certs
+                //rejectUnauthorized: false,
+                ciphers: 'SSLv3'
+            }
+        })
+
+
+
+        let mailData = {
+            from: process.env.EMAIL_SENDER,
+            to: [clientMail],
+            subject: `DEPORT - ${type} de Contenedor n° ${voucher.containerNumber}`,
+            //text: "Hello world?",
+            html: `
+                Estimado(a) <b>${voucher.clientName}</b>.
+                <br/>
+                Se informa el registro de <b>${type}</b> del contenedor número <b>${voucher.containerNumber}</b>, realizado en las dependencias de Depósito Portuario.
+                <br/>
+                <br/>
+                <br/>
+                
+                <table>
+                    <tr><td>N° Voucher</td>     <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.numberIn}</td></tr>
+                    <tr><td>Fecha Llegada</td>  <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.datetimeInMail}</td></tr>
+                    ${(type=='SALIDA') ? `<tr><td>Fecha Salida</td>   <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.datetimeOutMail}</td></tr>` : ``}
+                    <tr><td>Cliente</td>        <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.clientName}</td></tr>
+                    <tr><td>RUT</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.clientRUT}</td></tr>
+                    <tr><td>N° Container</td>   <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.containerNumber}</td></tr>
+                    <tr><td>Largo</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.containerLarge}</td></tr>
+                    <tr><td>Sello</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverSeal}</td></tr>
+                    <tr><td>Guía</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverGuide}</td></tr>
+                    <tr><td>Chofer</td>         <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverName}</td></tr>
+                    <tr><td>RUT Chofer</td>     <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverRUT}</td></tr>
+                    <tr><td>Patente</td>        <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverPlate}</td></tr>
+                    <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
+                    <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.net}</td></tr>
+                    <tr><td>IVA</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.iva}</td></tr>
+                    <tr><td>Total</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.total}</td></tr>
+                </table>
+                
+                <br/><br/><br/>
+                Este correo ha sido enviado de forma automática, favor no responder
+                <br/><br/>
+                <img src="cid:logo" />
+            `,
+            attachments: [{
+                filename: 'logoMail.png',
+                path: 'public/img/logoMail.png',
+                cid: 'logo' //same cid value as in the html img src
+            }]
+        }
+
+        //mailData.to.push(toEmail)
+
+        /*mailData.attachments = [{
+            filename: `Voucher ${type} - Container ${containerNumber}.pdf`,
+            content: pdf,
+            encoding: 'base64'
+        }]*/
+
+        
+
+        let info = await transporter.sendMail(mailData)
+
+        return info
+    } catch (error) {
+        console.log(error)
+        return null
+    }
+}
+
+const isEmail = (email) => {
+    let regexEmail = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/
+    return regexEmail.test(email)
 }
