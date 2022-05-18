@@ -11,6 +11,7 @@ const containerSchema = new Schema({
     containerLarge: { type: String },
     numberIn: { type: Number },
     numberOut: { type: Number },
+    numberDecon: { type: Number },
     transferIn: { type: Number },
     transferOut: { type: Number },
     movements: [{
@@ -51,7 +52,8 @@ const containerSchema = new Schema({
         paymentAdvance: { type: Boolean },
         paymentNet: { type: Number },
         paymentIVA: { type: Number },
-        paymentTotal: { type: Number }
+        paymentTotal: { type: Number },
+        extraDays: { type: Number }
     }],
     payments: [{
         date: { type: Date },

@@ -522,6 +522,9 @@ export default [
                     if(container.transferOut){
                         movement.transferOut = container.transferOut
                     }
+                    if(container.numberDecon){
+                        movement.numberDecon = container.numberDecon
+                    }
 
                     for(let i=0;i<container.movements.length;i++){
                         let mov = container.movements[i]
@@ -561,23 +564,61 @@ export default [
                             movement.driverGuide = mov.driverOutGuide
                             movement.driverSeal = mov.driverOutSeal
                             movement.driverName = mov.driverOutName
+                        
+                        }else if(payload.type=='decon'){
+                            if(mov.movement=='DESCONSOLIDADO'){
+                                movement.datetimeIn = mov.datetime
+                                movement.driverRUT = mov.driverRUT
+                                movement.driverPlate = mov.driverPlate
+                                movement.driverGuide = mov.driverGuide
+                                movement.driverSeal = mov.driverSeal
+                                movement.driverName = mov.driverName
+                            }
                         }
                     }
 
                     //////MODIFICAR!!
-                    let serv = container.services[0]
+                    if(payload.type=='decon'){
+                        let serv = container.services.find(x => x.services.name=='Desconsolidado')
 
-                    movement.service = serv.services.name
-                    movement.net = serv.paymentNet
-                    movement.iva = serv.paymentIVA
-                    movement.total = serv.paymentTotal
+                        movement.service = serv.services.name
+                        movement.net = serv.paymentNet
+                        movement.iva = serv.paymentIVA
+                        movement.total = serv.paymentTotal
+                    }else{
+                        let serv = container.services[0]
+
+                        movement.service = serv.services.name
+                        movement.net = serv.paymentNet
+                        movement.iva = serv.paymentIVA
+                        movement.total = serv.paymentTotal
+                    }                    
                     
-                    if(container.services[container.services.length-1].services.name=='Día(s) Extra'){
+                    if(container.services.find(x => x.services.name=='Día(s) Extra')){
+
+                        movement.extraDays = 0
+                        movement.extraDayServiceNet = 0
+                        movement.extraDayNet = 0
+                        movement.extraDayIva = 0
+                        movement.extraDayTotal = 0
+
+                        for(let j=0; j<container.services.length; j++){
+                            if(container.services[j].services.name=='Día(s) Extra'){
+                                movement.extraDays += container.services[j].extraDays
+                                movement.extraDayServiceNet = container.services[j].services.net
+                                movement.extraDayNet += container.services[j].paymentNet
+                                movement.extraDayIva += container.services[j].paymentIVA
+                                movement.extraDayTotal += container.services[j].paymentTotal
+                            }
+                        }
+                    }
+                    /*if(container.services[container.services.length-1].services.name=='Día(s) Extra'){
+                        movement.extraDays = container.services[container.services.length-1].extraDays
                         movement.extraDayServiceNet = container.services[container.services.length-1].services.net
                         movement.extraDayNet = container.services[container.services.length-1].paymentNet
                         movement.extraDayIva = container.services[container.services.length-1].paymentIVA
                         movement.extraDayTotal = container.services[container.services.length-1].paymentTotal
-                    }
+                    }*/
                     /*for(i=0;container.services.length;i++){
                         if(type=='in'){
                             if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
@@ -787,6 +828,15 @@ export default [
                                 await parameters.save()
                             }
                         }
+
+                        if(payload.movement == 'DESCONSOLIDADO'){
+                            if(!container.numberDecon){
+                                let parameters = await Parameters.findById('623b7fcbc8a7b49a9065708c')
+                                container.numberDecon = parameters.numberDecon
+                                parameters.numberDecon++
+                                await parameters.save()
+                            }
+                        }
                         
                         container.movements.push({
                             users: credentials._id,
@@ -879,7 +929,8 @@ export default [
                         //paymentAdvance: Joi.boolean().optional(),
                         paymentNet: Joi.number().allow(0).optional(),
                         paymentIVA: Joi.number().allow(0).optional(),
-                        paymentTotal: Joi.number().allow(0).optional()
+                        paymentTotal: Joi.number().allow(0).optional(),
+                        extraDays: Joi.number().allow(0).optional()
                         //date: Joi.string().optional().allow('')
                     })),
                     payments: Joi.array().items(Joi.object().keys({
@@ -1258,7 +1309,7 @@ export default [
                     let payload = request.payload
 
                     let container = await Containers.findById(payload.id).populate(['clients'])
-                    
+
                     if(isEmail(container.clients.email)){
                         let response = await sendEmail({
                             clientMail: container.clients.email, 
@@ -1289,6 +1340,7 @@ export default [
                     voucher: Joi.object().keys({
                         numberIn: Joi.number().allow(0).optional(),
                         numberOut: Joi.number().allow(0).optional(),
+                        numberDecon: Joi.number().allow(0).optional(),
                         transferIn: Joi.number().allow(0).optional(),
                         transferOut: Joi.number().allow(0).optional(),
                         clientName: Joi.string().optional().allow(''),
@@ -1308,6 +1360,7 @@ export default [
                         net: Joi.number().allow(0).optional(),
                         iva: Joi.number().allow(0).optional(),
                         total: Joi.number().allow(0).optional(),
+                        extraDays: Joi.number().allow(0).optional(),
                         extraDayNet: Joi.number().allow(0).optional(),
                         extraDayIva: Joi.number().allow(0).optional(),
                         extraDayServiceNet: Joi.number().allow(0).optional(),
@@ -1368,7 +1421,37 @@ const sendEmail = async ({ // sendEmail
             }
         })
 
+        let detail = `<tr><td colspan="5">___________________________________</td></tr>
+                      <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
+                      <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.net)}</td></tr>
+                      <tr><td>IVA</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.iva)}</td></tr>
+                      <tr><td>Total</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.total)}</td></tr>`
+        if(type=='SALIDA'){
+            if(voucher.extraDays){
+                detail = `<tr><td colspan="5">___________________________________</td></tr>
+                            <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
+                            <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.net)}</td></tr>
+                            <tr><td>IVA</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.iva)}</td></tr>
+                            <tr><td>SubTotal</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.total)}</td></tr>
+                            <tr><td colspan="5">___________________________________</td></tr>
+                            <tr><td>Días Extras</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.extraDays} x $ ${dot_separators(voucher.extraDayServiceNet)}</td></tr>
+                            <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.extraDayNet)}</td></tr>
+                            <tr><td>IVA</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.extraDayIva)}</td></tr>
+                            <tr><td>SubTotal</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.extraDayTotal)}</td></tr>
+                            <tr><td colspan="5">___________________________________</td></tr>
+                            <tr><td><b>TOTAL</b></td>          <td>&nbsp;</td><td><b>:</b></td><td>&nbsp;</td><td style="text-align: right"><b>$ ${dot_separators(voucher.total+voucher.extraDayTotal)}</b></td></tr>`
+            }
+        }
 
+        let number = voucher.numberIn
+
+        if(type=='SALIDA'){
+            number = voucher.numberOut
+        }else if(type=='DESCONSOLIDADO'){
+            number = voucher.numberDecon
+        }else if(type=='TRASPASO'){
+            number = voucher.transferIn
+        }
 
         let mailData = {
             from: process.env.EMAIL_SENDER,
@@ -1384,7 +1467,7 @@ const sendEmail = async ({ // sendEmail
                 <br/>
                 
                 <table>
-                    <tr><td>N° Voucher</td>     <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.numberIn}</td></tr>
+                    <tr><td>N° Voucher</td>     <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${number}</td></tr>
                     <tr><td>Fecha Llegada</td>  <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.datetimeInMail}</td></tr>
                     ${(type=='SALIDA') ? `<tr><td>Fecha Salida</td>   <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.datetimeOutMail}</td></tr>` : ``}
                     <tr><td>Cliente</td>        <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.clientName}</td></tr>
@@ -1396,10 +1479,7 @@ const sendEmail = async ({ // sendEmail
                     <tr><td>Chofer</td>         <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverName}</td></tr>
                     <tr><td>RUT Chofer</td>     <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverRUT}</td></tr>
                     <tr><td>Patente</td>        <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.driverPlate}</td></tr>
-                    <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
-                    <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.net}</td></tr>
-                    <tr><td>IVA</td>            <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.iva}</td></tr>
-                    <tr><td>Total</td>          <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.total}</td></tr>
+                    ${detail}
                 </table>
                 
                 <br/><br/><br/>
@@ -1436,4 +1516,10 @@ const sendEmail = async ({ // sendEmail
 const isEmail = (email) => {
     let regexEmail = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/
     return regexEmail.test(email)
+}
+
+function dot_separators(num){
+    var num_parts = num.toString().split(".")
+    num_parts[0] = num_parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+    return num_parts.join(".")
 }

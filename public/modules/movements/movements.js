@@ -462,6 +462,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     `)
 
     $('#divPrintIn').html('')
+    $('#divPrintDecon').html('')
     $('#divPrintOut').html('')
 
     $("#btnMap").css('display','none')
@@ -663,45 +664,6 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
 
 })
 
-$('#optionDeleteMovement').on('click', function () {
-    swal.fire({
-        title: '{{ lang.deleteMovement.swalDeleteTitle }}',
-        type: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonClass: 'btn btn-primary',
-        cancelButtonClass: 'btn btn-danger',
-        buttonsStyling: false,
-        confirmButtonText: '{{ lang.deleteMovement.swalConfirmButtonText }}',
-        cancelButtonText: '{{ lang.deleteMovement.swalCancelButtonText }}',
-    }).then((result) => {
-        if (result.value) {
-            ajax({
-                url: 'api/movement',
-                type: 'DELETE',
-                data: {
-                    _id: internals.dataRowSelected._id
-                }
-            }).then(res => {
-                if (res.err) {
-                    toastr.warning(res.err)
-                } else if (res.ok) {
-                    $('#optionModMovement').prop('disabled', true)
-                    $('#optionDeleteMovement').prop('disabled', true)
-
-                    toastr.success('{{ lang.deleteMovement.swalToastrOK }}')
-
-                    datatableMovements
-                        .row(movementRowSelected)
-                        .remove()
-                        .draw()
-                }
-            })
-        }
-    })
-})
-
 $('#optionModMovement').on('click', async function () {
 
     let containerData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
@@ -754,6 +716,20 @@ $('#optionModMovement').on('click', async function () {
             }else{
                 extraDays -= serviceDays
             }
+        }else if(container.services.find(x => x.services.name==='Almacenamiento Full')){
+            let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Full').services.days
+            if(extraDays<=serviceDays){
+                extraDays = 0
+            }else{
+                extraDays -= serviceDays
+            }
+        }else if(container.services.find(x => x.services.name==='Almacenamiento Vacío')){
+            let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Vacío').services.days
+            if(extraDays<=serviceDays){
+                extraDays = 0
+            }else{
+                extraDays -= serviceDays
+            }
         }else{
             if(extraDays<=5){
                 extraDays = 0
@@ -761,8 +737,6 @@ $('#optionModMovement').on('click', async function () {
                 extraDays -= 5
             }
         }
-
-        //extraDays += deconExtraDays
 
         setExtraDays(extraDays,deconExtraDays)
 
@@ -776,12 +750,15 @@ $('#optionModMovement').on('click', async function () {
             </button>
         `)
 
-        let numberIn = '', numberOut = ''
+        let numberIn = '', numberOut = '', numberDecon = ''
         if(container.numberIn){
             numberIn = 'N° ' + container.numberIn
         }
         if(container.numberOut){
             numberOut = 'N° ' + container.numberOut
+        }
+        if(container.numberDecon){
+            numberDecon = 'N° ' + container.numberDecon
         }
 
         $('#divPrintIn').html(`
@@ -795,6 +772,16 @@ $('#optionModMovement').on('click', async function () {
                 <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${numberOut}
             </button>
         `)
+
+        if(container.services.find(x => x.services.name==='Desconsolidado')){
+            $('#divPrintDecon').html(`
+                <button class="btn btn-warning btn-sm" id="printMovementDecon" onclick="printVoucher('decon','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER DESCONSOLIDADO ${numberDecon}
+                </button>
+            `)
+        }else{
+            $('#divPrintDecon').html('')
+        }
 
         $('#movementType').prop('disabled',true)
 
@@ -953,6 +940,39 @@ $('#optionModMovement').on('click', async function () {
                 })
             })
 
+            if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+                $("#tableServicesExtraBody > tr").each(function() {
+                    let extraDays = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace(' ', ''))
+                    let net = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                    //let iva = Math.round(net * 0.19)
+                    let iva = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
+                    let total = parseInt(net) + parseInt(iva)
+                    
+                    if(!$.isNumeric(net)){
+                        errorNet = true
+                    }
+                    if(!$.isNumeric(iva)){
+                        errorIVA = true
+                    }else{
+                        if(iva!=0){
+                            if(iva<Math.round(net * 0.19)-2 || iva>Math.round(net * 0.19)+2){
+                                errorIVA = true
+                            }
+                        }
+                    }
+        
+                    console.log('extraDays',extraDays)
+        
+                    services.push({
+                        services: $($($(this).children()[1]).children()[1]).val(),
+                        paymentNet: net,
+                        paymentIVA: iva,
+                        paymentTotal: total,
+                        extraDays: extraDays
+                    })
+                })
+            }
+
             
             //Pagos
             let payments = []
@@ -972,7 +992,7 @@ $('#optionModMovement').on('click', async function () {
                     date: $($($(this).children()[2]).children()[0]).data('daterangepicker').startDate.format('YYYY-MM-DD'),
                     paymentAmount: amount
                 })
-            })    
+            })   
 
             if(errorNet){
                 $('#modal_title').html(`Error`)
@@ -1383,11 +1403,25 @@ $('#optionCloseMovement').on('click', async function () {
         }else{
             extraDays -= serviceDays
         }
+    }else if(container.services.find(x => x.services.name==='Almacenamiento Full')){
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Full').services.days
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
+    }else if(container.services.find(x => x.services.name==='Almacenamiento Vacío')){
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Vacío').services.days
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
     }else{
         if(extraDays<=5){
             extraDays = 0
         }else{
-            extraDays -= 50
+            extraDays -= 5
         }
     }
 
@@ -1499,6 +1533,7 @@ $('#optionCloseMovement').on('click', async function () {
         
 
         $("#tableServicesExtraBody > tr").each(function() {
+            let extraDays = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace(' ', ''))
             let net = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
             //let iva = Math.round(net * 0.19)
             let iva = parseInt(replaceAll($($($(this).children()[3]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
@@ -1521,7 +1556,8 @@ $('#optionCloseMovement').on('click', async function () {
                 services: $($($(this).children()[1]).children()[1]).val(),
                 paymentNet: net,
                 paymentIVA: iva,
-                paymentTotal: total
+                paymentTotal: total,
+                extraDays: extraDays
             })
         })
 
@@ -1908,6 +1944,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         if(saveMovement.data){
             if(saveMovement.data._id){
                 $('#movementsModal').modal('hide')
+                printVoucher('decon',saveMovement.data._id, true)
 
                 $('#modal_title').html(`Almacenado`)
                 $('#modal_body').html(`<h5 class="alert-heading">Datos almacenados correctamente</h5>`)
@@ -3857,6 +3894,9 @@ async function printVoucher(type,id,sendEmail) {
         }else if(type=="transferOut"){
             typeMail = 'TRASPASO'
             doc.text(`SALIDA TRASPASO N°: ${(voucher.transferOut) ? (voucher.transferOut) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
+        }else if(type=="decon"){
+            typeMail = 'DESCONSOLIDADO'
+            doc.text(`DESCONSOLIDADO N°: ${(voucher.numberDecon) ? (voucher.numberDecon) : '-----'}`, doc.internal.pageSize.width/2, pdfY + 45, 'center')
         }
 
         pdfY += 72
@@ -3922,56 +3962,77 @@ async function printVoucher(type,id,sendEmail) {
         doc.setLineWidth(0.5)
         doc.line(pdfX, pdfY, pdfX + 220, pdfY)
 
-        if(!voucher.extraDayNet || type=="in"){
-            doc.text(`NETO`, pdfX, pdfY + 27)
-            doc.text(`IVA`, pdfX, pdfY + 39)
+        if(type=="in" || type=='decon' || !voucher.extraDayNet){
+            doc.text(`NETO`, pdfX, pdfY + 22)
+            doc.text(`IVA (19%)`, pdfX, pdfY + 34)
             doc.setFontType('bold')
-            doc.text(`TOTAL`, pdfX, pdfY + 51)
+            doc.text(`TOTAL`, pdfX, pdfY + 46)
             doc.setFontType('normal')
 
-            doc.text(`$`, pdfX + 150, pdfY + 27)
-            doc.text(`$`, pdfX + 150, pdfY + 39)
+            doc.text(`$`, pdfX + 150, pdfY + 22)
+            doc.text(`$`, pdfX + 150, pdfY + 34)
             doc.setFontType('bold')
-            doc.text(`$`, pdfX + 150, pdfY + 51)
+            doc.text(`$`, pdfX + 150, pdfY + 46)
             doc.setFontType('normal')
 
-            doc.text(voucher.service, pdfX, pdfY + 15)
-            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
-            doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 39, 'right')
+            doc.text(voucher.service, pdfX, pdfY + 10)
+            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 22, 'right')
+            doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 34, 'right')
             doc.setFontType('bold')
-            doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 51, 'right')
+            doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 46, 'right')
             doc.setFontType('normal')
-            pdfY += 63
+            pdfY += 53
 
         }else{
         ////////REVISAR!!!!!!///////
-            let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
+            //let extraDays = moment(voucher.datetimeOut).diff(moment(voucher.datetimeIn).format('YYYY-MM-DD'), 'days')-5
 
-            doc.text(`NETO`, pdfX, pdfY + 27)
-            doc.text(`DÍAS EXTRA (${extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 39)
-            doc.text(`IVA`, pdfX, pdfY + 51)
+            doc.text(`NETO`, pdfX, pdfY + 22)
+            doc.text(`IVA (19%)`, pdfX, pdfY + 34)
             doc.setFontType('bold')
-            doc.text(`TOTAL`, pdfX, pdfY + 63)
+            doc.text(`SUBTOTAL`, pdfX, pdfY + 46)
+            doc.setLineWidth(0.5)
+            doc.line(pdfX, pdfY + 50, pdfX + 220, pdfY + 50)
+            doc.setFontType('normal')
+            doc.text(`NETO (${voucher.extraDays} x $${dot_separators(voucher.extraDayServiceNet)})`, pdfX, pdfY + 72)
+            doc.text(`IVA (19%)`, pdfX, pdfY + 84)
+            doc.setFontType('bold')
+            doc.text(`SUBTOTAL`, pdfX, pdfY + 96)
+            doc.setLineWidth(0.5)
+            doc.line(pdfX, pdfY + 100, pdfX + 220, pdfY + 100)
+            doc.text(`TOTAL`, pdfX, pdfY + 112)
+
+            doc.setFontType('normal')
+            doc.text(`$`, pdfX + 150, pdfY + 22)
+            doc.text(`$`, pdfX + 150, pdfY + 34)
+            doc.setFontType('bold')
+            doc.text(`$`, pdfX + 150, pdfY + 46)
+
+            doc.setFontType('normal')
+            doc.text(`$`, pdfX + 150, pdfY + 72)
+            doc.text(`$`, pdfX + 150, pdfY + 84)
+            doc.setFontType('bold')
+            doc.text(`$`, pdfX + 150, pdfY + 96)
+            doc.text(`$`, pdfX + 150, pdfY + 112)
+
+
+            doc.setFontType('normal')
+            doc.text(voucher.service, pdfX, pdfY + 10)
+            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 22, 'right')
+            doc.text(dot_separators(voucher.iva), pdfX + 210, pdfY + 34, 'right')
+            doc.setFontType('bold')
+            doc.text(dot_separators(voucher.total), pdfX + 210, pdfY + 46, 'right')
             doc.setFontType('normal')
 
-
-            doc.text(`$`, pdfX + 150, pdfY + 27)
-            doc.text(`$`, pdfX + 150, pdfY + 39)
-            doc.text(`$`, pdfX + 150, pdfY + 51)
+            doc.text(`Días Extra`, pdfX, pdfY + 60)
+            doc.text(dot_separators(voucher.extraDayNet), pdfX + 210, pdfY + 72, 'right')
+            doc.text(dot_separators(voucher.extraDayIva), pdfX + 210, pdfY + 84, 'right')
             doc.setFontType('bold')
-            doc.text(`$`, pdfX + 150, pdfY + 63)
-            doc.setFontType('normal')
+            doc.text(dot_separators(voucher.extraDayTotal), pdfX + 210, pdfY + 96, 'right')
+            doc.text(dot_separators(voucher.total+voucher.extraDayTotal), pdfX + 210, pdfY + 112, 'right')
 
-            doc.text(voucher.service, pdfX, pdfY + 15)
-            doc.text(dot_separators(voucher.net), pdfX + 210, pdfY + 27, 'right')
-            doc.text(dot_separators(voucher.extraDayNet), pdfX + 210, pdfY + 39, 'right')
-            doc.text(dot_separators(voucher.iva+voucher.extraDayIva), pdfX + 210, pdfY + 51, 'right')
-            doc.setFontType('bold')
-            doc.text(dot_separators(voucher.total+voucher.extraDayTotal), pdfX + 210, pdfY + 63, 'right')
-            doc.setFontType('normal')
-            pdfY += 75
+            pdfY += 118
         }
-
 
         doc.setLineWidth(0.5)
         doc.line(pdfX, pdfY, pdfX + 220, pdfY)
@@ -4012,13 +4073,18 @@ async function printVoucher(type,id,sendEmail) {
                 voucher: voucher
             }
         )
-        console.log(email)
 
         //OK accepted.length>0 OK
-        //ERROR
         //SIN CORREO 'No Email'
+        //ERROR
 
-        
+        if(email.data=='No Email'){
+            toastr.warning('Cliente sin correo asociado, no se ha enviado ningún aviso')
+        }else if(email.data.accepted.length>0){
+            toastr.success('Correo enviado a cliente correctamente')
+        }else{
+            toastr.danger('Ha ocurrido un error al enviar correo a cliente')
+        }
     }
 }
 
@@ -4180,19 +4246,15 @@ async function setClientRates(){
         let clientRateData = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
         let clientRates = clientRateData.data
 
-        console.log('services',services)
         if(clientRates.rates.length>0){
-            console.log('clientRates',clientRates.rates)
 
             $("#tableServicesBody > tr").each(function() {
                 
                 $($($($(this).children()[0]).children()[0]).children()).each(function() {
-                    console.log($(this).html(),$(this).val(),$(this).attr('data-net'))
                     let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
                     if(serviceRate){//Si el cliente tiene la tarifa especial asignada, se asignarán los valores
                         $(this).attr('data-net',serviceRate.net)
                     }else{
-                        console.log($(this).val())
                         if(services.find(x => x._id === $(this).val())){
                             $(this).attr('data-net',services.find(x => x._id === $(this).val()).net)
                         }
