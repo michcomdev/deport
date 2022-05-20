@@ -87,6 +87,7 @@ export default [
                     client.contactPhone = payload.contactPhone
                     client.status = payload.status
                     client.credit = payload.credit
+                    client.creditLimit = payload.creditLimit
                     client.services = payload.services
                     client.rates = payload.rates
 
@@ -121,6 +122,7 @@ export default [
                     contactPhone: Joi.string().optional().allow(''),
                     status: Joi.string().optional().allow(''),
                     credit: Joi.boolean().required(),
+                    creditLimit: Joi.number().allow(0).optional(),
                     services: Joi.object().keys({
                         storage: Joi.boolean().required(),
                         deconsolidated: Joi.boolean().required(),
@@ -164,6 +166,7 @@ export default [
                         status: payload.status,
                         debt: 'SIN DEUDA',
                         credit: payload.credit,
+                        creditLimit: payload.creditLimit,
                         services: payload.services,
                         rates: payload.rates
                     })
@@ -198,6 +201,7 @@ export default [
                     contactPhone: Joi.string().optional().allow(''),
                     status: Joi.string().optional().allow(''),
                     credit: Joi.boolean().required(),
+                    creditLimit: Joi.number().allow(0).optional(),
                     services: Joi.object().keys({
                         storage: Joi.boolean().required(),
                         deconsolidated: Joi.boolean().required(),

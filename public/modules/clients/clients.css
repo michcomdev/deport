@@ -31,3 +31,7 @@ h2{
 #tableClients{
     font-size: 13px;
 }
+
+.modal .modal-body {
+    overflow-y: auto;
+}

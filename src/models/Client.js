@@ -10,6 +10,7 @@ const clientSchema = new Schema({
     contact: { type: String },
     contactPhone: { type: String },
     credit: { type: Boolean },
+    creditLimit: { type: Number },
     status: { type: String, required: true },
     debt: { type: String },
     createdAt: { type: Date, default: Date.now()},

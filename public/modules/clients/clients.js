@@ -11,6 +11,12 @@ let services
 $(document).ready(async function () {
     chargeClientsTable()
     getParameters()
+
+    $('body').on('hidden.bs.modal', function () { //Evita pérdida de scroll modal
+        if(($(".modal").data('bs.modal') || {})._isShown){
+            $('body').addClass('modal-open')
+        }
+    })
 })
 
 async function getParameters() {
@@ -127,6 +133,25 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
         }
     })
 
+    new Cleave($('#clientCreditLimit'), {
+        prefix: '$ ',
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalScale: 0,
+        numeralPositiveOnly: true,
+        numeralDecimalMark: ",",
+        delimiter: "."
+    })
+
+    $('#clientCredit').change(function () {
+        if($(this).prop('checked')){
+            $('#clientCreditLimit').removeAttr('disabled')
+        }else{
+            $('#clientCreditLimit').attr('disabled',true)
+            $('#clientCreditLimit').val('$ 0')
+        }
+    })
+
     setTimeout(() => {
         $('#clientRUT').focus()
     }, 500)
@@ -171,6 +196,24 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             return
         }
 
+        let creditLimit = 0
+        if($('#clientCredit').is(":checked")){
+            creditLimit = replaceAll($('#clientCreditLimit').val(), '.', '').replace('$', '').replace(' ', '')
+            if(!$.isNumeric(creditLimit)){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Límite de crédito no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
+            if(creditLimit==0){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Límite de crédito no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+        }
+
 
         let clientData = {
             //rut: removeExtraSpaces($('#clientRUT').val()),
@@ -182,6 +225,7 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             contactPhone: $('#clientContactPhone').val(),
             status: $('#clientStatus').val(),
             credit: $('#clientCredit').is(":checked"),
+            creditLimit: creditLimit,
             services: {
                 storage: $('#serviceStorage').is(":checked"),
                 deconsolidated: $('#serviceDeconsolidated').is(":checked"),
@@ -190,6 +234,8 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             },
             rates: rates
         }
+
+        console.log(clientData)
 
         const res = validateClientData(clientData)
         if (res.ok) {
@@ -250,6 +296,25 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
         }
     })
 
+    new Cleave($('#clientCreditLimit'), {
+        prefix: '$ ',
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalScale: 0,
+        numeralPositiveOnly: true,
+        numeralDecimalMark: ",",
+        delimiter: "."
+    })
+
+    $('#clientCredit').change(function () {
+        if($(this).prop('checked')){
+            $('#clientCreditLimit').removeAttr('disabled')
+        }else{
+            $('#clientCreditLimit').attr('disabled',true)
+            $('#clientCreditLimit').val('$ 0')
+        }
+    })
+
     $('.chkRate').change(function () {
         if($(this).prop('checked')){
             $(this).parent().parent().addClass('table-infoSoft')
@@ -269,6 +334,12 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
     $('#clientContactPhone').val(client.contactPhone)
     $('#clientStatus').val(client.status)
     $('#clientCredit').prop('checked',client.credit)
+    if(client.credit){
+        if(client.creditLimit){
+            $('#clientCreditLimit').removeAttr('disabled')
+            $('#clientCreditLimit').val('$ '+dot_separators(client.creditLimit))
+       }
+    }
     $('#serviceStorage').prop('checked',client.services.storage)
     $('#serviceDeconsolidated').prop('checked',client.services.deconsolidated)
     $('#servicePortage').prop('checked',client.services.portage)
@@ -318,6 +389,25 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             return
         }
 
+        let creditLimit = 0
+        if($('#clientCredit').is(":checked")){
+            creditLimit = replaceAll($('#clientCreditLimit').val(), '.', '').replace('$', '').replace(' ', '')
+            console.log(creditLimit)
+            if(!$.isNumeric(creditLimit)){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Límite de crédito no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+
+            if(creditLimit==0){
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Límite de crédito no válido</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+        }
+
         let clientData = {
             id: internals.dataRowSelected._id,
             rut: $('#clientRUT').val(),
@@ -328,6 +418,7 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             contactPhone: $('#clientContactPhone').val(),
             status: $('#clientStatus').val(),
             credit: $('#clientCredit').is(":checked"),
+            creditLimit: creditLimit,
             services: {
                 storage: $('#serviceStorage').is(":checked"),
                 deconsolidated: $('#serviceDeconsolidated').is(":checked"),
@@ -362,15 +453,16 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h5 class="alert-heading">Error al almacenar, favor reintente</h5>`)
             }
-            $('#modal').modal('show');
+            $('#modal').modal('show')
 
         }else{
 
         }
 
-    });
+    })
 
-});
+})
+
 
 function validateClientData(clientData) {
     let validationCounter = 0
@@ -460,10 +552,15 @@ function setModal(){
 
 
 
-                <div class="col-md-8" style="margin-top:10px;">
+                <div class="col-md-4" style="margin-top:10px;">
                     <br/>
                     Cliente con Crédito
                     <input type="checkbox" id="clientCredit">
+                </div>
+
+                <div class="col-md-4" style="margin-top:10px;">
+                    Límite crédito (en pesos)
+                    <input id="clientCreditLimit" type="text" class="form-control form-control-sm border-input" value="$ 0" disabled>
                 </div>
 
                 <div class="col-md-4" style="margin-top:10px;">

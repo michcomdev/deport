@@ -364,6 +364,8 @@ async function getMovementsEnabled() {
     }
 
     movementData = await axios.post('api/movementsByFilter',query)
+
+    console.log(movementData.data)
     
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
@@ -3324,6 +3326,7 @@ async function selectClientSearch(from) {
                             <th>RUT</th>
                             <th>NOMBRE</th>
                             <th>ESTADO</th>
+                            <th>CRÉDITO DISPONIBLE</th>
                         </tr>
                     </thead>
                     <tbody id="tableSearchClientsBody"></tbody>
@@ -3363,7 +3366,8 @@ async function selectClientSearch(from) {
                     columns: [
                         { data: 'rut' },
                         { data: 'name' },
-                        { data: 'status' }
+                        { data: 'status' },
+                        { data: 'creditLeft' }
                     ],
                     initComplete: function (settings, json) {
                         getClients()
@@ -3436,6 +3440,7 @@ async function selectClient(btn) {
                             <th>RUT</th>
                             <th>NOMBRE</th>
                             <th>ESTADO</th>
+                            <th>CRÉDITO DISPONIBLE</th>
                         </tr>
                     </thead>
                     <tbody id="tableSearchClientsBody"></tbody>
@@ -3475,7 +3480,8 @@ async function selectClient(btn) {
                     columns: [
                         { data: 'rut' },
                         { data: 'name' },
-                        { data: 'status' }
+                        { data: 'status' },
+                        { data: 'creditLeft' }
                     ],
                     initComplete: function (settings, json) {
                         getClients()
@@ -3608,7 +3614,8 @@ async function createClient() {
                         columns: [
                             { data: 'rut' },
                             { data: 'name' },
-                            { data: 'status' }
+                            { data: 'status' },
+                            { data: 'creditLeft' }
                         ],
                         initComplete: async function (settings, json) {
                             getClients()
@@ -3755,7 +3762,19 @@ function validateClientData(clientData) {
 async function getClients(){
     let clientData = await axios.get('api/clients')
     if (clientData.data.length > 0) {
-        internals.clients.table.rows.add(clientData.data).draw()
+        let formatData= clientData.data.map(el => {
+            el.creditLeft = 'SIN CRÉDITO'
+
+            if(el.credit){
+                if(el.creditLimit){
+                    el.creditLeft = '$ '+dot_separators(el.creditLimit)
+                }else{
+                    el.creditLeft = '$ 0'
+                }
+            }
+            return el
+        })
+        internals.clients.table.rows.add(formatData).draw()
     }
 }
 
