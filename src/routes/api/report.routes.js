@@ -137,10 +137,19 @@ export default [
                                 }
                             }
                         }
+                    }else if(payload.type=='DECON'){
+                        query = {
+                            movements : { 
+                                $elemMatch : { 
+                                    datetime: {
+                                        $gt: `${payload.startDate}T00:00:00.000`,
+                                        $lt: `${payload.endDate}T23:59:59.999`
+                                    },
+                                    movement: 'DESCONSOLIDADO'
+                                }
+                            }
+                        }
                     }
-
-
-                    console.log(query)
 
                     if(payload.client){
                         if(payload.client!=0){
@@ -149,7 +158,10 @@ export default [
                     }
                     
                     let containers = await Containers.find(query).populate(['clients','containertypes','sites','cranes','services.services'])
-
+                    
+                    if(payload.type=='DECON'){
+                        console.log(containers)
+                    }
 
                     containers = containers.reduce((acc, el, i) => {
                         if(payload.type=='IN'){
@@ -169,19 +181,114 @@ export default [
                             })
                         }else if(payload.type=='OUT'){
                             let lastMov = el.movements.length - 1
+
+                            /*if(payload.serviceSelect=='primary'){
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: el.movements[lastMov].datetime,
+                                    movement: el.movements[lastMov].movement,
+                                    client: el.clients.name,
+                                    numberOut: el.numberOut,
+                                    containerNumber: el.containerNumber,
+                                    containerLarge: el.containerLarge,
+                                    driverName: el.movements[lastMov].driverName,
+                                    driverPlate: el.movements[lastMov].driverPlate,
+                                    driverGuide: el.movements[lastMov].driverGuide,
+                                    service: el.services[0].services.name,
+                                    serviceValue: el.services[0].paymentNet
+                                })
+
+                            }else if(payload.serviceSelect=='separated'){
+
+                                for(i=0; i<el.services.length; i++){
+
+                                    acc.push({
+                                        id: el._id.toString(),
+                                        datetime: el.movements[lastMov].datetime,
+                                        movement: el.movements[lastMov].movement,
+                                        client: el.clients.name,
+                                        numberOut: el.numberOut,
+                                        containerNumber: el.containerNumber,
+                                        containerLarge: el.containerLarge,
+                                        driverName: el.movements[lastMov].driverName,
+                                        driverPlate: el.movements[lastMov].driverPlate,
+                                        driverGuide: el.movements[lastMov].driverGuide,
+                                        service: el.services[i].services.name,
+                                        serviceValue: el.services[i].paymentNet
+                                    })
+                                }
+
+
+                            }else */if(payload.serviceSelect=='summary'){
+                                let netTotal = 0, totalTotal = 0
+                                for(let i=0; i<el.services.length; i++){
+                                    netTotal += el.services[i].paymentNet
+                                    totalTotal += el.services[i].paymentTotal
+                                }
+
+                                let paymentTotal = 0, paymentType = '', paymentDate = el.movements[lastMov].datetime
+                                if(el.payments){
+                                    for(let j=0; j<el.payments.length; j++){
+                                        paymentTotal += el.payments[j].paymentAmount
+                                        paymentDate = el.payments[j].date
+                                        if(j>0){
+                                            paymentType += ' - ' + el.payments[j].paymentType
+                                        }else{
+                                            paymentType = el.payments[j].paymentType
+                                        }
+                                    }
+                                }
+                                
+                                let payment = 'Pendiente'
+                                if(paymentTotal>0){
+                                    if(totalTotal>paymentTotal){
+                                        payment = 'Parcial'
+                                    }else{
+                                        payment = 'Pagado'
+                                    }
+                                }
+                                
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: el.movements[lastMov].datetime,
+                                    movement: el.movements[lastMov].movement,
+                                    client: el.clients.name,
+                                    numberOut: el.numberOut,
+                                    containerNumber: el.containerNumber,
+                                    containerLarge: el.containerLarge,
+                                    driverName: el.movements[lastMov].driverName,
+                                    driverPlate: el.movements[lastMov].driverPlate,
+                                    driverGuide: el.movements[lastMov].driverGuide,
+                                    service: el.services[0].services.name,
+                                    serviceValue: netTotal,
+                                    payment: payment,
+                                    paymentType: paymentType,
+                                    paymentDate: paymentDate
+                                })
+                            }
+
+                        }else if(payload.type=='DECON'){
+                            let deconIndex = 0
+
+                            for(let i=0; i<el.movements.length; i++){
+                                if(el.movements[i].movement=='DESCONSOLIDADO'){
+                                    deconIndex = i
+                                }
+                            }
+
                             acc.push({
                                 id: el._id.toString(),
-                                datetime: el.movements[lastMov].datetime,
-                                movement: el.movements[lastMov].movement,
+                                datetime: el.movements[deconIndex].datetime,
+                                movement: el.movements[deconIndex].movement,
                                 client: el.clients.name,
-                                numberOut: el.numberOut,
+                                numberDecon: el.numberDecon,
                                 containerNumber: el.containerNumber,
                                 containerLarge: el.containerLarge,
-                                driverName: el.movements[lastMov].driverName,
-                                driverPlate: el.movements[lastMov].driverPlate,
-                                driverGuide: el.movements[lastMov].driverGuide,
-                                service: el.services[0].services.name,
-                                serviceValue: el.services[0].paymentNet
+                                driverName: el.movements[deconIndex].driverName,
+                                driverPlate: el.movements[deconIndex].driverPlate,
+                                driverGuide: el.movements[deconIndex].driverGuide,
+                                service: el.services[deconIndex].services.name,
+                                serviceValue: el.services[deconIndex].paymentNet
                             })
                         }
                         /*let lastMov = el.movements.length - 1
@@ -219,7 +326,8 @@ export default [
                     client: Joi.string().optional().allow(''),
                     type: Joi.string().optional().allow(''),
                     startDate: Joi.string().required(),
-                    endDate: Joi.string().required()
+                    endDate: Joi.string().required(),
+                    serviceSelect: Joi.string().required()
                 })
             }
         }

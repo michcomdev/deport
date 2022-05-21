@@ -1,13 +1,9 @@
 let internals = {
-    in: {
+    to: {
         table: {},
         data: []
     },
-    out: {
-        table: {},
-        data: []
-    },
-    decon: {
+    done: {
         table: {},
         data: []
     },
@@ -51,9 +47,8 @@ $(document).ready(async function () {
     getParameters()
 
     $("#search").on('click', function(){
-        loadIn($("#searchClient").val())
-        loadOut($("#searchClient").val())
-        loadDecon($("#searchClient").val())
+        loadTo($("#searchClient").val())
+        loadDone($("#searchClient").val())
     })
 
 })
@@ -92,27 +87,27 @@ async function getParameters() {
     /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
 }
 
-async function loadIn(id){
+async function loadTo(id){
     
     let query = {
         client: $("#searchClient").val(),
-        type: 'IN',
+        type: 'TO',
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
         serviceSelect: $("#searchService").val()
     }
 
-    let movementIn = await axios.post('api/reportDaily',query)
+    let movementTo = await axios.post('api/reportDaily',query)
 
-    $("#badgeIn").text(movementIn.data.length)
+    $("#badgeTo").text(movementTo.data.length)
     
-    if($.fn.DataTable.isDataTable('#tableIn')){
-        internals.in.table.clear().destroy()
+    if($.fn.DataTable.isDataTable('#tableTo')){
+        internals.to.table.clear().destroy()
     }
     $.fn.dataTable.moment('DD/MM/YYYY HH:mm')
 
     try {
-        internals.in.table = $('#tableIn')
+        internals.to.table = $('#tableTo')
         .DataTable( {
             dom: 'Bfrtip',
             buttons: [
@@ -145,7 +140,7 @@ async function loadIn(id){
           ],
           initComplete: function (settings, json) {
 
-                let formatData = movementIn.data.map(el => {
+                let formatData = movementTo.data.map(el => {
                     el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
                     el.serviceValue = dot_separators(el.serviceValue)
                     return el
@@ -178,27 +173,27 @@ async function loadIn(id){
     }
 }
 
-async function loadOut(id){
+async function loadDone(id){
     
     let query = {
         client: $("#searchClient").val(),
-        type: 'OUT',
+        type: 'DONE',
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
         serviceSelect: $("#searchService").val()
     }
 
-    let movementOut = await axios.post('api/reportDaily',query)
+    let movementDone = await axios.post('api/reportDaily',query)
 
-    $("#badgeOut").text(movementOut.data.length)
+    $("#badgeDone").text(movementDone.data.length)
     
-    if($.fn.DataTable.isDataTable('#tableOut')){
-        internals.out.table.clear().destroy()
+    if($.fn.DataTable.isDataTable('#tableDone')){
+        internals.done.table.clear().destroy()
     }
     $.fn.dataTable.moment('DD/MM/YYYY HH:mm')
 
     try {
-        internals.out.table = $('#tableOut')
+        internals.done.table = $('#tableDone')
         .DataTable( {
             dom: 'Bfrtip',
             buttons: [
@@ -234,152 +229,21 @@ async function loadOut(id){
           ],
           initComplete: function (settings, json) {
 
-                let formatData = movementOut.data.map(el => {
+                let formatData = movementDone.data.map(el => {
                     el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
                     el.serviceValue = dot_separators(el.serviceValue)
                     el.paymentDate = moment(el.paymentDate).format('DD/MM/YYYY')
                     return el
                 })
 
-                internals.out.table.rows.add(formatData).draw()
+                internals.done.table.rows.add(formatData).draw()
           }
         })
 
-        /*$('#tableOut tbody').off("click")
-
-        $('#tableOut tbody').on('click', 'tr', function () {
-            if ($(this).hasClass('selected')) {
-                $(this).removeClass('selected')
-                $("#tableBodyContainers").html('')
-
-            } else {
-                internals.out.table.$('tr.selected').removeClass('selected');
-                $(this).addClass('selected');
-                
-                //internals.dataRowSelected = internals.clientsOutvoice.table.row($(this)).data()
-                internals.dataRowSelectedOutvoice = internals.out.table.row($(this)).data()
-                loadContainers($("#searchClient").val(), internals.dataRowSelectedOutvoice._id)
-                //loadOut(internals.dataRowSelected._id)
-                //loadSingleContainer(internals.dataRowSelected.id)
-            }
-        })*/
     } catch (error) {
         console.log(error)
     }
 }
-
-async function loadDecon(id){
-    
-    let query = {
-        client: $("#searchClient").val(),
-        type: 'DECON',
-        startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
-        endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
-        serviceSelect: $("#searchService").val()
-    }
-
-    let movementDecon = await axios.post('api/reportDaily',query)
-
-    $("#badgeDecon").text(movementDecon.data.length)
-    
-    if($.fn.DataTable.isDataTable('#tableDecon')){
-        internals.decon.table.clear().destroy()
-    }
-    $.fn.dataTable.moment('DD/MM/YYYY HH:mm')
-
-    try {
-        internals.decon.table = $('#tableDecon')
-        .DataTable( {
-            dom: 'Bfrtip',
-            buttons: [
-                'excel'
-            ],
-            iDisplayLength: 50,
-            oLanguage: {
-              sSearch: 'Buscar: '
-            },
-            language: {
-                url: spanishDataTableLang
-            },
-            responsive: false,
-            columnDefs: [{targets: [0,1,2,3,4,5], className: 'dt-center'},
-                         {targets: [8], className: 'dt-right'}],
-            //order: [[ 0, 'desc' ]],
-            ordering: true,
-            rowCallback: function( row, data ) {
-          },
-          columns: [
-            { data: 'numberDecon' },
-            { data: 'datetime' },
-            { data: 'containerNumber' },
-            { data: 'containerLarge' },
-            { data: 'driverPlate' },
-            { data: 'driverGuide' },
-            { data: 'client' },
-            { data: 'service' },
-            { data: 'serviceValue' }
-          ],
-          initComplete: function (settings, json) {
-
-                let formatData = movementDecon.data.map(el => {
-                    el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
-                    el.serviceValue = dot_separators(el.serviceValue)
-                    return el
-                })
-
-                internals.decon.table.rows.add(formatData).draw()
-          }
-        })
-    } catch (error) {
-        console.log(error)
-    }
-}
-
-
-function drawTablesContainers(){
-
-    let totalNet = 0
-    let totalIVA = 0
-    let totalTotal = 0
-
-    $("#tableBodyContainersInvoice").html('')
-
-    invoiceContainers.containersInvoice.sort(function(a,b){
-        return new Date(a.datetimeOut) - new Date(b.datetimeOut);
-    })
-
-    for(let j=0; j<invoiceContainers.containersInvoice.length; j++){
-
-        let el = invoiceContainers.containersInvoice[j]
-
-        $("#tableBodyContainersInvoice").append(`
-            <tr>
-                <td>${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${el.containerNumber}</td>
-                <td>${el.storage}</td>
-                <td>${el.extraDays}</td>
-                <td>${(el.deconsolidated) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transfer) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.portage) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transport) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-            </tr>
-        `)
-
-        for(k=0;k<invoiceContainers.containersInvoice[j].services.length;k++){
-            totalNet += invoiceContainers.containersInvoice[j].services[k].paymentNet
-            totalIVA += invoiceContainers.containersInvoice[j].services[k].paymentIVA
-            totalTotal += invoiceContainers.containersInvoice[j].services[k].paymentTotal
-        }
-
-        if(j+1==invoiceContainers.containersInvoice.length){
-            $("#invoiceNet").val(dot_separators(totalNet))
-            $("#invoiceIVA").val(dot_separators(totalIVA))
-            $("#invoiceTotal").val(dot_separators(totalTotal))
-        }
-    }
-}
-
 
 
 async function getClients(){
@@ -498,44 +362,25 @@ async function selectClientSearch(btn) {
 }
 
 function changeTabs(to){
-    if(to=='in'){
-        $("#linkIn").addClass('active')
-        $("#linkOut").removeClass('active')
-        $("#linkDecon").removeClass('active')
+    if(to=='to'){
+        $("#linkTo").addClass('active')
+        $("#linkDone").removeClass('active')
 
-        $("#badgeIn").removeClass('badge-success').addClass('badge-secondary')
-        $("#badgeOut").removeClass('badge-secondary').addClass('badge-success')
-        $("#badgeDecon").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeTo").removeClass('badge-success').addClass('badge-secondary')
+        $("#badgeDone").removeClass('badge-secondary').addClass('badge-success')
 
-        $("#divIn").css('display','block')
-        $("#divOut").css('display','none')
-        $("#divDecon").css('display','none')
+        $("#divTo").css('display','block')
+        $("#divDone").css('display','none')
 
-    }else if(to=='out'){
-        $("#linkIn").removeClass('active')
-        $("#linkOut").addClass('active')
-        $("#linkDecon").removeClass('active')
+    }else if(to=='done'){
+        $("#linkTo").removeClass('active')
+        $("#linkDone").addClass('active')
 
-        $("#badgeIn").removeClass('badge-secondary').addClass('badge-success')
-        $("#badgeOut").removeClass('badge-success').addClass('badge-secondary')
-        $("#badgeDecon").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeTo").removeClass('badge-secondary').addClass('badge-success')
+        $("#badgeDone").removeClass('badge-success').addClass('badge-secondary')
 
-        $("#divIn").css('display','none')
-        $("#divOut").css('display','block')
-        $("#divDecon").css('display','none')
-
-    }else if(to=='decon'){
-        $("#linkIn").removeClass('active')
-        $("#linkOut").removeClass('active')
-        $("#linkDecon").addClass('active')
-
-        $("#badgeIn").removeClass('badge-secondary').addClass('badge-success')
-        $("#badgeOut").removeClass('badge-secondary').addClass('badge-success')
-        $("#badgeDecon").removeClass('badge-success').addClass('badge-secondary')
-
-        $("#divIn").css('display','none')
-        $("#divOut").css('display','none')
-        $("#divDecon").css('display','block')
+        $("#divTo").css('display','none')
+        $("#divDone").css('display','block')
 
     }
     

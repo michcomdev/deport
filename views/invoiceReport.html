@@ -1,9 +1,9 @@
 {{!< layout/default}}
 {{#extend "css" }}
-    <link rel="stylesheet" type="text/css" href="/public/modules/dailyReport/dailyReport.css">
+    <link rel="stylesheet" type="text/css" href="/public/modules/invoiceReport/invoiceReport.css">
 {{/extend}}
 
-<h2 class="text-center">MOVIMIENTOS DIARIOS</h2>
+<h2 class="text-center">DETALLE FACTURACIÓN</h2>
 
 <div class="row">
     
@@ -53,23 +53,20 @@
     <div class="col-md-12">
         <ul class="nav nav-tabs">
             <li class="nav-item">
-                <a id="linkIn" class="nav-link active" href="#" onclick="changeTabs('in')">Ingresos <span id="badgeIn" class="badge badge-secondary">0</span></a>
+                <a id="linkTo" class="nav-link active" href="#" onclick="changeTabs('to')">Por Facturar <span id="badgeTo" class="badge badge-secondary">0</span></a>
             </li>
             <li class="nav-item">
-                <a id="linkOut" class="nav-link" href="#" onclick="changeTabs('out')"> Salidas <span id="badgeOut" class="badge badge-success">0</span></a>
-            </li>
-            <li class="nav-item">
-                <a id="linkDecon" class="nav-link" href="#" onclick="changeTabs('decon')"> Desconsolidado <span id="badgeDecon" class="badge badge-success">0</span></a>
+                <a id="linkDone" class="nav-link" href="#" onclick="changeTabs('done')"> Facturados <span id="badgeDone" class="badge badge-success">0</span></a>
             </li>
         </ul>
     </div>
     
-    <div id="divIn" class="col-md-12">
+    <div id="divTo" class="col-md-12">
         <div class="card border-primary">
             <!--<div class="card-header bg-primary text-white">FACTURAS</div>
             <div class="card-body table-responsive">-->
             <div class="card-body tablesParent">
-                <table id="tableIn" class="display nowrap table table-condensed tables" cellspacing="0">
+                <table id="tableTo" class="display nowrap table table-condensed tables" cellspacing="0">
                     <thead>
                         <tr>
                             <th>N° VOUCHER INGRESO</th>
@@ -83,19 +80,19 @@
                             <th>VALOR</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBodyIn">
+                    <tbody>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="divOut" class="col-md-12" style="display: none;">
+    <div id="divDone" class="col-md-12" style="display: none;">
         <div class="card border-primary">
             <!--<div class="card-header bg-primary text-white">CONTAINERS</div>-->
             <div class="card-body tablesParent">
-                <table id="tableOut" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
-                    <thead id="tableHeadOut">
+                <table id="tableDone" class="display nowrap table table-condensed tables" cellspacing="0" width="100%">
+                    <thead id="tableHeadDone">
                         <tr>
                             <th>N° VOUCHER SALIDA</th>
                             <th>FECHA</th>
@@ -111,32 +108,8 @@
                             <th>FECHA</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBodyOut">
+                    <tbody>
                     </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="divDecon" class="col-md-12">
-        <div class="card border-primary">
-            <!--<div class="card-header bg-primary text-white">FACTURAS</div>
-            <div class="card-body table-responsive">-->
-            <div class="card-body tablesParent">
-                <table id="tableDecon" class="display nowrap table table-condensed tables" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>N° VOUCHER INGRESO</th>
-                            <th>FECHA</th>
-                            <th>CONTENEDOR</th>
-                            <th>TIPO</th>
-                            <th>PATENTE</th>
-                            <th>GUÍA</th>
-                            <th>CLIENTE</th>
-                            <th>SERVICIO</th>
-                            <th>VALOR</th>
-                        </tr>
-                    </thead>
                 </table>
             </div>
         </div>
@@ -174,5 +147,5 @@
     </div>
 </div>
 {{#extend "js"}}
-    <script src="/public/modules/dailyReport/dailyReport.js"></script>
+    <script src="/public/modules/invoiceReport/invoiceReport.js"></script>
 {{/extend}}
