@@ -1,4 +1,5 @@
 import Containers from '../../models/Containers'
+import Invoices from '../../models/Invoices'
 //import Client from '../../models/Client'
 import ContainerTypes from '../../models/ContainerTypes'
 import Joi from 'joi'
@@ -159,10 +160,6 @@ export default [
                     
                     let containers = await Containers.find(query).populate(['clients','containertypes','sites','cranes','services.services'])
                     
-                    if(payload.type=='DECON'){
-                        console.log(containers)
-                    }
-
                     containers = containers.reduce((acc, el, i) => {
                         if(payload.type=='IN'){
                             acc.push({
@@ -373,6 +370,166 @@ export default [
             validate: {
                 payload: Joi.object().keys({
                     id: Joi.string().required()
+                })
+            }
+        }
+    },  
+    {
+        method: 'POST',
+        path: '/api/reportInvoice',
+        options: {
+            description: 'get one movement data',
+            notes: 'return all data from movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+
+                    let payload = request.payload
+                    let query = {}
+                    let status = ''
+
+                    var ObjectId = require('mongodb').ObjectID
+
+                    let firstquery = {
+                        clients: payload.client
+                    }
+
+                    let invoices = await Invoices.find(firstquery)
+
+                    let arrayContainers = []
+                    for(let i=0; i<invoices.length; i++){
+                        for(let j=0; j<invoices[i].containers.length; j++){
+                            arrayContainers.push(new ObjectId(invoices[i].containers[j].containers._id))
+                        }
+                    }
+
+                    if(arrayContainers.length>0){
+                        if(payload.onlyInvoice){
+                            query._id = {
+                                $in : arrayContainers
+                            }
+                        }else{
+                            query._id = {
+                                $nin : arrayContainers
+                            }
+                        }
+                    }
+
+                    query.clients = payload.client
+                    query.movements = { 
+                        $elemMatch : { 
+                            $or: [
+                                { movement: 'POR SALIR' },
+                                { movement: 'SALIDA' }
+                            ]
+                        }
+                    }
+
+                    let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
+
+                    containers = containers.reduce((acc, el, i) => {
+                        
+                        let service = '', serviceValue = 0
+                        let serviceDecon = '', serviceDeconValue = 0
+                        let extraDays = 0, extraDaysValue = 0
+                        let net = 0, iva = 0, total = 0
+                        for(let i=0; i<el.services.length; i++){
+                            
+                            if(i==0){
+                                service = el.services[i].services.name
+                                serviceValue = el.services[i].paymentNet
+                            }
+                            if(el.services[i].services.name=='Desconsolidado'){
+                                serviceDecon = el.services[i].services.name
+                                serviceDeconValue = el.services[i].paymentNet
+                            }
+                            if(el.services[i].services.name=='Día(s) Extra'){
+                                extraDays += el.services[i].extraDays
+                                extraDaysValue += el.services[i].paymentNet
+                            }
+
+                            net += el.services[i].paymentNet
+                            iva += el.services[i].paymentIVA
+                            total += el.services[i].paymentTotal
+                        }
+
+                        /*let paymentTotal = 0, paymentType = '', paymentDate = el.movements[lastMov].datetime
+                        if(el.payments){
+                            for(let j=0; j<el.payments.length; j++){
+                                paymentTotal += el.payments[j].paymentAmount
+                                paymentDate = el.payments[j].date
+                                if(j>0){
+                                    paymentType += ' - ' + el.payments[j].paymentType
+                                }else{
+                                    paymentType = el.payments[j].paymentType
+                                }
+                            }
+                        }
+
+                        let payment = 'Pendiente'
+                        if(paymentTotal>0){
+                            if(totalTotal>paymentTotal){
+                                payment = 'Parcial'
+                            }else{
+                                payment = 'Pagado'
+                            }
+                        }
+
+                        let deconIndex = 0
+
+                        for(let i=0; i<el.movements.length; i++){
+                            if(el.movements[i].movement=='DESCONSOLIDADO'){
+                                deconIndex = i
+                            }
+                        }
+*/
+                        let lastMov = el.movements.length - 1
+
+                        acc.push({
+                            id: el._id.toString(),
+                            datetimeIn: el.movements[0].datetime,
+                            datetimeOut: el.movements[lastMov].datetime,
+                            movement: el.movements[lastMov].movement,
+                            client: el.clients.name,
+                            numberOut: el.numberOut,
+                            containerNumber: el.containerNumber,
+                            containerLarge: el.containerLarge,
+                            driverPlate: el.movements[0].driverPlate,
+                            service: service,
+                            serviceValue: serviceValue,
+                            serviceDecon: serviceDecon,
+                            serviceDeconValue: serviceDeconValue,
+                            extraDays: extraDays,
+                            extraDaysValue: extraDaysValue,
+                            net: net,
+                            iva: iva,
+                            total: total
+                            /*payment: payment,
+                            paymentType: paymentType,
+                            paymentDate: paymentDate*/
+                        })
+                
+                        return acc
+                    }, [])
+                   
+                    return containers
+                
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    client: Joi.string().optional().allow(''),
+                    type: Joi.string().optional().allow(''),
+                    startDate: Joi.string().required(),
+                    endDate: Joi.string().required(),
+                    serviceSelect: Joi.string().required(),
+                    onlyInvoice: Joi.boolean().required()
                 })
             }
         }

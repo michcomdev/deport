@@ -47,8 +47,10 @@ $(document).ready(async function () {
     getParameters()
 
     $("#search").on('click', function(){
-        loadTo($("#searchClient").val())
-        loadDone($("#searchClient").val())
+        if($("#searchClient").val()!=0){
+            loadTo($("#searchClient").val())
+            loadDone($("#searchClient").val())
+        }
     })
 
 })
@@ -60,12 +62,12 @@ async function getParameters() {
     for(let i=0; i < clients.length; i++){
         $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
         if(i+1==clients.length){
-            $('#searchClient').on('change', function(){
+            /*$('#searchClient').on('change', function(){
                 if($(this).val()!=0){
-                    loadIn($("#searchClient").val())
-                    loadServices($("#searchClient").val())
+                    loadTo($("#searchClient").val())
+                    //loadDone($("#searchClient").val())
                 }
-            })
+            })*/
         }
     }
 
@@ -94,10 +96,14 @@ async function loadTo(id){
         type: 'TO',
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
-        serviceSelect: $("#searchService").val()
+        serviceSelect: $("#searchService").val(),
+        onlyInvoice: false
     }
+    
 
-    let movementTo = await axios.post('api/reportDaily',query)
+    let movementTo = await axios.post('api/reportInvoice',query)
+
+    console.log(movementTo.data)
 
     $("#badgeTo").text(movementTo.data.length)
     
@@ -121,32 +127,44 @@ async function loadTo(id){
                 url: spanishDataTableLang
             },
             responsive: false,
-            columnDefs: [{targets: [0,1,2,3,4,5], className: 'dt-center'},
-                         {targets: [8], className: 'dt-right'}],
+            columnDefs: [{targets: [0,1,2,3,4,5,8,10], className: 'dt-center'},
+                         {targets: [7,9,11,12,13,14], className: 'dt-right'}],
             //order: [[ 0, 'desc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
           },
           columns: [
-            { data: 'numberIn' },
-            { data: 'datetime' },
+            { data: 'numberOut' },
+            { data: 'datetimeIn' },
+            { data: 'datetimeOut' },
             { data: 'containerNumber' },
             { data: 'containerLarge' },
             { data: 'driverPlate' },
-            { data: 'driverGuide' },
-            { data: 'client' },
             { data: 'service' },
-            { data: 'serviceValue' }
+            { data: 'serviceValue' },
+            { data: 'serviceDecon' },
+            { data: 'serviceDeconValue' },
+            { data: 'extraDays' },
+            { data: 'extraDaysValue' },
+            { data: 'net' },
+            { data: 'iva' },
+            { data: 'total' }
           ],
           initComplete: function (settings, json) {
 
                 let formatData = movementTo.data.map(el => {
-                    el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
+                    el.datetimeIn = moment(el.datetimeIn).format('DD/MM/YYYY HH:mm')
+                    el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
                     el.serviceValue = dot_separators(el.serviceValue)
+                    el.serviceDeconValue = dot_separators(el.serviceDeconValue)
+                    el.extraDaysValue = dot_separators(el.extraDaysValue)
+                    el.net = dot_separators(el.net)
+                    el.iva = dot_separators(el.iva)
+                    el.total = dot_separators(el.total)
                     return el
                 })
 
-                internals.in.table.rows.add(formatData).draw()
+                internals.to.table.rows.add(formatData).draw()
           }
         })
 
@@ -158,11 +176,11 @@ async function loadTo(id){
                 $("#tableBodyContainers").html('')
 
             } else {
-                internals.in.table.$('tr.selected').removeClass('selected');
+                internals.to.table.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 
                 //internals.dataRowSelected = internals.clientsInvoice.table.row($(this)).data()
-                internals.dataRowSelectedInvoice = internals.in.table.row($(this)).data()
+                internals.dataRowSelectedInvoice = internals.to.table.row($(this)).data()
                 loadContainers($("#searchClient").val(), internals.dataRowSelectedInvoice._id)
                 //loadIn(internals.dataRowSelected._id)
                 //loadSingleContainer(internals.dataRowSelected.id)
@@ -180,10 +198,13 @@ async function loadDone(id){
         type: 'DONE',
         startDate: $("#searchDate").data('daterangepicker').startDate.format('YYYY-MM-DD'),
         endDate: $("#searchDate").data('daterangepicker').endDate.format('YYYY-MM-DD'),
-        serviceSelect: $("#searchService").val()
+        serviceSelect: $("#searchService").val(),
+        onlyInvoice: true
     }
 
-    let movementDone = await axios.post('api/reportDaily',query)
+    let movementDone = await axios.post('api/reportInvoice',query)
+
+    console.log(movementDone.data)
 
     $("#badgeDone").text(movementDone.data.length)
     
@@ -207,32 +228,40 @@ async function loadDone(id){
                 url: spanishDataTableLang
             },
             responsive: false,
-            columnDefs: [{targets: [0,1,2,3,4,5], className: 'dt-center'},
-                         {targets: [8], className: 'dt-right'}],
+            columnDefs: [{targets: [0,1,2,3,4,5,8,10], className: 'dt-center'},
+                         {targets: [7,9,11,12,13,14], className: 'dt-right'}],
             //order: [[ 0, 'desc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
           },
           columns: [
             { data: 'numberOut' },
-            { data: 'datetime' },
+            { data: 'datetimeIn' },
+            { data: 'datetimeOut' },
             { data: 'containerNumber' },
             { data: 'containerLarge' },
             { data: 'driverPlate' },
-            { data: 'driverGuide' },
-            { data: 'client' },
             { data: 'service' },
             { data: 'serviceValue' },
-            { data: 'payment' },
-            { data: 'paymentType' },
-            { data: 'paymentDate' }
+            { data: 'serviceDecon' },
+            { data: 'serviceDeconValue' },
+            { data: 'extraDays' },
+            { data: 'extraDaysValue' },
+            { data: 'net' },
+            { data: 'iva' },
+            { data: 'total' }
           ],
           initComplete: function (settings, json) {
 
                 let formatData = movementDone.data.map(el => {
-                    el.datetime = moment(el.datetime).format('DD/MM/YYYY HH:mm')
+                    el.datetimeIn = moment(el.datetimeIn).format('DD/MM/YYYY HH:mm')
+                    el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
                     el.serviceValue = dot_separators(el.serviceValue)
-                    el.paymentDate = moment(el.paymentDate).format('DD/MM/YYYY')
+                    el.serviceDeconValue = dot_separators(el.serviceDeconValue)
+                    el.extraDaysValue = dot_separators(el.extraDaysValue)
+                    el.net = dot_separators(el.net)
+                    el.iva = dot_separators(el.iva)
+                    el.total = dot_separators(el.total)
                     return el
                 })
 
