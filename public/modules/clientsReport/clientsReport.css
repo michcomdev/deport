@@ -1,5 +1,9 @@
 @font-face {font-family: "Password"; src: url("/public/fonts/password.ttf") format("truetype") /* chrome firefox opera Safari, Android, iOS 4.2+*/ }
 
+body { 
+    font-size: 13px;
+}
+
 .inputUserForm {
     text-align: center;
     font-size: 25px;

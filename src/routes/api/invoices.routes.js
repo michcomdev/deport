@@ -20,7 +20,7 @@ export default [
                     let query = {}
                     
                     if(payload.client!='0'){
-                        query.clients = payload.client
+                        query._id = payload.client
                     }
 
                     let clientsInvoices = await Client.find(query).lean()
@@ -601,7 +601,8 @@ export default [
                     - Almacenamiento Full
                     - Almacenamiento Vacío
                     - Almacenamiento IMO
-                    - Desconsolidado
+                    - Desconsolidado 20
+                    - Desconsolidado 40
                     - Traspaso
                     - Porteo
                     - Transporte
@@ -625,7 +626,10 @@ export default [
                                 case 'Almacenamiento IMO':
                                     actualService = fullData.storageIMO
                                 break;
-                                case 'Desconsolidado':
+                                case 'Desconsolidado 20':
+                                    actualService = fullData.deconsolidated
+                                break;
+                                case 'Desconsolidado 40':
                                     actualService = fullData.deconsolidated
                                 break;
                                 case 'Traspaso':

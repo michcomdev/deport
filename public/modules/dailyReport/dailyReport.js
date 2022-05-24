@@ -115,9 +115,7 @@ async function loadIn(id){
         internals.in.table = $('#tableIn')
         .DataTable( {
             dom: 'Bfrtip',
-            buttons: [
-                'excel'
-            ],
+            buttons: ['excel',{extend: 'pdfHtml5',  text: 'PDF', orientation: 'landscape'},'print'],
             iDisplayLength: 50,
             oLanguage: {
               sSearch: 'Buscar: '
@@ -201,9 +199,7 @@ async function loadOut(id){
         internals.out.table = $('#tableOut')
         .DataTable( {
             dom: 'Bfrtip',
-            buttons: [
-                'excel'
-            ],
+            buttons: ['excel',{extend: 'pdfHtml5',  text: 'PDF', orientation: 'landscape'},'print'],
             iDisplayLength: 50,
             oLanguage: {
               sSearch: 'Buscar: '
@@ -291,9 +287,7 @@ async function loadDecon(id){
         internals.decon.table = $('#tableDecon')
         .DataTable( {
             dom: 'Bfrtip',
-            buttons: [
-                'excel'
-            ],
+            buttons: ['excel',{extend: 'pdfHtml5',  text: 'PDF', orientation: 'landscape'},'print'],
             iDisplayLength: 50,
             oLanguage: {
               sSearch: 'Buscar: '

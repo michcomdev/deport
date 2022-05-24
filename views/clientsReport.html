@@ -3,22 +3,22 @@
     <link rel="stylesheet" type="text/css" href="/public/modules/clientsReport/clientsReport.css">
 {{/extend}}
 
-<h2 class="text-center">RESUMEN CLIENTES</h2>
+<h4 class="text-center">RESUMEN CLIENTES</h4>
 
 <div class="row">
     
     <div class="col-md-3 col-xs-12">
         Cliente
-        <select id="searchClient" class="custom-select">
-            <option value="0">TODOS</option>
+        <select id="searchClient" class="custom-select custom-select-sm">
+            <option value="0">SELECCIONE...</option>
         </select>
     </div>
     <div class="col-md-1">
         <br/>
-        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+        <button class="btn btn-sm btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
     </div>
 
-    <div class="form-check col-md-1  col-xs-12">
+    <div class="form-check col-md-2  col-xs-12">
         <br/>
         <input class="form-check-input" type="checkbox" value="" id="searchDateCheck">
         <label class="form-check-label" for="flexCheckDefault">
@@ -27,12 +27,12 @@
     </div>
     <div class="col-md-2 col-xs-12">
         Fecha Desde - Hasta
-        <input id="searchDate" type="text" class="form-control border-input" disabled>
+        <input id="searchDate" type="text" class="form-control form-control-sm border-input" disabled>
     </div>
                             
     <div class="col-md-2 col-xs-12">
         <br>
-        <button class="btn btn-primary btn-block" id="search">
+        <button class="btn btn-sm btn-primary btn-block" id="search">
             <i class="fas fa-search"></i> BUSCAR
         </button>
     </div>
@@ -74,6 +74,8 @@
                             <th>TOTAL</th>
                         </tr>
                     </thead>
+                    <tbody id="tableBodyInvoices">
+                    </tbody>
                 </table>
             </div>
         </div>

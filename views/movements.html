@@ -3,12 +3,12 @@
     <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
 {{/extend}}
 
-<h2 class="text-center">MOVIMIENTOS</h2>
+<h4 class="text-center">MOVIMIENTOS</h4>
 
 <br>
 
 <div class="row">
-    <div class="col-md-1 col-xs-12">
+    <div class="col-md-2 col-xs-12">
         Cliente
         <select id="searchClient" class="custom-select custom-select-sm">
             <option value="">TODOS</option>
@@ -29,8 +29,8 @@
     </div>
 
     
-    <div class="col-md-2 col-xs-12">
-        Estado / Últ. Movimiento
+    <div class="col-md-1 col-xs-12">
+        Estado
         <select id="searchStatus" class="custom-select custom-select-sm noInventory">
             <option value="TODOS">TODOS</option>
             <option value="EN SITIO">EN SITIO</option>
@@ -49,14 +49,12 @@
         Fecha Desde - Hasta
         <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control form-control-sm border-input noInventory">
     </div>
-    <div class="form-check col-md-1  col-xs-12">
+    <div class="form-check col-md-2  col-xs-12">
         <br/>
         <input class="form-check-input" type="checkbox" value="" id="searchDateOut">
         <label class="form-check-label" for="flexCheckDefault">
             Filtrar por fecha salida
         </label>
-    </div>
-    <div class="form-check col-md-1  col-xs-12">
         <br/>
         <input class="form-check-input" type="checkbox" value="" id="searchInventory">
         <label class="form-check-label" for="flexCheckDefault">
@@ -66,7 +64,7 @@
         
     <div class="col-md-2 col-xs-12">
         <br>
-        <button class="btn btn-primary btn-block" id="search">
+        <button class="btn btn-sm btn-primary btn-block" id="search">
             <i class="fas fa-search"></i> BUSCAR
         </button>
     </div>
@@ -75,27 +73,27 @@
         <div class="row">
             <div class="col-md-2 col-xs-12">
                 <br>
-                <button class="btn btn-success btn-block" id="optionCreateMovement">
+                <button class="btn btn-sm btn-success btn-block" id="optionCreateMovement">
                     <i class="fas fa-file-import"></i> LLEGADA
                 </button>
                 <br>
-                <button class="btn btn-outline-success btn-block" id="optionModMovement" disabled>
+                <button class="btn btn-sm btn-outline-success btn-block" id="optionModMovement" disabled>
                     <i class="fas fa-edit"></i> MODIFICAR
                 </button>
                 <br>
-                <button class="btn btn-info btn-block" id="optionMovMovement" disabled>
+                <button class="btn btn-sm btn-info btn-block" id="optionMovMovement" disabled>
                     <i class="fas fa-trailer"></i> MOV. INTERNO
                 </button>
                 <br>
-                <button class="btn btn-primary btn-block" id="optionCloseMovement" disabled>
+                <button class="btn btn-sm btn-primary btn-block" id="optionCloseMovement" disabled>
                     <i class="fas fa-file-export"></i> DAR SALIDA
                 </button>
                 <hr>
-                <button class="btn btn-warning btn-block" id="optionDeconsolidatedMovement" disabled>
+                <button class="btn btn-sm btn-warning btn-block" id="optionDeconsolidatedMovement" disabled>
                     <i class="fas fa-trailer"></i><i class="fas fa-angle-double-right"></i><i class="fas fa-truck-loading"></i> DESCONSOLIDADO
                 </button>
                 <hr>
-                <button class="btn btn-primary btn-block" id="optionTransferMovement">
+                <button class="btn btn-sm btn-primary btn-block" id="optionTransferMovement">
                     <i class="fas fa-truck-moving"></i><i class="fas fa-angle-double-right"></i><i class="fas fa-truck-moving"></i> TRASPASO
                 </button>
                 

@@ -64,14 +64,14 @@ async function getParameters() {
     for(let i=0; i < clients.length; i++){
         $("#searchClient").append('<option value="'+clients[i]._id+'">'+clients[i].name+'</option>')
         if(i+1==clients.length){
-            $('#searchClient').on('change', function(){
+            /*$('#searchClient').on('change', function(){
                 loadSingleContainer(0)
                 if($(this).val()!=0){
                     chargeClientsTable()
                 }else{
 
                 }
-            })
+            })*/
         }
     }
 
@@ -164,7 +164,7 @@ async function getClientsInvoiceEnabled() {
     }
 
     clientsInvoicesData = await axios.post('api/clientsInvoices',query)
-    
+
     if (clientsInvoicesData.data.length > 0) {
         let formatData= clientsInvoicesData.data.map(el => {
             
@@ -416,7 +416,7 @@ async function loadContainers(id,onlyInvoice){
             let el = movementData.data[i]
             el.extraDays = 0
             if(Date.parse(el.datetimeOut)){
-                el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
+                /*el.extraDays = moment(el.datetimeOut).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 if(el.extraDays<=5){
                     el.extraDays = 0
                 }else{
@@ -441,6 +441,8 @@ async function loadContainers(id,onlyInvoice){
                 }
 
                 el.storage = ''
+                el.storageValue = false
+                el.extraDaysValue = 0
                 el.deconsolidated = false
                 el.transfer = false
                 el.portage = false
@@ -450,7 +452,22 @@ async function loadContainers(id,onlyInvoice){
                 for(let j=0;j<el.services.length;j++){
                     if(el.services[j].services.name=='Almacenamiento Vacío' || el.services[j].services.name=='Almacenamiento Full' || el.services[j].services.name=='Almacenamiento IMO'){
                         el.storage = el.services[j].services.name
-                    }else if(el.services[j].services.name=='Desconsolidado'){
+                        el.storageValue = el.services[j].paymentNet
+                    }else if(el.services[j].services.name.indexOf('Desconsolidado') >= 0){
+                        el.deconsolidated = el.services[j].paymentNet
+                    }else if(el.services[j].services.name=='Traspaso'){
+                        el.transfer = el.services[j].paymentNet
+                    }else if(el.services[j].services.name=='Porteo'){
+                        el.portage = el.services[j].paymentNet
+                    }else if(el.services[j].services.name=='Transporte'){
+                        el.transport = el.services[j].paymentNet
+                    }else if(el.services[j].services.name=='Día(s) Extra'){
+                        el.extraDays += el.services[j].extraDays
+                        el.extraDaysValue += el.services[j].paymentNet
+                    }
+
+                    /*
+                    }else if(el.services[j].services.name.indexOf('Desconsolidado') >= 0){
                         el.deconsolidated = true
                     }else if(el.services[j].services.name=='Traspaso'){
                         el.transfer = true
@@ -458,7 +475,9 @@ async function loadContainers(id,onlyInvoice){
                         el.portage = true
                     }else if(el.services[j].services.name=='Transporte'){
                         el.transport = true
-                    }
+                    }else if(el.services[j].services.name=='Día(s) Extra'){
+                        el.extraDays += el.services[j].extraDays
+                    }*/
                 }
 
                 el.invoiced = ''
@@ -503,39 +522,64 @@ function drawTablesContainers(){
 
         let el = invoiceContainers.containers[i]
 
+        let subTotal = 0
+        if(el.storageValue) subTotal += el.storageValue
+        if(el.extraDaysValue) subTotal += el.extraDaysValue
+        if(el.deconsolidated) subTotal += el.deconsolidated
+        if(el.transfer) subTotal += el.transfer
+        if(el.portage) subTotal += el.portage
+        if(el.transport) subTotal += el.transport
+
         $("#tableBodyContainers").append(`
             <tr onclick="autoCheck(this)">
-                <td><input type="checkbox" /><input type="hidden" value="${el.id}"></td>
-                <td>${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${el.containerNumber}</td>
-                <td>${el.storage}</td>
-                <td>${el.extraDays}</td>
-                <td>${(el.deconsolidated) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transfer) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.portage) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transport) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
+                <td style="width: 50px;"><input type="checkbox" /><input type="hidden" value="${el.id}"></td>
+                <td style="text-align: center;">${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
+                <td style="text-align: center;">${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
+                <td style="text-align: center;">${el.containerNumber}</td>
+                <td style="text-align: center;">${el.storage}</td>
+                <td style="text-align: center;">${el.extraDays}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.storageValue) ? dot_separators(el.storageValue) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.extraDaysValue) ? dot_separators(el.extraDaysValue) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.deconsolidated) ? dot_separators(el.deconsolidated) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.transfer) ? dot_separators(el.transfer) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.portage) ? dot_separators(el.portage) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.transport) ? dot_separators(el.transport) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9; font-weight: bold">${dot_separators(subTotal)}</td>
             </tr>
         `)
-
+/*<td style="text-align: right;">${(el.deconsolidated) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
+                <td style="text-align: right;">${(el.transfer) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
+                <td style="text-align: right;">${(el.portage) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
+                <td style="text-align: right;">${(el.transport) ? '<i class="fas fa-check-circle"></i>' : ''}</td> */
     }
 
     for(let j=0; j<invoiceContainers.containersInvoice.length; j++){
 
         let el = invoiceContainers.containersInvoice[j]
 
+        let subTotal = 0
+        if(el.storageValue) subTotal += el.storageValue
+        if(el.extraDaysValue) subTotal += el.extraDaysValue
+        if(el.deconsolidated) subTotal += el.deconsolidated
+        if(el.transfer) subTotal += el.transfer
+        if(el.portage) subTotal += el.portage
+        if(el.transport) subTotal += el.transport
+
         $("#tableBodyContainersInvoice").append(`
             <tr onclick="autoCheck(this)">
-                <td><input type="checkbox" /><input type="hidden" value="${el.id}"></td>
-                <td>${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
-                <td>${el.containerNumber}</td>
-                <td>${el.storage}</td>
-                <td>${el.extraDays}</td>
-                <td>${(el.deconsolidated) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transfer) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.portage) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
-                <td>${(el.transport) ? '<i class="fas fa-check-circle"></i>' : ''}</td>
+                <td style="width: 50px;"><input type="checkbox" /><input type="hidden" value="${el.id}"></td>
+                <td style="text-align: center;">${moment(el.datetime).format('DD/MM/YYYY HH:mm')}</td>
+                <td style="text-align: center;">${moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')}</td>
+                <td style="text-align: center;">${el.containerNumber}</td>
+                <td style="text-align: center;">${el.storage}</td>
+                <td style="text-align: center;">${el.extraDays}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.storageValue) ? dot_separators(el.storageValue) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.extraDaysValue) ? dot_separators(el.extraDaysValue) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.deconsolidated) ? dot_separators(el.deconsolidated) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.transfer) ? dot_separators(el.transfer) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.portage) ? dot_separators(el.portage) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9">${(el.transport) ? dot_separators(el.transport) : ''}</td>
+                <td style="text-align: right; background-color: #dbedf9; font-weight: bold">${dot_separators(subTotal)}</td>
             </tr>
         `)
 
@@ -1031,16 +1075,19 @@ function createModalBody(){
                             <table id="tableContainers" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                                 <thead id="tableHeadContainers">
                                     <tr>
-                                        <th>SEL.</th>
-                                        <th>FECHA INGRESO</th>
-                                        <th>FECHA SALIDA</th>
-                                        <th>CONTENEDOR</th>
-                                        <th>ALMACENAJE</th>
-                                        <th>DÍAS EXTRA</th>
-                                        <th>DESC</th>
-                                        <th>TRASP</th>
-                                        <th>PORTEO</th>
-                                        <th>TRANSP</th>
+                                        <th style="text-align: center; width: 50px">SEL.</th>
+                                        <th style="text-align: center;">INGRESO</th>
+                                        <th style="text-align: center;">SALIDA</th>
+                                        <th style="text-align: center;">CONTENEDOR</th>
+                                        <th style="text-align: center;">ALMACENAJE</th>
+                                        <th style="text-align: center;">DÍAS EXTRA</th>
+                                        <th style="text-align: right; background-color: #dbedf9">ALMACENAJE</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">DÍAS EXTRA</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">DESCONSOL.</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">TRASPASO</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">PORTEO</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">TRANSPORTE</th>
+                                        <th style="text-align: right; background-color: #dbedf9"">SUBTOTAL</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableBodyContainers">
@@ -1073,16 +1120,19 @@ function createModalBody(){
                             <table id="tableContainersInvoice" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                                 <thead id="tableHeadContainersInvoice">
                                     <tr>
-                                        <th>SEL.</th>
-                                        <th>FECHA INGRESO</th>
-                                        <th>FECHA SALIDA</th>
-                                        <th>CONTENEDOR</th>
-                                        <th>ALMACENAJE</th>
-                                        <th>DÍAS EXTRA</th>
-                                        <th>DESC</th>
-                                        <th>TRASP</th>
-                                        <th>PORTEO</th>
-                                        <th>TRANSP</th>
+                                        <th style="text-align: center; width: 50px">SEL.</th>
+                                        <th style="text-align: center;">INGRESO</th>
+                                        <th style="text-align: center;">SALIDA</th>
+                                        <th style="text-align: center;">CONTENEDOR</th>
+                                        <th style="text-align: center;">ALMACENAJE</th>
+                                        <th style="text-align: center;">DÍAS EXTRA</th>
+                                        <th style="text-align: right; background-color: #dbedf9">ALMACENAJE</th>
+                                        <th style="text-align: right; background-color: #dbedf9">DÍAS EXTRA</th>
+                                        <th style="text-align: right; background-color: #dbedf9">DESCONSOL.</th>
+                                        <th style="text-align: right; background-color: #dbedf9">TRASPASO</th>
+                                        <th style="text-align: right; background-color: #dbedf9">PORTEO</th>
+                                        <th style="text-align: right; background-color: #dbedf9">TRANSPORTE</th>
+                                        <th style="text-align: right; background-color: #dbedf9">SUBTOTAL</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableBodyContainersInvoice">

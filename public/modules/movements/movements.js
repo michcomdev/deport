@@ -262,7 +262,7 @@ function loadMovementTable() {
         .DataTable({
             dom: 'Bfrtip',
             buttons: ['excel'],
-            iDisplayLength: 50,
+            iDisplayLength: 25,
             language: {
                 url: spanishDataTableLang
             },
@@ -332,7 +332,11 @@ function loadMovementTable() {
                 if(movementType=='INGRESADO' || movementType=='TRASLADO'){
                     $('#optionCloseMovement').prop('disabled', false)
                     $('#optionMovMovement').prop('disabled', false)
-                    $('#optionDeconsolidatedMovement').prop('disabled', false)
+                    if(internals.dataRowSelected.containerState=='LLENO'){
+                        $('#optionDeconsolidatedMovement').prop('disabled', false)
+                    }else{
+                        $('#optionDeconsolidatedMovement').prop('disabled', true)
+                    }
                 }else if(movementType=='DESCONSOLIDADO'){
                     $('#optionCloseMovement').prop('disabled', false)
                     $('#optionMovMovement').prop('disabled', false)
@@ -364,12 +368,9 @@ async function getMovementsEnabled() {
     }
 
     movementData = await axios.post('api/movementsByFilter',query)
-
-    console.log(movementData.data)
     
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
-
 
             /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
             el.extraDays = 0
@@ -382,12 +383,15 @@ async function getMovementsEnabled() {
                 el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
             }
                 
-            if(el.services.find(x => x.services.name==='Desconsolidado')){
+            if(el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+                let serviceName = el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
+                
                 let deconDate = el.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
 
                 //Días Extras posteriores a Desconsolidado
                 deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
-                let serviceDays = el.services.find(x => x.services.name==='Desconsolidado').services.days
+                
+                let serviceDays = el.services.find(x => x.services.name===serviceName).services.days
                 if(deconExtraDays<=serviceDays){
                     deconExtraDays = 0
                 }else{
@@ -399,8 +403,11 @@ async function getMovementsEnabled() {
                 el.extraDays = momentEndDate.diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
             }
         
-            if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
-                let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+            //if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
+                //let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+            if(el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0)){
+                let serviceDays = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services.days
+                
                 if(el.extraDays<=serviceDays){
                     el.extraDays = 0
                 }else{
@@ -413,7 +420,7 @@ async function getMovementsEnabled() {
                     el.extraDays -= 5
                 }
             }
-
+            
             el.extraDays += deconExtraDays
             
             /////////////////////////////////////////
@@ -439,7 +446,6 @@ async function getMovementsEnabled() {
 
 $('#sendMail').on('click', async function () {
     let email = await axios.post('api/sendMail',{id: '627be1774a15be6ebc60667c', type: 'INGRESO', driverName: 'YUSNEIVY', pdf: ''})
-    console.log(email)
 })
 
 $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
@@ -687,7 +693,7 @@ $('#optionModMovement').on('click', async function () {
         let momentEndDate = moment()
         
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
-            $('#modalMov_title').html(`Modifica Ingreso`)
+            $('#modalMov_title').html(`Modifica Registro`)
 
         }else if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
             $('#modalMov_title').html(`Modifica Salida`)
@@ -695,11 +701,12 @@ $('#optionModMovement').on('click', async function () {
             momentEndDate = moment(container.movements[movementID].datetime)
         }
         
-        if(container.services.find(x => x.services.name==='Desconsolidado')){
+        if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+            let serviceName = container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
             let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
             //Días Extras posteriores a Desconsolidado
             deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
-            let serviceDays = container.services.find(x => x.services.name==='Desconsolidado').services.days
+            let serviceDays = container.services.find(x => x.services.name===serviceName).services.days
             if(deconExtraDays<=serviceDays){
                 deconExtraDays = 0
             }else{
@@ -775,7 +782,7 @@ $('#optionModMovement').on('click', async function () {
             </button>
         `)
 
-        if(container.services.find(x => x.services.name==='Desconsolidado')){
+        if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
             $('#divPrintDecon').html(`
                 <button class="btn btn-warning btn-sm" id="printMovementDecon" onclick="printVoucher('decon','${internals.dataRowSelected.id}')">
                     <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER DESCONSOLIDADO ${numberDecon}
@@ -858,12 +865,26 @@ $('#optionModMovement').on('click', async function () {
             $('#movementDriverGuide').val(container.movements[0].driverGuide)
             $('#movementDriverSeal').val(container.movements[0].driverSeal)
 
-            $('#movementDriverOutForeigner').prop('checked',container.movements[movementID].driverOutForeigner)
-            $('#movementDriverOutRUT').val(container.movements[movementID].driverRUT)
-            $('#movementDriverOutName').val(container.movements[movementID].driverName)
-            $('#movementDriverOutPlate').val(container.movements[movementID].driverPlate)
-            $('#movementDriverOutGuide').val(container.movements[movementID].driverGuide)
-            $('#movementDriverOutSeal').val(container.movements[movementID].driverSeal)
+            if(container.movements[movementID].driverRUT){
+                $('#movementDriverOutForeigner').prop('checked',container.movements[movementID].driverOutForeigner)
+                $('#movementDriverOutRUT').val(container.movements[movementID].driverRUT)
+                $('#movementDriverOutName').val(container.movements[movementID].driverName)
+                $('#movementDriverOutPlate').val(container.movements[movementID].driverPlate)
+                $('#movementDriverOutGuide').val(container.movements[movementID].driverGuide)
+                $('#movementDriverOutSeal').val(container.movements[movementID].driverSeal)
+            }else{
+                for(let i=container.movements.length-1;i>=0;i--){
+                    if(container.movements[i].driverRUT){
+                        $('#movementDriverOutForeigner').prop('checked',container.movements[i].driverOutForeigner)
+                        $('#movementDriverOutRUT').val(container.movements[i].driverRUT)
+                        $('#movementDriverOutName').val(container.movements[i].driverName)
+                        $('#movementDriverOutPlate').val(container.movements[i].driverPlate)
+                        $('#movementDriverOutGuide').val(container.movements[i].driverGuide)
+                        $('#movementDriverOutSeal').val(container.movements[i].driverSeal)
+                        i=0
+                    }
+                }
+            }
         }else{
             $('#movementDriverForeigner').prop('checked',container.movements[movementID].driverForeigner)
             $('#movementDriverRUT').val(container.movements[movementID].driverRUT)
@@ -914,6 +935,7 @@ $('#optionModMovement').on('click', async function () {
 
             //Servicios
             let services = []
+            let hasDeconsolidated = false //Para el caso en que se borre el desconsolidado
             let errorNet = false, errorIVA = false
             $("#tableServicesBody > tr").each(function() {
                 let net = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
@@ -940,6 +962,10 @@ $('#optionModMovement').on('click', async function () {
                     paymentIVA: iva,
                     paymentTotal: total
                 })
+
+                if($($($(this).children()[0]).children()[0]).children(':selected').text().indexOf('Desconsolidado')>=0){
+                    hasDeconsolidated = true
+                }
             })
 
             if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
@@ -962,9 +988,7 @@ $('#optionModMovement').on('click', async function () {
                             }
                         }
                     }
-        
-                    console.log('extraDays',extraDays)
-        
+                
                     services.push({
                         services: $($($(this).children()[1]).children()[1]).val(),
                         paymentNet: net,
@@ -1029,6 +1053,10 @@ $('#optionModMovement').on('click', async function () {
             let datetime = $('#movementDate').val() + ' ' + $('#movementTime').val()
             if(movement=='POR SALIR' || movement=='SALIDA'){
                 datetime = $('#movementOutDate').val() + ' ' + $('#movementOutTime').val()
+            }
+
+            if(movement=='DESCONSOLIDADO' && hasDeconsolidated==false){
+                movement = 'INGRESADO'
             }
 
             let movementData = {
@@ -1097,8 +1125,6 @@ $('#optionModMovement').on('click', async function () {
                 <i ="color:#3498db;" class="fas fa-check"></i> GUARDAR
             </button>
         `)
-
-        console.log(container)
 
         let transferIn = '', transferOut = ''
         if(container.transferIn){
@@ -1382,11 +1408,12 @@ $('#optionCloseMovement').on('click', async function () {
     deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
     let momentEndDate = moment()
     
-    if(container.services.find(x => x.services.name==='Desconsolidado')){
+    if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+        let serviceName = container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
         let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
         //Días Extras posteriores a Desconsolidado
         deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
-        let serviceDays = container.services.find(x => x.services.name==='Desconsolidado').services.days
+        let serviceDays = container.services.find(x => x.services.name===serviceName).services.days
         if(deconExtraDays<=serviceDays){
             deconExtraDays = 0
         }else{
@@ -1779,10 +1806,10 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     let movementID = internals.dataRowSelected.movementID
 
     $('#movementsModal').modal('show')
-    $('#modalMov_title').html(`Desconsolidado de Container`)
+    $('#modalMov_title').html(`Desconsolidado`)
     $('#modalMov_body').html(createModalBody('DESCONSOLIDADO'))
     $('#imgTexture').val('cai')
-    setServiceList('DESCONSOLIDADO', container.services)
+    setServiceList('DESCONSOLIDADO', container.services, container.containerLarge)
     setPayments(container.payments)
     setPositionList()
 
@@ -2415,9 +2442,9 @@ function createModalBody(type){
                         <div class="col-md-6">
                             <h6>DATOS GENERALES</h6>
                         </div>`
-                body += `<div class="col-md-6">
+                /*body += `<div class="col-md-6">
                             <button class="btn btn-primary btn-sm" onclick="testing()">Rellenar</button>
-                        </div>`
+                        </div>`*/
 
                 body += `<div class="col-md-7">
                             ${(type=='POR SALIR' || type=='SALIDA') ? 'Fecha Ingreso':'Fecha'}
@@ -2767,18 +2794,16 @@ function createModalBody(type){
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <h6>DATOS DE SERVICIOS</h6>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <br/ >
                             ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServicePortage" class="btn btn-sm btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <br/ >
                             ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServiceTransport" class="btn btn-sm btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
-                        </div>
-                        <div class="col-md-3">
                         </div>
 
                         <div class="form-check col-md-12 table-responsive">
@@ -2812,28 +2837,28 @@ function createModalBody(type){
                                 </tbody>
                             </table>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                         </div>
-                        <div class="col-md-2" style="text-align: right">
+                        <div class="col-md-3" style="text-align: right">
                             Total Neto
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <input id="movementTotalNet" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                         </div>
-                        <div class="col-md-2" style="text-align: right">
+                        <div class="col-md-3" style="text-align: right">
                             Total IVA
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <input id="movementTotalIVA" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                         </div>
-                        <div class="col-md-2" style="text-align: right">
+                        <div class="col-md-3" style="text-align: right">
                             Total Final
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <input id="movementTotalTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
                     </div>
@@ -2845,13 +2870,13 @@ function createModalBody(type){
             <div class="card border-primary">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <h6>DATOS DE PAGO</h6>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <button id="btnAddPayment" class="btn btn-sm btn-info classPayment" onclick="addPayment()"><i class="fas fa-plus"></i> Agregar Pago <i class="fas fa-hand-holding-usd"></i></button>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                         </div>
 
                         <div class="form-check col-md-12 table-responsive">
@@ -2871,20 +2896,20 @@ function createModalBody(type){
                             </table>
                             
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                         </div>
-                        <div class="col-md-2" style="text-align: right">
+                        <div class="col-md-3" style="text-align: right">
                             Total Neto
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <input id="movementPaymentTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                         </div>
-                        <div class="col-md-2" style="text-align: right">
+                        <div class="col-md-3" style="text-align: right">
                             Saldo por pagar
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <input id="movementPaymentBalance" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
                         </div>
                     </div>
@@ -2902,7 +2927,7 @@ function createModalBody(type){
     return body
 }
 
-function setServiceList(type,array){
+function setServiceList(type,array,containerLarge){
 
     let firstSelect = ''
     if(type!='TRASPASO'){
@@ -2917,7 +2942,7 @@ function setServiceList(type,array){
                     ${
                         services.reduce((acc,el)=>{
                             if(type=='ALL' || type=='DESCONSOLIDADO'){
-                                if(el.name!='Traspaso' && el.name!='Desconsolidado' && el.name.indexOf("Almacenamiento") >= 0){
+                                if(el.name!='Traspaso' && el.name.indexOf('Desconsolidado') == -1 && el.name.indexOf("Almacenamiento") >= 0){
                                     acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
                                 }
                             }else if(type=='TRASPASO'){
@@ -2956,22 +2981,36 @@ function setServiceList(type,array){
                     $("#btnServiceTransport").prop('disabled', true)
                     trClass = 'table-infoSoft'
                     btnDelete = `<button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, 'btnServiceTransport')" title="Quitar Servicio"><i class="fas fa-times"></i></button>`
+                }else if(array[i].services.name.indexOf('Desconsolidado') >= 0){
+                    btnDelete = `<button class="btn btn-sm btn-danger classOut classMove" onclick="deleteService(this, 'btnServiceDeconsolidated')" title="Quitar Servicio"><i class="fas fa-times"></i></button>`
                 }
+                
+                let listService = ''
 
+                if(array[i].services.name!='Día(s) Extra' && array[i].services.name.indexOf('Desconsolidado') ==-1 ){
+                    services.reduce((acc,el)=>{
+                        if(el._id==array[i].services._id){
+                            listService += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                        }
+                    },'')
+                }else if(array[i].services.name.indexOf('Desconsolidado') >= 0){
+                    services.reduce((acc,el)=>{
+                        if(el.name.indexOf('Desconsolidado') >= 0){
+                            
+                            if(el._id==array[i].services._id){
+                                listService += '<option value="'+el._id+'" data-net="'+el.net+'" selected>'+el.name+'</option>'
+                            }else{
+                                listService += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                            }
+                        }
+                    },'')
+                }
                 if(array[i].services.name!='Día(s) Extra'){
-
                     $("#tableServicesBody").append(`
                         <tr class="${trClass}">
                             <td>
                                 <select class="custom-select custom-select-sm classMove" onchange="updatePayment(this)">
-                                    ${
-                                        services.reduce((acc,el)=>{
-                                            if(el._id==array[i].services._id){
-                                                acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
-                                            }
-                                            return acc
-                                        },'')
-                                    }
+                                    ${listService}
                                 </select>
                             </td>
                             <td>
@@ -2998,10 +3037,14 @@ function setServiceList(type,array){
             <tr>
                 <td>
                     <select class="custom-select custom-select-sm classMove classDeconsolidated" onchange="updatePayment(this)">
-                        ${                      
+                        ${
                             services.reduce((acc,el)=>{
-                                if(el.name=='Desconsolidado'){
-                                    acc += '<option value="'+el._id+'" data-net="'+el.net+'" selected>'+el.name+'</option>'
+                                if(el.name.indexOf('Desconsolidado') >= 0){
+                                    if(el.name.indexOf(containerLarge) >= 0){
+                                        acc += '<option value="'+el._id+'" data-net="'+el.net+'" selected>'+el.name+'</option>'
+                                    }/*else{
+                                        acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
+                                    }*/
                                 }
                                 return acc
                             },'')
@@ -3693,13 +3736,6 @@ function setModalClient(){
                 </div>
 
 
-
-                <div class="col-md-8" style="margin-top:10px;">
-                    <br/>
-                    Cliente con Crédito
-                    <input type="checkbox" id="clientCredit">
-                </div>
-
                 <div class="col-md-4" style="margin-top:10px;">
                     <br/>
                     Servicios
@@ -3871,7 +3907,7 @@ async function showMap(){
 
 async function printVoucher(type,id,sendEmail) {
 
-    let indexPages = 1
+    let indexPages = 2
     let typeMail = ''
 
     let movement = await axios.post('api/movementVoucher', {id: id, type: type})
@@ -3880,9 +3916,6 @@ async function printVoucher(type,id,sendEmail) {
     if(!voucher.driverGuide) voucher.driverGuide='0'
     if(!voucher.driverSeal) voucher.driverSeal='0'
     
-    
-    console.log(voucher)
-
     //let doc = new jsPDF('p', 'pt', 'letter')
     let doc = new jsPDF('p', 'pt', [302, 451])
     
@@ -4167,10 +4200,31 @@ function addService(btn,type){
     })
 }
 
-function deleteService(btnRow, btn){
-    $(btnRow).parent().parent().remove()
-    $('#'+btn).removeAttr('disabled')
-    calculateTotal()
+async function deleteService(btnRow, btn){
+    if(btn!='btnServiceDeconsolidated'){
+        $(btnRow).parent().parent().remove()
+        $('#'+btn).removeAttr('disabled')
+        calculateTotal()
+    }else{
+        let deleteDeconsolidated = await Swal.fire({
+            title: '¿Está seguro de eliminar el servicio de desconsolidado?',
+            customClass: 'swal-wide',
+            html: ` `,
+            showCloseButton: true,
+            showCancelButton: true,
+            showConfirmButton: true,
+            focusConfirm: false,
+            confirmButtonText: 'Sí',
+            cancelButtonText: 'No'
+        })
+        if (deleteDeconsolidated.value) {
+            $(btnRow).parent().parent().remove()
+            calculateTotal()
+        }
+    }
+
+    
+    
 }
 
 function addPayment(){

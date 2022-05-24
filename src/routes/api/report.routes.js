@@ -273,20 +273,23 @@ export default [
                                 }
                             }
 
-                            acc.push({
-                                id: el._id.toString(),
-                                datetime: el.movements[deconIndex].datetime,
-                                movement: el.movements[deconIndex].movement,
-                                client: el.clients.name,
-                                numberDecon: el.numberDecon,
-                                containerNumber: el.containerNumber,
-                                containerLarge: el.containerLarge,
-                                driverName: el.movements[deconIndex].driverName,
-                                driverPlate: el.movements[deconIndex].driverPlate,
-                                driverGuide: el.movements[deconIndex].driverGuide,
-                                service: el.services[deconIndex].services.name,
-                                serviceValue: el.services[deconIndex].paymentNet
-                            })
+                            if(el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+                               
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: el.movements[deconIndex].datetime,
+                                    movement: el.movements[deconIndex].movement,
+                                    client: el.clients.name,
+                                    numberDecon: el.numberDecon,
+                                    containerNumber: el.containerNumber,
+                                    containerLarge: el.containerLarge,
+                                    driverName: el.movements[deconIndex].driverName,
+                                    driverPlate: el.movements[deconIndex].driverPlate,
+                                    driverGuide: el.movements[deconIndex].driverGuide,
+                                    service: el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name,
+                                    serviceValue: el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).paymentNet
+                                })
+                            }
                         }
                         /*let lastMov = el.movements.length - 1
                         if(el.movements[lastMov].movement!='SALIDA'){
@@ -439,7 +442,7 @@ export default [
                                 service = el.services[i].services.name
                                 serviceValue = el.services[i].paymentNet
                             }
-                            if(el.services[i].services.name=='Desconsolidado'){
+                            if(el.services[i].services.name.indexOf('Desconsolidado')>=0){
                                 serviceDecon = el.services[i].services.name
                                 serviceDeconValue = el.services[i].paymentNet
                             }

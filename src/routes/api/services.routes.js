@@ -121,7 +121,7 @@ export default [
                         return 'created'
                     }
 
-                    let service = new service({
+                    let service = new Services({
                         name: payload.name,
                         net: payload.net,
                         days: payload.days

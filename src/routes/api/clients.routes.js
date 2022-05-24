@@ -15,7 +15,7 @@ export default [
             tags: ['api'],
             handler: async (request, h) => {
                 try {
-                    let clients = await Client.find().lean()
+                    let clients = await Client.find().lean().sort({'name': 'ascending'})
                     return clients
                 } catch (error) {
                     console.log(error)

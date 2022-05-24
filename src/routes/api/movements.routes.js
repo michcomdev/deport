@@ -220,13 +220,28 @@ export default [
                     let status = ''
 
                     if(!payload.onlyInventory){
-                        query.movements = { 
-                            $elemMatch : { 
-                                datetime: {
-                                    $gt: `${payload.startDate}T00:00:00.000`, //`${payload.startDate}T00:00:00.000Z`,
-                                    $lt: `${payload.endDate}T23:59:59.999` //`${payload.endDate}T23:59:59.999Z`
-                                }
-                            } 
+                        if(!payload.dateOut){
+                            query.movements = { 
+                                $elemMatch : { 
+                                    datetime: {
+                                        $gt: `${payload.startDate}T00:00:00.000`, //`${payload.startDate}T00:00:00.000Z`,
+                                        $lt: `${payload.endDate}T23:59:59.999` //`${payload.endDate}T23:59:59.999Z`
+                                    }
+                                } 
+                            }
+                        }else{
+                            query.movements = { 
+                                $elemMatch : { 
+                                    datetime: {
+                                        $gt: `${payload.startDate}T00:00:00.000`, //`${payload.startDate}T00:00:00.000Z`,
+                                        $lt: `${payload.endDate}T23:59:59.999` //`${payload.endDate}T23:59:59.999Z`
+                                    },
+                                    $or: [
+                                        { movement: 'POR SALIR' },
+                                        { movement: 'SALIDA' }
+                                    ]
+                                } 
+                            }
                         }
 
                         if(payload.status){
@@ -538,15 +553,20 @@ export default [
                                 movement.driverName = mov.driverName
                             }
                         }else if(payload.type=='out'){
+
                             if(mov.movement=='POR INGRESAR' || mov.movement=='INGRESADO'){
-                                movement.datetimeIn = mov.datetime
+                                if(!movement.datetimeIn){
+                                    movement.datetimeIn = mov.datetime
+                                }
                             }else if(mov.movement=='POR SALIR' || mov.movement=='SALIDA'){
-                                movement.datetimeOut = mov.datetime
-                                movement.driverRUT = mov.driverRUT
-                                movement.driverPlate = mov.driverPlate
-                                movement.driverGuide = mov.driverGuide
-                                movement.driverSeal = mov.driverSeal
-                                movement.driverName = mov.driverName
+                                if(!movement.datetimeOut){
+                                    movement.datetimeOut = mov.datetime
+                                    movement.driverRUT = mov.driverRUT
+                                    movement.driverPlate = mov.driverPlate
+                                    movement.driverGuide = mov.driverGuide
+                                    movement.driverSeal = mov.driverSeal
+                                    movement.driverName = mov.driverName
+                                }
                             }
 
                         }else if(payload.type=='transferIn'){
@@ -579,7 +599,7 @@ export default [
 
                     //////MODIFICAR!!
                     if(payload.type=='decon'){
-                        let serv = container.services.find(x => x.services.name=='Desconsolidado')
+                        let serv = container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)
 
                         movement.service = serv.services.name
                         movement.net = serv.paymentNet

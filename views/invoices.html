@@ -4,7 +4,7 @@
     <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
 {{/extend}}
 
-<h2 class="text-center">FACTURACIÓN</h2>
+<h4 class="text-center">FACTURACIÓN</h4>
 
 <div class="row">
     <div class="col-md-6">
@@ -12,15 +12,15 @@
             <div class="card-header bg-primary text-white">CLIENTES</div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3 col-xs-12">
+                    <div class="col-md-6 col-xs-12">
                         Cliente
-                        <select id="searchClient" class="custom-select">
+                        <select id="searchClient" class="custom-select custom-select-sm">
                             <option value="0">TODOS</option>
                         </select>
                     </div>
                     <div class="col-md-1">
                         <br/>
-                        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+                        <button class="btn btn-sm btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
                     </div>
                     
                     
@@ -32,9 +32,9 @@
                         </label>
                     </div>-->
                         
-                    <div class="col-md-2 col-xs-12">
+                    <div class="col-md-3 col-xs-12">
                         <br>
-                        <button class="btn btn-primary btn-block" id="search">
+                        <button class="btn btn-sm btn-primary btn-block" id="search">
                             <i class="fas fa-search"></i> BUSCAR
                         </button>
                     </div>
@@ -69,7 +69,7 @@
 
                     <div class="col-md-3 col-xs-12">
                         <br>
-                        <button class="btn btn-success btn-block invoiceFilter" id="addInvoice" disabled>
+                        <button class="btn btn-sm btn-success btn-block invoiceFilter" id="addInvoice" disabled>
                             <i class="fas fa-plus"></i> Nueva Factura
                         </button>
                     </div>
@@ -101,9 +101,9 @@
                         </select>
                     </div>-->
 
-                    <div class="col-md-3 col-xs-12">
+                    <div class="col-md-4 col-xs-12">
                         Fecha Desde - Hasta
-                        <input id="searchInvoiceDate" type="text" class="form-control border-input noInventory invoiceFilter" disabled>
+                        <input id="searchInvoiceDate" type="text" class="form-control form-control-sm border-input noInventory invoiceFilter" disabled>
                     </div>
                     <!--<div class="form-check col-md-1  col-xs-12">
                         <br/>
@@ -120,14 +120,16 @@
                         </label>
                     </div>-->
                         
-                    <div class="col-md-2 col-xs-12">
+                    <div class="col-md-3 col-xs-12">
                         <br>
-                        <button class="btn btn-primary btn-block invoiceFilter" id="searchInvoice"  disabled>
+                        <button class="btn btn-sm btn-primary btn-block invoiceFilter" id="searchInvoice"  disabled>
                             <i class="fas fa-search"></i> BUSCAR
                         </button>
                     </div>
-                    <div class="col-md-12 table-responsive">
+                    <div class="col-md-12 col-xs-12">
                         Listado de Facturas
+                    </div>
+                    <div class="col-md-12 table-responsive">
                         <table id="tableInvoices" class="display nowrap table table-condensed" cellspacing="0">
                             <thead>
                                 <tr>

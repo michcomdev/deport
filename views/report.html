@@ -3,7 +3,7 @@
     <link rel="stylesheet" type="text/css" href="/public/modules/movements/movements.css">
 {{/extend}}
 
-<h2 class="text-center">GENERAL</h2>
+<h4 class="text-center">GENERAL</h4>
 
 <br>
 
@@ -11,20 +11,20 @@
 
     <div class="col-md-1 col-xs-12">
         Cliente
-        <select id="searchClient" class="custom-select">
+        <select id="searchClient" class="custom-select custom-select-sm">
             <option value="">TODOS</option>
         </select>
     </div>
     <div class="col-md-1">
         <br/>
-        <button class="btn btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
+        <button class="btn btn-sm btn-dark classOut classMove" onclick="selectClientSearch()" title="Buscar Cliente"><i class="fas fa-search"></i></button>
     </div>
     <div class="col-md-2 col-xs-12">
         Número Container
         <!--<input id="searchNumber" type="text" placeholder="Ej: ABC123" class="form-control border-input">-->
         <form autocomplete="off" action="/action_page.php">
             <div class="autocomplete">
-              <input id="searchNumber" type="text" class="form-control border-input">
+              <input id="searchNumber" type="text" class="form-control form-control-sm border-input">
             </div>
           </form>
     </div>
@@ -32,7 +32,7 @@
     
     <div class="col-md-2 col-xs-12">
         Estado / Últ. Movimiento
-        <select id="searchStatus" class="custom-select noInventory">
+        <select id="searchStatus" class="custom-select custom-select-sm noInventory">
             <option value="TODOS">TODOS</option>
             <option value="EN SITIO">EN SITIO</option>
             <option value="RETIRADO">RETIRADO</option>
@@ -48,7 +48,7 @@
     </div>
     <div class="col-md-2 col-xs-12">
         Fecha Desde - Hasta
-        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control border-input noInventory">
+        <input id="searchDate" type="text" placeholder="Ej: ABC123" class="form-control form-control-sm border-input noInventory">
     </div>
     <div class="form-check col-md-1  col-xs-12">
         <br/>
@@ -67,7 +67,7 @@
         
     <div class="col-md-2 col-xs-12">
         <br>
-        <button class="btn btn-primary btn-block" id="search">
+        <button class="btn btn-primary btn-block btn-sm" id="search">
             <i class="fas fa-search"></i> BUSCAR
         </button>
     </div>

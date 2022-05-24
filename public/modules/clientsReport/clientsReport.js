@@ -51,10 +51,11 @@ $(document).ready(async function () {
     getParameters()
 
     $("#search").on('click', function(){
-        //chargeClientsTable()
         if($("#searchClient").val()!=0){
             loadInvoices($("#searchClient").val())
             loadServices($("#searchClient").val())
+        }else{
+            toastr.warning('Debe seleccionar un Cliente')
         }
     })
 
@@ -270,7 +271,7 @@ async function loadContainers(id,onlyInvoice){
                 for(let j=0;j<el.services.length;j++){
                     if(el.services[j].services.name=='Almacenamiento Vacío' || el.services[j].services.name=='Almacenamiento Full' || el.services[j].services.name=='Almacenamiento IMO'){
                         el.storage = el.services[j].services.name
-                    }else if(el.services[j].services.name=='Desconsolidado'){
+                    }else if(el.services[j].services.name.indexOf('Desconsolidado') >= 0){
                         el.deconsolidated = true
                     }else if(el.services[j].services.name=='Traspaso'){
                         el.transfer = true
