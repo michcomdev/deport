@@ -3772,13 +3772,13 @@ function validateClientData(clientData) {
     }
     
 
-    if (isEmail(clientData.email)) {
+    /*if (isEmail(clientData.email)) {
         validationCounter++
         $('#clientEmail').css('border', '1px solid #3498db')
     } else {
         errorMessage += `<br>E-Mail`
         $('#clientEmail').css('border', '1px solid #e74c3c')
-    }
+    }*/
 
     if (clientData.services.storage || clientData.services.deconsolidated || clientData.services.portage || clientData.services.transport) {
         validationCounter++
@@ -3786,7 +3786,7 @@ function validateClientData(clientData) {
         errorMessage += `<br>Seleccionar Servicio(s)`
     }
 
-    if (validationCounter == 4) {
+    if (validationCounter >= 3) {
         return { ok: clientData }
     } else {
         toastr.warning('Faltan datos:<br>'+errorMessage)
