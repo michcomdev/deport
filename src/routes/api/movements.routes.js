@@ -1441,6 +1441,7 @@ const sendEmail = async ({ // sendEmail
             }
         })
 
+        /*
         let detail = `<tr><td colspan="5">___________________________________</td></tr>
                       <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
                       <tr><td>Neto</td>           <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td style="text-align: right">$ ${dot_separators(voucher.net)}</td></tr>
@@ -1461,7 +1462,20 @@ const sendEmail = async ({ // sendEmail
                             <tr><td colspan="5">___________________________________</td></tr>
                             <tr><td><b>TOTAL</b></td>          <td>&nbsp;</td><td><b>:</b></td><td>&nbsp;</td><td style="text-align: right"><b>$ ${dot_separators(voucher.total+voucher.extraDayTotal)}</b></td></tr>`
             }
-        }
+        }*/
+
+        let detail = `<tr><td colspan="5">___________________________________</td></tr>
+                      <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>`
+        if(type=='SALIDA'){
+            if(voucher.extraDays){
+                detail = `<tr><td colspan="5">___________________________________</td></tr>
+                            <tr><td>Servicio</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.service}</td></tr>
+                            <tr><td colspan="5">___________________________________</td></tr>
+                            <tr><td>Días Extras</td>       <td>&nbsp;</td><td>:</td><td>&nbsp;</td><td>${voucher.extraDays}</td></tr>`
+                        }
+                    }
+
+
 
         let number = voucher.numberIn
 
