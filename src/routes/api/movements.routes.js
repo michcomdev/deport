@@ -319,6 +319,20 @@ export default [
                                 datetimeOut = '-' //Modificar por 5 días y/o +extras
                             }
 
+                            let driverName = '', driverPlate = ''
+                            if(el.movements[lastMov].driverName){
+                                driverName = el.movements[lastMov].driverName
+                                driverPlate = el.movements[lastMov].driverPlate
+                            }else{
+                                for(let i=el.movements.length-1; i>=0; i--){
+                                    if(el.movements[i].driverName){
+                                        driverName = el.movements[i].driverName
+                                        driverPlate = el.movements[i].driverPlate
+                                        i=0
+                                    }
+                                }
+                            }
+
                             if(status==''){
                                 if(payload.onlyInventory){
                                     if(el.movements[lastMov].movement!='SALIDA' && el.movements[lastMov].movement!='TRASPASO'){
@@ -333,13 +347,13 @@ export default [
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
                                             containerState: containerState,
-                                            driverName: el.movements[lastMov].driverName,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }
@@ -358,10 +372,11 @@ export default [
                                             containerState: containerState,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov-1].driverName,
-                                            driverPlate: el.movements[lastMov-1].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }else{
@@ -376,13 +391,13 @@ export default [
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
                                             containerState: containerState,
-                                            driverName: el.movements[lastMov].driverName,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }
@@ -403,10 +418,11 @@ export default [
                                             containerState: containerState,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }
@@ -425,10 +441,11 @@ export default [
                                             containerState: containerState,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov-1].driverName,
-                                            driverPlate: el.movements[lastMov-1].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
 
@@ -446,10 +463,11 @@ export default [
                                             containerState: containerState,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }
@@ -468,10 +486,11 @@ export default [
                                             containerState: containerState,
                                             site: site,
                                             position: position,
-                                            driverName: el.movements[lastMov].driverName,
-                                            driverPlate: el.movements[lastMov].driverPlate,
+                                            driverName: driverName,
+                                            driverPlate: driverPlate,
                                             services: el.services,
                                             payments: el.payments,
+                                            paymentCredit: el.paymentCredit,
                                             movements: el.movements
                                         })
                                     }
@@ -723,7 +742,8 @@ export default [
                             observation: payload.observation
                         }],
                         services: payload.services,
-                        payments: payload.payments
+                        payments: payload.payments,
+                        paymentCredit: payload.paymentCredit
                     }
                     
                     let movement = new Containers(query)
@@ -798,6 +818,7 @@ export default [
                         date: Joi.string().optional().allow(''),
                         paymentAmount: Joi.number().allow(0).optional()
                     })),
+                    paymentCredit: Joi.boolean().optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -886,6 +907,8 @@ export default [
                             container.payments = payload.payments
                         }
 
+                        container.paymentCredit = payload.paymentCredit
+
                         let lastMov = container.movements.length - 1
                         if(payload.cranes!=0){
                             container.movements[lastMov].cranes = payload.cranes
@@ -959,6 +982,7 @@ export default [
                         date: Joi.string().optional().allow(''),
                         paymentAmount: Joi.number().allow(0).optional()
                     })),
+                    paymentCredit: Joi.boolean().optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -1083,7 +1107,8 @@ export default [
                             observation: payload.observation
                         }],
                         services: payload.services,
-                        payments: payload.payments
+                        payments: payload.payments,
+                        paymentCredit: payload.paymentCredit
                     })
 
                     if(payload.cranes!=0){
@@ -1154,6 +1179,7 @@ export default [
                         date: Joi.string().optional().allow(''),
                         paymentAmount: Joi.number().allow(0).optional()
                     })),
+                    paymentCredit: Joi.boolean().optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -1221,6 +1247,7 @@ export default [
                             container.payments = payload.payments
                         }
 
+                        container.paymentCredit = payload.paymentCredit
 
                         let lastMov = container.movements.length - 1
                         if(payload.cranes!=0){
@@ -1290,6 +1317,7 @@ export default [
                         date: Joi.string().optional().allow(''),
                         paymentAmount: Joi.number().allow(0).optional()
                     })),
+                    paymentCredit: Joi.boolean().optional(),
                     observation: Joi.string().optional().allow('')
                 })
             }
@@ -1519,13 +1547,16 @@ const sendEmail = async ({ // sendEmail
                 <br/><br/><br/>
                 Este correo ha sido enviado de forma automática, favor no responder
                 <br/><br/>
-                <img src="cid:logo" />
+                Depósito Portuario
             `,
-            attachments: [{
+
+            //<img src="cid:logo" />
+
+            /*attachments: [{
                 filename: 'logoMail.png',
                 path: 'public/img/logoMail.png',
                 cid: 'logo' //same cid value as in the html img src
-            }]
+            }]*/
         }
 
         //mailData.to.push(toEmail)

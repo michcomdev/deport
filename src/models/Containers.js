@@ -60,7 +60,8 @@ const containerSchema = new Schema({
         paymentType: { type: String },
         paymentNumber: { type: String },
         paymentAmount: { type: Number }
-    }]
+    }],
+    paymentCredit: { type: Boolean, default: false }
 })
 
 const Containers = mongoose.model('containers', containerSchema)

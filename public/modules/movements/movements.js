@@ -642,6 +642,7 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
             paymentTotal: total,*/
             services: services,
             payments: payments,
+            paymentCredit: $('#chkCredit').prop('checked'),
             observation: $('#movementObservation').val()
         }
 
@@ -685,7 +686,9 @@ $('#optionModMovement').on('click', async function () {
         $('#imgTexture').val('cai')
         setServiceList('ALL', container.services)
         setPayments(container.payments)
-
+        if(container.paymentCredit){
+            $('#chkCredit').prop('checked',true)
+        }
 
         /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
         extraDays = 0
@@ -1084,6 +1087,7 @@ $('#optionModMovement').on('click', async function () {
                 driverSeal: $('#movementDriverSeal').val(),
                 services: services,
                 payments: payments,
+                paymentCredit: $('#chkCredit').prop('checked'),
                 observation: $('#movementObservation').val()
             }
 
@@ -1201,6 +1205,9 @@ $('#optionModMovement').on('click', async function () {
 
         setServiceList('TRASPASO', container.services)
         setPayments(container.payments)
+        if(container.paymentCredit){
+            $('#chkCredit').prop('checked',true)
+        }
 
         $('#movementObservation').val(container.movements[movementID].observation)
 
@@ -1361,6 +1368,7 @@ $('#optionModMovement').on('click', async function () {
                 driverOutGuide: $('#movementDriverOutGuide').val(),
                 services: services,
                 payments: payments,
+                paymentCredit: $('#chkCredit').prop('checked'),
                 observation: $('#movementObservation').val()
             }
 
@@ -1402,6 +1410,9 @@ $('#optionCloseMovement').on('click', async function () {
 
     setServiceList('ALL', container.services)
     setPayments(container.payments)
+    if(container.paymentCredit){
+        $('#chkCredit').prop('checked',true)
+    }
 
     /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
     extraDays = 0
@@ -1664,6 +1675,7 @@ $('#optionCloseMovement').on('click', async function () {
             driverSeal: $('#movementDriverOutSeal').val(),
             services: services,
             payments: payments,
+            paymentCredit: $('#chkCredit').prop('checked'),
             observation: $('#movementObservation').val()
         }
 
@@ -1706,6 +1718,9 @@ $('#optionMovMovement').on('click', async function () {
     $('#imgTexture').val('cai')
     setServiceList('ALL', container.services)
     setPayments(container.payments)
+    if(container.paymentCredit){
+        $('#chkCredit').prop('checked',true)
+    }
 
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
@@ -1811,6 +1826,9 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#imgTexture').val('cai')
     setServiceList('DESCONSOLIDADO', container.services, container.containerLarge)
     setPayments(container.payments)
+    if(container.paymentCredit){
+        $('#chkCredit').prop('checked',true)
+    }
     setPositionList()
 
     $("#btnMap").css('display','none')
@@ -1965,6 +1983,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             driverSeal: $('#movementDriverSeal').val(),
             services: services,
             payments: payments,
+            paymentCredit: $('#chkCredit').prop('checked'),
             observation: $('#movementObservation').val()
         }
         
@@ -2185,6 +2204,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
             driverOutGuide: $('#movementDriverOutGuide').val(),
             services: services,
             payments: payments,
+            paymentCredit: $('#chkCredit').prop('checked'),
             observation: $('#movementObservation').val()
         }
 
@@ -2877,6 +2897,7 @@ function createModalBody(type){
                             <button id="btnAddPayment" class="btn btn-sm btn-info classPayment" onclick="addPayment()"><i class="fas fa-plus"></i> Agregar Pago <i class="fas fa-hand-holding-usd"></i></button>
                         </div>
                         <div class="col-md-4">
+                            <input type="checkbox" id="chkCredit">&nbsp;Pago a Crédito
                         </div>
 
                         <div class="form-check col-md-12 table-responsive">
@@ -3735,7 +3756,11 @@ function setModalClient(){
                     </select>
                 </div>
 
-
+                <div class="col-md-4" style="margin-top:10px;">
+                    <br/>
+                    Cliente con Crédito
+                    <input type="checkbox" id="clientCredit">
+                </div>
                 <div class="col-md-4" style="margin-top:10px;">
                     <br/>
                     Servicios
@@ -4318,6 +4343,10 @@ async function setClientRates(){
 
         let clientRateData = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
         let clientRates = clientRateData.data
+        
+        if(clientRates.credit){
+            $("#chkCredit").prop('checked',true)
+        }
 
         if(clientRates.rates.length>0){
 
