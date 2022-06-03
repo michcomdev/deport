@@ -355,6 +355,8 @@ function loadMovementTable() {
 }
 
 async function getMovementsEnabled() {
+
+    loadingHandler('start')
     let movementData
     let query = {
         table: true,
@@ -438,6 +440,8 @@ async function getMovementsEnabled() {
 
         internals.movements.table.rows.add(formatData).draw()
         $('#loadingMovements').empty()
+
+        loadingHandler('stop')
     } else {
         toastr.warning('No se han encontrado movimientos en base a filtrado')
         $('#loadingMovements').empty()
@@ -449,6 +453,7 @@ $('#sendMail').on('click', async function () {
 })
 
 $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
+    loadingHandler('start')
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Llegada`)
     $('#modalMov_body').html(createModalBody())
@@ -670,11 +675,11 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         }
 
     })
-
+    loadingHandler('stop')
 })
 
 $('#optionModMovement').on('click', async function () {
-
+    loadingHandler('start')
     let containerData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
@@ -828,6 +833,7 @@ $('#optionModMovement').on('click', async function () {
             $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
         }
         $('#movementClient').val(container.clients)
+        setClientRUT()
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
         if(container.containerTexture==''){
@@ -1171,6 +1177,7 @@ $('#optionModMovement').on('click', async function () {
         $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
         $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
         $('#movementClient').val(container.clients)
+        setClientRUT()
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
         if(container.containerTexture==''){
@@ -1395,9 +1402,11 @@ $('#optionModMovement').on('click', async function () {
         })
         
     }
+    loadingHandler('stop')
 })
 
 $('#optionCloseMovement').on('click', async function () {
+    loadingHandler('start')
 
     let containerData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let container = containerData.data
@@ -1488,6 +1497,7 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementOutDate').val(moment().format('YYYY-MM-DD'))
     $('#movementOutTime').val(moment().format('HH:mm'))
     $('#movementClient').val(container.clients)
+    setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -1703,10 +1713,12 @@ $('#optionCloseMovement').on('click', async function () {
             $('#modal').modal('show')
         }
     })
+    loadingHandler('stop')
 })
 
 
 $('#optionMovMovement').on('click', async function () {
+    loadingHandler('start')
 
     let containerData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let container = containerData.data
@@ -1743,6 +1755,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
     $('#movementClient').val(container.clients)
+    setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -1811,10 +1824,12 @@ $('#optionMovMovement').on('click', async function () {
         }
         $('#modal').modal('show')
     })
+    loadingHandler('stop')
 })
 
 
 $('#optionDeconsolidatedMovement').on('click', async function () {
+    loadingHandler('start')
 
     let containerData = await axios.post('/api/movementSingle', {id: internals.dataRowSelected.id})
     let container = containerData.data
@@ -1847,6 +1862,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
     $('#movementClient').val(container.clients)
+    setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -2007,9 +2023,11 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         }
         $('#modal').modal('show')
     })
+    loadingHandler('stop')
 })
 
 $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
+    loadingHandler('start')
     $('#movementsModal').modal('show')
     $('#modalMov_title').html(`Ingreso de Traspaso`)
     $('#modalMov_body').html(createModalBody('TRASPASO'))
@@ -2232,7 +2250,7 @@ $('#optionTransferMovement').on('click', function () { // TRASPASO MOVIMIENTO
         }
 
     })
-
+    loadingHandler('stop')
 })
 
 function validateMovementData(movementData) {
@@ -2475,7 +2493,7 @@ function createModalBody(type){
                             <input id="movementTime" type="text" class="form-control form-control-sm border-input" value="${moment().format('HH:mm')}" disabled>
                         </div>
                         <div class="col-md-10">
-                            Cliente
+                            Cliente&nbsp;&nbsp;&nbsp;<span id="movementClientRUT"></span>
                             <select id="movementClient" class="custom-select custom-select-sm classOut classMove" onchange="setClientRates()">
                                 <option value="0">SELECCIONE...</option>
                                 ${
@@ -2920,7 +2938,23 @@ function createModalBody(type){
                         <div class="col-md-6">
                         </div>
                         <div class="col-md-3" style="text-align: right">
-                            Total Neto
+                            Neto
+                        </div>
+                        <div class="col-md-3">
+                            <input id="movementPaymentNet" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                        <div class="col-md-6">
+                        </div>
+                        <div class="col-md-3" style="text-align: right">
+                            IVA
+                        </div>
+                        <div class="col-md-3">
+                            <input id="movementPaymentIVA" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
+                        </div>
+                        <div class="col-md-6">
+                        </div>
+                        <div class="col-md-3" style="text-align: right">
+                            Total
                         </div>
                         <div class="col-md-3">
                             <input id="movementPaymentTotal" type="text" value="$ 0" style="text-align: right; font-weight: bold" class="form-control form-control-sm border-input classMove" disabled>
@@ -3369,9 +3403,17 @@ async function calculateTotal(){
             amount = 0
         }
         totalPayment += amount
-      
     })
 
+    let netPayment = 0, ivaPayment = 0
+
+    if(totalPayment>0){
+        netPayment = Math.round(totalPayment / 1.19)
+        ivaPayment = totalPayment - netPayment
+    }
+
+    $("#movementPaymentNet").val(`$ ${dot_separators(netPayment)}`)
+    $("#movementPaymentIVA").val(`$ ${dot_separators(ivaPayment)}`)
     $("#movementPaymentTotal").val(`$ ${dot_separators(totalPayment)}`)
     $("#movementPaymentBalance").val(`$ ${dot_separators(totalTotal-totalPayment)}`)
 
@@ -4293,6 +4335,7 @@ function addPayment(){
 
 function deletePayment(btnRow){
     $(btnRow).parent().parent().remove()
+    calculateTotal()
 }
 
 function setPayments(array){
@@ -4347,6 +4390,8 @@ async function setClientRates(){
         if(clientRates.credit){
             $("#chkCredit").prop('checked',true)
         }
+
+        $("#movementClientRUT").text('RUT: '+clientRates.rut)
 
         if(clientRates.rates.length>0){
 
@@ -4403,9 +4448,25 @@ async function setClientRates(){
                 updatePayment($($($(this).children()[1]).children()[1]), 'extra')
             })
         }
+    
+    }else{
+        $("#movementClientRUT").text('')
+
     }
 }
 
+async function setClientRUT(){
+
+    if($('#movementClient').val()!=0){
+        let clientRUT = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
+
+        $("#movementClientRUT").text('RUT: '+clientRUT.data.rut)
+    
+    }else{
+        $("#movementClientRUT").text('')
+
+    }
+}
 
 
 function autocomplete(inp, arr) {

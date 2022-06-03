@@ -38,8 +38,8 @@ function chargeClientsTable() {
               'excel'
             ],
             iDisplayLength: 50,
-            oLanguage: {
-              sSearch: 'Buscar: '
+            language: {
+                url: spanishDataTableLang
             },
             responsive: false,
             order: [[ 0, 'desc' ]],
