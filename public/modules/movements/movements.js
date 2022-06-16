@@ -263,6 +263,9 @@ function loadMovementTable() {
             dom: 'Bfrtip',
             buttons: ['excel'],
             iDisplayLength: 25,
+            /*"search": {Sólo para propósitos de prueba
+                "search": "HLBU-326026-4"
+            },*/
             language: {
                 url: spanishDataTableLang
             },
@@ -698,6 +701,7 @@ $('#optionModMovement').on('click', async function () {
         /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
         extraDays = 0
         deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+        let serviceType = 'normal'
         let momentEndDate = moment()
         
         if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
@@ -727,6 +731,7 @@ $('#optionModMovement').on('click', async function () {
         }
 
         if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+            serviceType = 'imo'
             let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
             if(extraDays<=serviceDays){
                 extraDays = 0
@@ -755,7 +760,7 @@ $('#optionModMovement').on('click', async function () {
             }
         }
 
-        setExtraDays(extraDays,deconExtraDays)
+        setExtraDays(extraDays,deconExtraDays,serviceType)
 
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
@@ -829,8 +834,10 @@ $('#optionModMovement').on('click', async function () {
             $('#movementOutDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
             $('#movementOutTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
         }else{
-            $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
-            $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
+            //$('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
+            //$('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
+            $('#movementDate').val(moment(container.movements[0].datetime).format('YYYY-MM-DD'))
+            $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
         }
         $('#movementClient').val(container.clients)
         setClientRUT()
@@ -854,6 +861,9 @@ $('#optionModMovement').on('click', async function () {
         }else{
             setPositionList()
         }
+
+        getClientRates() //Revisión de modificación de tarifas
+
 
 
         //$('#movementPositionRow').val(container.movements[movementID].position.row)
@@ -1426,6 +1436,7 @@ $('#optionCloseMovement').on('click', async function () {
     /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
     extraDays = 0
     deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+    let serviceType = 'normal'
     let momentEndDate = moment()
     
     if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
@@ -1446,6 +1457,7 @@ $('#optionCloseMovement').on('click', async function () {
     }
 
     if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+        serviceType = 'imo'
         let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
         if(extraDays<=serviceDays){
             extraDays = 0
@@ -1476,7 +1488,7 @@ $('#optionCloseMovement').on('click', async function () {
 
     //extraDays += deconExtraDays
 
-    setExtraDays(extraDays,deconExtraDays)
+    setExtraDays(extraDays,deconExtraDays,serviceType)
 
     
     $('#modalMov_footer').html(`
@@ -2835,13 +2847,16 @@ function createModalBody(type){
                         <div class="col-md-4">
                             <h6>DATOS DE SERVICIOS</h6>
                         </div>
-                        <div class="col-md-4">
-                            <br/ >
-                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServicePortage" class="btn btn-sm btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
+                        <div class="col-md-3">
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' /*&& type!='TRASLADO'*/ && type!='DESCONSOLIDADO') ? '<button id="btnServicePortage" class="btn btn-sm btn-info" onclick="addService(this,\'PORTEO\')"><i class="fas fa-plus"></i> Porteo <i class="fas fa-trailer"></i></button>' : '' }
                         </div>
-                        <div class="col-md-4">
-                            <br/ >
-                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' && type!='TRASLADO' && type!='DESCONSOLIDADO') ? '<button id="btnServiceTransport" class="btn btn-sm btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
+                        <div class="col-md-3">
+                            ${ (type!='TRASPASO' && type!='POR SALIR' && type!='SALIDA' /*&& type!='TRASLADO'*/ && type!='DESCONSOLIDADO') ? '<button id="btnServiceTransport" class="btn btn-sm btn-info" onclick="addService(this,\'TRANSPORTE\')"><i class="fas fa-plus"></i> Transporte <i class="fas fa-truck-moving"></i></button>' : '' }
+                        </div>
+                        <div class="col-md-1">
+                        </div>
+                        <div class="col-md-1">
+                            <button id="btnUpdateRates" class="btn btn-sm btn-danger" title="Las tarifas del cliente han sido modificadas" onclick="showUpdateRates()" style="display: none;"><i class="fas fa-exclamation"></i></button>
                         </div>
 
                         <div class="form-check col-md-12 table-responsive">
@@ -3146,10 +3161,14 @@ function setServiceList(type,array,containerLarge){
     calculateTotal()
 }
 
-function setExtraDays(quantity,quantityDecon){
+function setExtraDays(quantity,quantityDecon,serviceType){
 
     let net = 0, iva = 0, total = 0
 
+    let extraType = 'Día(s) Extra'
+    if(serviceType=='imo'){
+        extraType = 'Día(s) Extra IMO'
+    }
 
     $("#tableServicesExtra").css('display','table')
     
@@ -3163,7 +3182,7 @@ function setExtraDays(quantity,quantityDecon){
                 <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
                     ${
                         services.reduce((acc,el)=>{
-                            if(el.name=='Día(s) Extra'){
+                            if(el.name==extraType){
                                 net = el.net
                                 acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
                             }
@@ -3192,7 +3211,7 @@ function setExtraDays(quantity,quantityDecon){
     if(quantityDecon>0){
         extraRow += `<tr class="table-dangerSoft">
                 <td>
-                    Post Consolidado
+                    Post Desconsolidado
                 </td>
                 <td style="text-align: center;">
                     <input type="text" style="text-align: center" value="${quantityDecon}" class="form-control border-input classMove classPayment" disabled>
@@ -3200,7 +3219,7 @@ function setExtraDays(quantity,quantityDecon){
                     <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
                         ${
                             services.reduce((acc,el)=>{
-                                if(el.name=='Día(s) Extra'){
+                                if(el.name==extraType){
                                     net = el.net
                                     acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
                                 }
@@ -3227,7 +3246,7 @@ function setExtraDays(quantity,quantityDecon){
             </tr>`
     }
 
-    $("#tableServicesExtraBody").append(extraRow)
+    $("#tableServicesExtraBody").html(extraRow)
 
     $('#chkExtra').change(function () {
         if($(this).prop('checked')){
@@ -3280,7 +3299,30 @@ function changeTexture(by,texture){
 
 async function updatePayment(input,special) {
 
-    
+    if($($(input).children()[0]).html()){//Si se selecciona un servicio
+
+        let extraDays = 0
+        let deconExtraDays = 0
+        let serviceType = 'normal'
+
+        if($("#tableServicesExtraBody > tr").length>0){
+            $("#tableServicesExtraBody > tr").each(function() {
+                if($($(this).children()[0]).text().trim()=='Almacenamiento'){
+                    extraDays = $($($(this).children()[1]).children()[0]).val()
+                }else if($($(this).children()[0]).text().trim()=='Post Desconsolidado'){
+                    deconExtraDays = $($($(this).children()[1]).children()[0]).val()
+                }
+            })    
+        }
+
+        if($(input).find(":selected").text()=='Almacenamiento IMO'){
+            serviceType = 'imo'
+        }
+        
+        setExtraDays(extraDays,deconExtraDays,serviceType)
+
+        //setClientRates()
+    }
 
     if(!special){
         if($($(input).children()[0]).html()){//Si se selecciona un servicio
@@ -4452,6 +4494,186 @@ async function setClientRates(){
     }else{
         $("#movementClientRUT").text('')
 
+    }
+}
+
+async function getClientRates(){
+
+    let setAlert = false
+
+    if($('#movementClient').val()!=0){
+
+        let clientRateData = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
+        let clientRates = clientRateData.data
+        
+        if(clientRates.rates.length>0){
+
+            $("#tableServicesBody > tr").each(function() {
+                
+                $($($($(this).children()[0]).children()[0]).children()).each(function() {
+                    let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+                    if($(this).attr('data-net')!=serviceRate){
+                        setAlert = true
+                    }
+                })
+
+            })
+
+            $("#tableServicesExtraBody > tr").each(function() {
+                $($($($(this).children()[1]).children()[1]).children()).each(function() {
+                    let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+
+                    if($(this).attr('data-net')!=serviceRate){
+                        setAlert = true
+                    }
+                })
+
+            })
+
+        }
+
+        /*if(setAlert){
+            $("#btnUpdateRates").css('display','block')
+        }else{
+            $("#btnUpdateRates").css('display','none')
+        }*/
+    }
+}
+
+async function showUpdateRates() {
+    
+    //let clientSelectedData = await Swal.fire({
+    await Swal.fire({
+        title: 'Actualización de tarifas',
+        customClass: 'swal-wide',
+        html: `
+            <div style="max-height: 400px !important; overflow-y: scroll; font-size: 14px">
+                Las siguientes tarifas han sido modificadas, presione "Actualizar" si desea realizar una actualización de los valores
+                <br/>
+                <table id="tableUpdateRates" class="display nowrap table table-condensed" cellspacing="0">
+                    
+                </table>
+            </div>
+        `,
+        onBeforeOpen: async () => {
+            try {
+                let clientRateData = await axios.post('/api/clientSingle', {id: $('#movementClient').val()})
+                let clientRates = clientRateData.data
+                
+                if(clientRates.rates.length>0){
+        
+                    $("#tableServicesBody > tr").each(function() {
+                        
+                        $($($($(this).children()[0]).children()[0]).children()).each(function() {
+                            let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+                            if(serviceRate){
+                                console.log(serviceRate)
+                                if($(this).attr('data-net')!=serviceRate.net){
+                                    $("#tableUpdateRates").append(`
+                                        <tr>
+                                            <td>${dot_separators($(this).text())}</td>
+                                            <td>$ ${dot_separators($(this).attr('data-net'))}</td>
+                                            <td>=></td>
+                                            <td>$ ${dot_separators(serviceRate.net)}</td>
+                                            <td>
+                                                <button class="btn btn-danger" onclick="updateRate('normal','${$(this).val()}',${serviceRate.net})">
+                                                    Actualizar
+                                                </button>
+                                            </td>
+                                        </tr>`
+                                    )
+                                }
+                            }
+                        })
+        
+                    })
+        
+                    $("#tableServicesExtraBody > tr").each(function() {
+                        $($($($(this).children()[1]).children()[1]).children()).each(function() {
+                            let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
+                            if(serviceRate){
+                                if($(this).attr('data-net')!=serviceRate.net){
+                                    $("#tableUpdateRates").append(`
+                                        <tr>
+                                            <td>${dot_separators($(this).text())}</td>
+                                            <td>$ ${dot_separators($(this).attr('data-net'))}</td>
+                                            <td>=></td>
+                                            <td>$ ${dot_separators(serviceRate.net)}</td>
+                                            <td>
+                                                <button class="btn btn-danger" onclick="updateRate('extra','${$(this).val()}',${serviceRate.net})">
+                                                    Actualizar
+                                                </button>
+                                            </td>
+                                        </tr>`
+                                    )
+                                }
+                            }
+                        })
+        
+                    })
+        
+                }
+
+            } catch (error) {
+                loadingHandler('stop')
+
+                console.log(error)
+            }
+        },
+        preConfirm: async () => {
+            try {
+                let clientSelected = internals.clientRowSelected
+
+                if (clientSelected) {
+                    return {
+                        ...clientSelected
+                    }
+                }
+
+                throw new Error('Debe seleccionar un cliente')
+            } catch (error) {
+                Swal.showValidationMessage(error)
+            }
+        },
+        showCloseButton: true,
+        showCancelButton: true,
+        showConfirmButton: false,
+        focusConfirm: false,
+        confirmButtonText: 'Seleccionar',
+        cancelButtonText: 'Cerrar'
+    })
+
+    /*if (clientSelectedData.value) {
+        if(from=='search'){
+            $('#searchClient').val(clientSelectedData.value._id)
+        }else{
+            $('#movementClient').val(clientSelectedData.value._id)
+        }
+    }*/
+}
+
+async function updateRate(type, serviceID, serviceRate){
+    console.log(type, serviceID, serviceRate)
+    if(type=='normal'){
+        $("#tableServicesBody > tr").each(function() {
+            $($($($(this).children()[0]).children()[0]).children()).each(function() {
+                if($(this).val()==serviceID){
+                    $(this).attr('data-net',serviceRate)
+                }
+            })
+            updatePayment($($($(this).children()[0]).children()[0]))
+        })
+
+    }else if(type=='extra'){
+        $("#tableServicesExtraBody > tr").each(function() {
+            $($($($(this).children()[1]).children()[1]).children()).each(function() {
+                console.log($(this).val(),serviceID,$(this).attr('data-net'))
+                if($(this).val()==serviceID){
+                    $(this).attr('data-net',serviceRate)
+                }
+            })
+            //updatePayment($($($(this).children()[1]).children()[1]),'extra')
+        })
     }
 }
 

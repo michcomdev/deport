@@ -28,7 +28,6 @@ function loadingHandler(status) {
         loadingSelector.style.display = 'none'
         clearTimeout(closeLoadingTimeout)
 
-        console.log('LOADING STOPPED')
     } else if (status === 'start') {
         closeLoadingScreenContainerSelector.style.display = 'none'
 
@@ -36,6 +35,5 @@ function loadingHandler(status) {
         loadingSelector.style.position = 'fixed'
     } else {
         loadingSelector.style.display = 'none'
-        console.log('LOADING STOPPED')
     }
 }

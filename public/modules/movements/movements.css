@@ -2,7 +2,15 @@
 
 
 body {
-    font-size: 13px;
+    font-size: 11px;
+}
+
+body input{
+    font-size: 11px;
+}
+
+.btn{
+    font-size: 11px;
 }
 
 .inputUserForm {
@@ -224,31 +232,31 @@ body {
 
 
 #movementsModal{
-    font-size: 13px;
+    font-size: 11px;
 }
 
 #movementsModal input{
-    font-size: 13px;
+    font-size: 11px;
 }
 
 #movementsModal select{
-    font-size: 13px;
+    font-size: 11px;
 }
 
 #tableMovements {
-    font-size: 12px;
+    font-size: 11px;
 }
 
 #tableInventory {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 #tableServices {
-    font-size: 12px;
+    font-size: 11px;
 }
 
 #tableServicesExtra {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 .table-dangerSoft>td, .table-dangerSoft>th{

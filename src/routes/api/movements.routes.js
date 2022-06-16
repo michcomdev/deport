@@ -315,7 +315,8 @@ export default [
                                 datetimeIn = el.movements[0].datetime //Modificar por último "ingreso"
                                 datetimeOut = '-'
                             }else{
-                                datetimeIn = el.movements[lastMov].datetime
+                                //datetimeIn = el.movements[lastMov].datetime
+                                datetimeIn = el.movements[0].datetime
                                 datetimeOut = '-' //Modificar por 5 días y/o +extras
                             }
 

@@ -9,6 +9,12 @@ const clientSchema = new Schema({
     email: { type: String },
     contact: { type: String },
     contactPhone: { type: String },
+    email2: { type: String },
+    contact2: { type: String },
+    contactPhone2: { type: String },
+    email3: { type: String },
+    contact3: { type: String },
+    contactPhone3: { type: String },
     credit: { type: Boolean },
     creditLimit: { type: Number },
     status: { type: String, required: true },
@@ -22,7 +28,8 @@ const clientSchema = new Schema({
     },
     rates: [{
         services: { type: Schema.Types.ObjectId, ref: 'services' },
-        net: { type: Number }
+        net: { type: Number },
+        days: { type: Number }
     }]
 }, {
     versionKey: false

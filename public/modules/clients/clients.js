@@ -42,7 +42,7 @@ function chargeClientsTable() {
                 url: spanishDataTableLang
             },
             responsive: false,
-            order: [[ 0, 'desc' ]],
+            order: [[ 1, 'asc' ]],
             ordering: true,
             rowCallback: function( row, data ) {
           },
@@ -50,8 +50,8 @@ function chargeClientsTable() {
             { data: 'rut' },
             { data: 'name' },
             { data: 'email' },
-            { data: 'status' },
-            { data: 'debt' }
+            { data: 'status' }
+            //{ data: 'debt' }
           ],
           initComplete: function (settings, json) {
             getClientsEnabled()
@@ -160,10 +160,13 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
         if($(this).prop('checked')){
             $(this).parent().parent().addClass('table-infoSoft')
             $($($(this).parent().parent().children()[1]).children()[0]).removeAttr('disabled')
+            $($($(this).parent().parent().children()[2]).children()[0]).removeAttr('disabled')
         }else{
             $(this).parent().parent().removeClass('table-infoSoft')
             $($($(this).parent().parent().children()[1]).children()[0]).attr('disabled',true)
             $($($(this).parent().parent().children()[1]).children()[0]).val($($($(this).parent().parent().children()[1]).children()[0]).attr('data-default'))
+            $($($(this).parent().parent().children()[2]).children()[0]).attr('disabled',true)
+            $($($(this).parent().parent().children()[2]).children()[0]).val($($($(this).parent().parent().children()[2]).children()[0]).attr('data-default'))
         }
     })
 
@@ -172,24 +175,35 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
 
         //Tarifas
         let rates = []
-        let errorAmount = false
+        let errorAmount = false, errorDays = false
         $("#tableRatesBody > tr").each(function() {
-            if($($($(this).children()[2]).children()[0]).prop("checked")){
+            if($($($(this).children()[3]).children()[0]).prop("checked")){
 
                 let amount = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 if(!$.isNumeric(amount)){
                     errorAmount = true
                 }
+                let days = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace(' ', ''))
+                if(!$.isNumeric(days)){
+                    errorDays = true
+                }
 
                 rates.push({
                     services: $($($(this).children()[1]).children()[0]).attr("id"),
-                    net: amount
+                    net: amount,
+                    days: days
                 })
             }
             
         })
 
         if(errorAmount){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de tarifa no válido(s)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
+        if(errorDays){
             $('#modal_title').html(`Error`)
             $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de tarifa no válido(s)</h6>`)
             $('#modal').modal('show')
@@ -223,6 +237,12 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             email: $('#clientEmail').val(),
             contact: $('#clientContact').val(),
             contactPhone: $('#clientContactPhone').val(),
+            email2: $('#clientEmail2').val(),
+            contact2: $('#clientContact2').val(),
+            contactPhone2: $('#clientContactPhone2').val(),
+            email3: $('#clientEmail3').val(),
+            contact3: $('#clientContact3').val(),
+            contactPhone3: $('#clientContactPhone3').val(),
             status: $('#clientStatus').val(),
             credit: $('#clientCredit').is(":checked"),
             creditLimit: creditLimit,
@@ -234,8 +254,6 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             },
             rates: rates
         }
-
-        console.log(clientData)
 
         const res = validateClientData(clientData)
         if (res.ok) {
@@ -271,7 +289,7 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
 });
 
 
-$('#optionModClient').on('click', async function () { // CREAR CLIENTE
+$('#optionModClient').on('click', async function () { // MODIFICA CLIENTE
 
     let clientData = await axios.post('/api/clientSingle', {id: internals.dataRowSelected._id})
     let client = clientData.data
@@ -319,10 +337,13 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
         if($(this).prop('checked')){
             $(this).parent().parent().addClass('table-infoSoft')
             $($($(this).parent().parent().children()[1]).children()[0]).removeAttr('disabled')
+            $($($(this).parent().parent().children()[2]).children()[0]).removeAttr('disabled')
         }else{
             $(this).parent().parent().removeClass('table-infoSoft')
             $($($(this).parent().parent().children()[1]).children()[0]).attr('disabled',true)
             $($($(this).parent().parent().children()[1]).children()[0]).val($($($(this).parent().parent().children()[1]).children()[0]).attr('data-default'))
+            $($($(this).parent().parent().children()[2]).children()[0]).attr('disabled',true)
+            $($($(this).parent().parent().children()[2]).children()[0]).val($($($(this).parent().parent().children()[2]).children()[0]).attr('data-default'))
         }
     })
 
@@ -332,6 +353,12 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
     $('#clientEmail').val(client.email)
     $('#clientContact').val(client.contact)
     $('#clientContactPhone').val(client.contactPhone)
+    if(client.email2) $('#clientEmail2').val(client.email2)
+    if(client.contact2) $('#clientContact2').val(client.contact2)
+    if(client.contactPhone2) $('#clientContactPhone2').val(client.contactPhone2)
+    if(client.email3) $('#clientEmail3').val(client.email3)
+    if(client.contact3) $('#clientContact3').val(client.contact3)
+    if(client.contactPhone3) $('#clientContactPhone3').val(client.contactPhone3)
     $('#clientStatus').val(client.status)
     $('#clientCredit').prop('checked',client.credit)
     if(client.credit){
@@ -352,6 +379,11 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             $("#"+serviceRate.services).val(serviceRate.net)
             $("#"+serviceRate.services).parent().parent().addClass('table-infoSoft')
             $("#"+serviceRate.services).removeAttr('disabled')
+            if(serviceRate.days){
+                $("#days_"+serviceRate.services).val(serviceRate.days)
+            }
+            $("#days_"+serviceRate.services).parent().parent().addClass('table-infoSoft')
+            $("#days_"+serviceRate.services).removeAttr('disabled')
             $("#chk_"+serviceRate.services).prop("checked",true)
         }
         
@@ -365,18 +397,23 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
     $('#saveClient').on('click', async function () {
         //Tarifas
         let rates = []
-        let errorAmount = false
+        let errorAmount = false, errorDays = false
         $("#tableRatesBody > tr").each(function() {
-            if($($($(this).children()[2]).children()[0]).prop("checked")){
+            if($($($(this).children()[3]).children()[0]).prop("checked")){
 
                 let amount = parseInt(replaceAll($($($(this).children()[1]).children()[0]).val(), '.', '').replace('$', '').replace(' ', ''))
                 if(!$.isNumeric(amount)){
                     errorAmount = true
                 }
+                let days = parseInt(replaceAll($($($(this).children()[2]).children()[0]).val(), '.', '').replace(' ', ''))
+                if(!$.isNumeric(days)){
+                    errorDays = true
+                }
 
                 rates.push({
                     services: $($($(this).children()[1]).children()[0]).attr("id"),
-                    net: amount
+                    net: amount,
+                    days: days
                 })
             }
             
@@ -388,11 +425,16 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             $('#modal').modal('show')
             return
         }
+        if(errorDays){
+            $('#modal_title').html(`Error`)
+            $('#modal_body').html(`<h6 class="alert-heading">Valor(es) de tarifa no válido(s)</h6>`)
+            $('#modal').modal('show')
+            return
+        }
 
         let creditLimit = 0
         if($('#clientCredit').is(":checked")){
             creditLimit = replaceAll($('#clientCreditLimit').val(), '.', '').replace('$', '').replace(' ', '')
-            console.log(creditLimit)
             if(!$.isNumeric(creditLimit)){
                 $('#modal_title').html(`Error`)
                 $('#modal_body').html(`<h6 class="alert-heading">Límite de crédito no válido</h6>`)
@@ -416,6 +458,12 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             email: $('#clientEmail').val(),
             contact: $('#clientContact').val(),
             contactPhone: $('#clientContactPhone').val(),
+            email2: $('#clientEmail2').val(),
+            contact2: $('#clientContact2').val(),
+            contactPhone2: $('#clientContactPhone2').val(),
+            email3: $('#clientEmail3').val(),
+            contact3: $('#clientContact3').val(),
+            contactPhone3: $('#clientContactPhone3').val(),
             status: $('#clientStatus').val(),
             credit: $('#clientCredit').is(":checked"),
             creditLimit: creditLimit,
@@ -427,6 +475,8 @@ $('#optionModClient').on('click', async function () { // CREAR CLIENTE
             },
             rates: rates
         }
+
+        console.log('save',clientData)
         
         const res = validateClientData(clientData)
         
@@ -528,19 +578,102 @@ function setModal(){
                     Nombre Facturación (nombre completo SII)
                     <input id="clientNameFull" type="text" class="form-control form-control-sm border-input">
                 </div>
-                <div class="col-md-4" style="margin-top:10px;">
-                    Correo Electrónico
-                    <input id="clientEmail" type="text" class="form-control form-control-sm border-input">
+
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12" style="font-weight: bold">
+                                    Contacto 1
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    E-Mail
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientEmail" type="text" class="form-control form-control-sm border-input">
+                                </div>
+
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Nombre
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContact" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Teléfono
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContactPhone" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-4" style="margin-top:10px;">
-                    Nombre Contacto
-                    <input id="clientContact" type="text" class="form-control form-control-sm border-input">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12" style="font-weight: bold">
+                                    Contacto 2
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    E-Mail
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientEmail2" type="text" class="form-control form-control-sm border-input">
+                                </div>
+
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Nombre
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContact2" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Teléfono
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContactPhone2" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4" style="margin-top:10px;">
-                    Teléfono Contacto
-                    <input id="clientContactPhone" type="text" class="form-control form-control-sm border-input">
+
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12" style="font-weight: bold">
+                                    Contacto 3
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    E-Mail
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientEmail3" type="text" class="form-control form-control-sm border-input">
+                                </div>
+
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Nombre
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContact3" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                                <div class="col-md-4" style="margin-top:5px;">
+                                    Teléfono
+                                </div>
+                                <div class="col-md-8" style="margin-top:5px;">
+                                    <input id="clientContactPhone3" type="text" class="form-control form-control-sm border-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+
+
 
                 <div class="col-md-4" style="margin-top:10px;">
                     Estado
@@ -581,6 +714,7 @@ function setModal(){
                                     <tr>
                                         <th>Servicio</th>
                                         <th>Neto</th>
+                                        <th style="width: 20%">Días Libres</th>
                                         <th>Tarifa Especial</th>
                                     </tr>
                                 </thead>
@@ -591,6 +725,9 @@ function setModal(){
                                                         <td>${el.name}</td>
                                                         <td>
                                                             <input id="${el._id}" data-default="${el.net}" class="form-control-sm form-control-sm" value="${el.net}" style="text-align: right;" disabled />
+                                                        </td>
+                                                        <td style="width: 20%">
+                                                            <input id="days_${el._id}" data-default="${el.days}" class="form-control-sm form-control-sm" value="${el.days}" style="text-align: right;" disabled />
                                                         </td>
                                                         <td>
                                                             <input id="chk_${el._id}" type="checkbox" class="chkRate form-control-sm form-control-sm"/>

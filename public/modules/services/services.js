@@ -24,11 +24,14 @@ function chargeServicesTable() {
               'excel'
             ],
             iDisplayLength: 50,
+            language: {
+                url: spanishDataTableLang
+            },
             oLanguage: {
               sSearch: 'Buscar: '
             },
             responsive: false,
-            order: [[ 0, 'desc' ]],
+            order: [[ 0, 'asc' ]],
             columnDefs: [{targets: [1,2], className: 'dt-right'}],
             ordering: true,
             rowCallback: function( row, data ) {

@@ -85,6 +85,12 @@ export default [
                     client.email = payload.email
                     client.contact = payload.contact
                     client.contactPhone = payload.contactPhone
+                    client.email2 = payload.email2
+                    client.contact2 = payload.contact2
+                    client.contactPhone2 = payload.contactPhone2
+                    client.email3 = payload.email3
+                    client.contact3 = payload.contact3
+                    client.contactPhone3 = payload.contactPhone3
                     client.status = payload.status
                     client.credit = payload.credit
                     client.creditLimit = payload.creditLimit
@@ -120,6 +126,12 @@ export default [
                     email: Joi.string().optional().allow(''),
                     contact: Joi.string().optional().allow(''),
                     contactPhone: Joi.string().optional().allow(''),
+                    email2: Joi.string().optional().allow(''),
+                    contact2: Joi.string().optional().allow(''),
+                    contactPhone2: Joi.string().optional().allow(''),
+                    email3: Joi.string().optional().allow(''),
+                    contact3: Joi.string().optional().allow(''),
+                    contactPhone3: Joi.string().optional().allow(''),
                     status: Joi.string().optional().allow(''),
                     credit: Joi.boolean().required(),
                     creditLimit: Joi.number().allow(0).optional(),
@@ -131,7 +143,8 @@ export default [
                     }),
                     rates: Joi.array().items(Joi.object().keys({
                         services: Joi.string().optional().allow(''),
-                        net: Joi.number().allow(0).optional()
+                        net: Joi.number().allow(0).optional(),
+                        days: Joi.number().allow(0).optional()
                     }))
                 })
             }
@@ -163,6 +176,12 @@ export default [
                         email: payload.email,
                         contact: payload.contact,
                         contactPhone: payload.contactPhone,
+                        email2: payload.email2,
+                        contact2: payload.contact2,
+                        contactPhone2: payload.contactPhone2,
+                        email3: payload.email3,
+                        contact3: payload.contact3,
+                        contactPhone3: payload.contactPhone3,
                         status: payload.status,
                         debt: 'SIN DEUDA',
                         credit: payload.credit,
@@ -199,6 +218,12 @@ export default [
                     email: Joi.string().optional().allow(''),
                     contact: Joi.string().optional().allow(''),
                     contactPhone: Joi.string().optional().allow(''),
+                    email2: Joi.string().optional().allow(''),
+                    contact2: Joi.string().optional().allow(''),
+                    contactPhone2: Joi.string().optional().allow(''),
+                    email3: Joi.string().optional().allow(''),
+                    contact3: Joi.string().optional().allow(''),
+                    contactPhone3: Joi.string().optional().allow(''),
                     status: Joi.string().optional().allow(''),
                     credit: Joi.boolean().required(),
                     creditLimit: Joi.number().allow(0).optional(),
@@ -210,7 +235,8 @@ export default [
                     }),
                     rates: Joi.array().items(Joi.object().keys({
                         services: Joi.string().optional().allow(''),
-                        net: Joi.number().allow(0).optional()
+                        net: Joi.number().allow(0).optional(),
+                        days: Joi.number().allow(0).optional()
                     }))
                 })
             }
