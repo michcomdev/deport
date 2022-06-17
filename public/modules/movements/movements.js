@@ -397,6 +397,14 @@ async function getMovementsEnabled() {
                 deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
                 
                 let serviceDays = el.services.find(x => x.services.name===serviceName).services.days
+                //////Verificación de días especiales de cliente////
+                let serviceID = el.services.find(x => x.services.name===serviceName).services._id
+                let clientService = el.clientRates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+                /////////////////////////////////////////////////
+
                 if(deconExtraDays<=serviceDays){
                     deconExtraDays = 0
                 }else{
@@ -410,9 +418,18 @@ async function getMovementsEnabled() {
         
             //if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
                 //let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+                
             if(el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0)){
                 let serviceDays = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services.days
                 
+                //////Verificación de días especiales de cliente////
+                let serviceID = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services._id
+                let clientService = el.clientRates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+                /////////////////////////////////////////////////
+
                 if(el.extraDays<=serviceDays){
                     el.extraDays = 0
                 }else{
@@ -687,6 +704,8 @@ $('#optionModMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
+    console.log(container)
+
     if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA' || container.movements[movementID].movement=='DESCONSOLIDADO'){
 
         $('#movementsModal').modal('show')
@@ -718,7 +737,19 @@ $('#optionModMovement').on('click', async function () {
             let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
             //Días Extras posteriores a Desconsolidado
             deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+
+
             let serviceDays = container.services.find(x => x.services.name===serviceName).services.days
+            //////Verificación de días especiales de cliente////
+            if(container.clients.rates){
+                let serviceID = container.services.find(x => x.services.name===serviceName).services._id
+                let clientService = container.clients.rates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+            }
+            /////////////////////////////////////////////////
+            
             if(deconExtraDays<=serviceDays){
                 deconExtraDays = 0
             }else{
@@ -733,6 +764,17 @@ $('#optionModMovement').on('click', async function () {
         if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
             serviceType = 'imo'
             let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+
+            //////Verificación de días especiales de cliente////
+            if(container.clients.rates){
+                let serviceID = container.services.find(x => x.services.name==='Almacenamiento IMO').services._id
+                let clientService = container.clients.rates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+            }
+            /////////////////////////////////////////////////
+
             if(extraDays<=serviceDays){
                 extraDays = 0
             }else{
@@ -740,6 +782,16 @@ $('#optionModMovement').on('click', async function () {
             }
         }else if(container.services.find(x => x.services.name==='Almacenamiento Full')){
             let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Full').services.days
+
+            //////Verificación de días especiales de cliente////
+            if(container.clients.rates){
+                let serviceID = container.services.find(x => x.services.name==='Almacenamiento Full').services._id
+                let clientService = container.clients.rates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+            }
+            /////////////////////////////////////////////////
             if(extraDays<=serviceDays){
                 extraDays = 0
             }else{
@@ -747,6 +799,16 @@ $('#optionModMovement').on('click', async function () {
             }
         }else if(container.services.find(x => x.services.name==='Almacenamiento Vacío')){
             let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Vacío').services.days
+
+            //////Verificación de días especiales de cliente////
+            if(container.clients.rates){
+                let serviceID = container.services.find(x => x.services.name==='Almacenamiento Vacío').services._id
+                let clientService = container.clients.rates.find(x => x.services==serviceID)
+                if(clientService){
+                    serviceDays = clientService.days
+                }
+            }
+            /////////////////////////////////////////////////
             if(extraDays<=serviceDays){
                 extraDays = 0
             }else{
@@ -839,7 +901,7 @@ $('#optionModMovement').on('click', async function () {
             $('#movementDate').val(moment(container.movements[0].datetime).format('YYYY-MM-DD'))
             $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
         }
-        $('#movementClient').val(container.clients)
+        $('#movementClient').val(container.clients._id)
         setClientRUT()
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
@@ -1186,7 +1248,7 @@ $('#optionModMovement').on('click', async function () {
         $('#movementType').val(container.movements[movementID].movement)
         $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
         $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
-        $('#movementClient').val(container.clients)
+        $('#movementClient').val(container.clients._id)
         setClientRUT()
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
@@ -1445,6 +1507,15 @@ $('#optionCloseMovement').on('click', async function () {
         //Días Extras posteriores a Desconsolidado
         deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
         let serviceDays = container.services.find(x => x.services.name===serviceName).services.days
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name===serviceName).services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
         if(deconExtraDays<=serviceDays){
             deconExtraDays = 0
         }else{
@@ -1459,6 +1530,15 @@ $('#optionCloseMovement').on('click', async function () {
     if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
         serviceType = 'imo'
         let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento IMO').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
         if(extraDays<=serviceDays){
             extraDays = 0
         }else{
@@ -1466,6 +1546,15 @@ $('#optionCloseMovement').on('click', async function () {
         }
     }else if(container.services.find(x => x.services.name==='Almacenamiento Full')){
         let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Full').services.days
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento Full').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
         if(extraDays<=serviceDays){
             extraDays = 0
         }else{
@@ -1473,6 +1562,15 @@ $('#optionCloseMovement').on('click', async function () {
         }
     }else if(container.services.find(x => x.services.name==='Almacenamiento Vacío')){
         let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Vacío').services.days
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento Vacío').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
         if(extraDays<=serviceDays){
             extraDays = 0
         }else{
@@ -1508,7 +1606,7 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
     $('#movementOutDate').val(moment().format('YYYY-MM-DD'))
     $('#movementOutTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients)
+    $('#movementClient').val(container.clients._id)
     setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
@@ -1766,7 +1864,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementType').val('TRASLADO')
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients)
+    $('#movementClient').val(container.clients._id)
     setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
@@ -1856,6 +1954,116 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     if(container.paymentCredit){
         $('#chkCredit').prop('checked',true)
     }
+
+    
+    /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
+    extraDays = 0
+    deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
+    let serviceType = 'normal'
+    let momentEndDate = moment()
+
+    if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='DESCONSOLIDADO'){
+        $('#modalMov_title').html(`Modifica Registro`)
+
+    }else if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+        $('#modalMov_title').html(`Modifica Salida`)
+
+        momentEndDate = moment(container.movements[movementID].datetime)
+    }
+
+    if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+        let serviceName = container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
+        let deconDate = container.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
+        //Días Extras posteriores a Desconsolidado
+        deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+
+
+        let serviceDays = container.services.find(x => x.services.name===serviceName).services.days
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name===serviceName).services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
+        
+        if(deconExtraDays<=serviceDays){
+            deconExtraDays = 0
+        }else{
+            deconExtraDays -= serviceDays
+        }
+
+        extraDays = moment(deconDate).diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
+    }else{
+        extraDays = momentEndDate.diff(moment(container.movements[0].datetime).format('YYYY-MM-DD'), 'days')
+    }
+
+    if(container.services.find(x => x.services.name==='Almacenamiento IMO')){
+        serviceType = 'imo'
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento IMO').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
+
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
+    }else if(container.services.find(x => x.services.name==='Almacenamiento Full')){
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Full').services.days
+
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento Full').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
+    }else if(container.services.find(x => x.services.name==='Almacenamiento Vacío')){
+        let serviceDays = container.services.find(x => x.services.name==='Almacenamiento Vacío').services.days
+
+        //////Verificación de días especiales de cliente////
+        if(container.clients.rates){
+            let serviceID = container.services.find(x => x.services.name==='Almacenamiento Vacío').services._id
+            let clientService = container.clients.rates.find(x => x.services==serviceID)
+            if(clientService){
+                serviceDays = clientService.days
+            }
+        }
+        /////////////////////////////////////////////////
+        if(extraDays<=serviceDays){
+            extraDays = 0
+        }else{
+            extraDays -= serviceDays
+        }
+    }else{
+        if(extraDays<=5){
+            extraDays = 0
+        }else{
+            extraDays -= 5
+        }
+    }
+
+    setExtraDays(extraDays,deconExtraDays,serviceType)
+
+
     setPositionList()
 
     $("#btnMap").css('display','none')
@@ -1873,7 +2081,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementType').val('DESCONSOLIDADO')
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients)
+    $('#movementClient').val(container.clients._id)
     setClientRUT()
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)

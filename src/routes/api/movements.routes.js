@@ -186,7 +186,7 @@ export default [
                     let movement = await Movement.findOne({
                         _id: new mongo.ObjectID(payload.id)
                     }).lean()*/
-                    let movement = await Containers.findById(payload.id).populate(['services.services'])
+                    let movement = await Containers.findById(payload.id).populate(['clients','services.services'])
                     
 
                     return movement
@@ -277,7 +277,23 @@ export default [
                             }else if(el.services.find(x => x.services.name == 'Almacenamiento Full') || el.services.find(x => x.services.name == 'Almacenamiento IMO')){
                                 containerState = 'LLENO'
                             }
+/*
+                            if(el.clients.rut=='11.111.111-1'){
+                                if(el.clients.rates){
+                                    if(el.clients.rates.length>0){
+                                        for(let j=0; j<el.clients.rates.length; j++){
+                                            if(el.services.find(x => x.services._id.toString() == el.clients.rates[j].services.toString())){
+                                                console.log(el.services.find(x => x.services._id.toString() == el.clients.rates[j].services.toString()).services.days)
+                                                console.log(el.clients.rates[j].days)
 
+                                                el.services.find(x => x.services._id.toString() == el.clients.rates[j].services.toString()).services.clientDays = el.clients.rates[j].days
+                                                el.services.find(x => x.services._id.toString() == el.clients.rates[j].services.toString()).services.days = el.clients.rates[j].days
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+*/
                             let lastMov = el.movements.length - 1
 
                             let site = 'N/A'
@@ -344,6 +360,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -367,6 +384,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -388,6 +406,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -413,6 +432,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -436,6 +456,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -458,6 +479,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -481,6 +503,7 @@ export default [
                                             movementID: lastMov,
                                             movement: el.movements[lastMov].movement,
                                             client: el.clients.name,
+                                            clientRates: el.clients.rates,
                                             containerNumber: el.containerNumber,
                                             containerType: el.containertypes.name,
                                             containerLarge: el.containerLarge,
@@ -643,7 +666,7 @@ export default [
                         movement.extraDayTotal = 0
 
                         for(let j=0; j<container.services.length; j++){
-                            if(container.services[j].services.name=='Día(s) Extra'){
+                            if(container.services[j].services.name=='Día(s) Extra' || container.services[j].services.name=='Día(s) Extra IMO'){
                                 movement.extraDays += container.services[j].extraDays
                                 movement.extraDayServiceNet = container.services[j].services.net
                                 movement.extraDayNet += container.services[j].paymentNet
