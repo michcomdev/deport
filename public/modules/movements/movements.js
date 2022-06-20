@@ -704,8 +704,6 @@ $('#optionModMovement').on('click', async function () {
     let container = containerData.data
     let movementID = internals.dataRowSelected.movementID
 
-    console.log(container)
-
     if(container.movements[movementID].movement=='POR INGRESAR' || container.movements[movementID].movement=='INGRESADO' || container.movements[movementID].movement=='TRASLADO' || container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA' || container.movements[movementID].movement=='DESCONSOLIDADO'){
 
         $('#movementsModal').modal('show')
@@ -716,6 +714,10 @@ $('#optionModMovement').on('click', async function () {
         if(container.paymentCredit){
             $('#chkCredit').prop('checked',true)
         }
+
+        $('#movementClient').val(container.clients._id)
+        setClientRUT()
+        setClientRates()
 
         /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
         extraDays = 0
@@ -901,8 +903,7 @@ $('#optionModMovement').on('click', async function () {
             $('#movementDate').val(moment(container.movements[0].datetime).format('YYYY-MM-DD'))
             $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
         }
-        $('#movementClient').val(container.clients._id)
-        setClientRUT()
+
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
         if(container.containerTexture==''){
@@ -1198,6 +1199,10 @@ $('#optionModMovement').on('click', async function () {
         $('#modalMov_body').html(createModalBody('TRASPASO'))
         $('#imgTexture').val('cai')
 
+        $('#movementClient').val(container.clients._id)
+        setClientRUT()
+        setClientRates()
+
         $('#modalMov_footer').html(`
             <button class="btn btn-dark" data-dismiss="modal">
                 <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
@@ -1248,8 +1253,7 @@ $('#optionModMovement').on('click', async function () {
         $('#movementType').val(container.movements[movementID].movement)
         $('#movementDate').val(moment(container.movements[movementID].datetime).format('YYYY-MM-DD'))
         $('#movementTime').val(moment(container.movements[movementID].datetime).format('HH:mm'))
-        $('#movementClient').val(container.clients._id)
-        setClientRUT()
+        
         $('#movementContainerNumber').val(container.containerNumber)
         $('#movementContainerType').val(container.containertypes)
         if(container.containerTexture==''){
@@ -1495,6 +1499,10 @@ $('#optionCloseMovement').on('click', async function () {
         $('#chkCredit').prop('checked',true)
     }
 
+    $('#movementClient').val(container.clients._id)
+    setClientRUT()
+    setClientRates()
+
     /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
     extraDays = 0
     deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
@@ -1606,8 +1614,7 @@ $('#optionCloseMovement').on('click', async function () {
     $('#movementTime').val(moment(container.movements[0].datetime).format('HH:mm'))
     $('#movementOutDate').val(moment().format('YYYY-MM-DD'))
     $('#movementOutTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients._id)
-    setClientRUT()
+
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -1844,6 +1851,10 @@ $('#optionMovMovement').on('click', async function () {
         $('#chkCredit').prop('checked',true)
     }
 
+    $('#movementClient').val(container.clients._id)
+    setClientRUT()
+    setClientRates()
+
     $('#modalMov_footer').html(`
          <button class="btn btn-dark" data-dismiss="modal">
             <i ="color:#E74C3C;" class="fas fa-times"></i> CERRAR
@@ -1864,8 +1875,7 @@ $('#optionMovMovement').on('click', async function () {
     $('#movementType').val('TRASLADO')
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients._id)
-    setClientRUT()
+
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -1955,6 +1965,9 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
         $('#chkCredit').prop('checked',true)
     }
 
+    $('#movementClient').val(container.clients._id)
+    setClientRUT()
+    setClientRates()
     
     /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
     extraDays = 0
@@ -2081,8 +2094,7 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
     $('#movementType').val('DESCONSOLIDADO')
     $('#movementDate').val(moment().format('YYYY-MM-DD'))
     $('#movementTime').val(moment().format('HH:mm'))
-    $('#movementClient').val(container.clients._id)
-    setClientRUT()
+
     $('#movementContainerNumber').val(container.containerNumber)
     $('#movementContainerType').val(container.containertypes)
     if(container.containerTexture==''){
@@ -4775,7 +4787,7 @@ async function showUpdateRates() {
                         $($($($(this).children()[0]).children()[0]).children()).each(function() {
                             let serviceRate = clientRates.rates.find(x => x.services === $(this).val())
                             if(serviceRate){
-                                console.log(serviceRate)
+                                
                                 if($(this).attr('data-net')!=serviceRate.net){
                                     $("#tableUpdateRates").append(`
                                         <tr>
@@ -4861,7 +4873,7 @@ async function showUpdateRates() {
 }
 
 async function updateRate(type, serviceID, serviceRate){
-    console.log(type, serviceID, serviceRate)
+    
     if(type=='normal'){
         $("#tableServicesBody > tr").each(function() {
             $($($($(this).children()[0]).children()[0]).children()).each(function() {
@@ -4875,7 +4887,7 @@ async function updateRate(type, serviceID, serviceRate){
     }else if(type=='extra'){
         $("#tableServicesExtraBody > tr").each(function() {
             $($($($(this).children()[1]).children()[1]).children()).each(function() {
-                console.log($(this).val(),serviceID,$(this).attr('data-net'))
+                
                 if($(this).val()==serviceID){
                     $(this).attr('data-net',serviceRate)
                 }
