@@ -3099,7 +3099,7 @@ function createModalBody(type){
                             <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                                 <thead>
                                     <tr>
-                                        <th style="width: 35%">Servicio</th>
+                                        <th style="width: 30%">Servicio</th>
                                         <th>Neto</th>
                                         <th>IVA</th>
                                         <th>TOTAL</th>
@@ -3411,7 +3411,7 @@ function setExtraDays(quantity,quantityDecon,serviceType){
     
     let extraRow = `<tr class="table-dangerSoft">
             <td>
-                ${name}
+                Almacenamiento
             </td>
             <td style="text-align: center;">
                 <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" disabled>
@@ -3545,7 +3545,7 @@ async function updatePayment(input,special) {
 
         if($("#tableServicesExtraBody > tr").length>0){
             $("#tableServicesExtraBody > tr").each(function() {
-                if($($(this).children()[0]).text().trim()=='Almacenamiento'){
+                if($($(this).children()[0]).text().trim()=='Almacenamiento' || $($(this).children()[0]).text().trim()=='Almacenamiento IMO'){
                     extraDays = $($($(this).children()[1]).children()[0]).val()
                 }else if($($(this).children()[0]).text().trim()=='Post Desconsolidado'){
                     deconExtraDays = $($($(this).children()[1]).children()[0]).val()
