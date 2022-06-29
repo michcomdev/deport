@@ -377,69 +377,90 @@ async function getMovementsEnabled() {
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
 
+            if(el.containerNumber=='INKU-254429-0'){
+                console.log(el)
+            }
+            
             /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
             el.extraDays = 0
             deconExtraDays = 0 //Por si aplican días extras después de desconsolidado
 
             let momentEndDate = moment()
-
             if(Date.parse(el.datetimeOut)){
                 momentEndDate = moment(el.datetimeOut)
                 el.datetimeOut = moment(el.datetimeOut).format('DD/MM/YYYY HH:mm')
             }
-                
-            if(el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
-                let serviceName = el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
-                
-                let deconDate = el.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
-
-                //Días Extras posteriores a Desconsolidado
-                deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
-                
-                let serviceDays = el.services.find(x => x.services.name===serviceName).services.days
-                //////Verificación de días especiales de cliente////
-                let serviceID = el.services.find(x => x.services.name===serviceName).services._id
-                let clientService = el.clientRates.find(x => x.services==serviceID)
-                if(clientService){
-                    serviceDays = clientService.days
+            
+            if(el.movement=='SALIDA' || el.movement=='POR SALIR'){
+                try{
+                    if(el.services.find(x => x.services.name == 'Día(s) Extra')){
+                        el.extraDays = el.services.find(x => x.services.name == 'Día(s) Extra').extraDays
+                    }else if(el.services.find(x => x.services.name == 'Día(s) Extra IMO')){
+                        el.extraDays = el.services.find(x => x.services.name == 'Día(s) Extra IMO').extraDays
+                    }else if(el.services.find(x => x.services.name == 'Post Desconsolidado')){
+                        deconExtraDays = el.services.find(x => x.services.name == 'Post Desconsolidado').extraDays
+                    }
+                } catch (error) {
+                    loadingHandler('stop')
+    
+                    console.log(error)
                 }
-                /////////////////////////////////////////////////
-
-                if(deconExtraDays<=serviceDays){
-                    deconExtraDays = 0
-                }else{
-                    deconExtraDays -= serviceDays
-                }
-
-                el.extraDays = moment(deconDate).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
+            
             }else{
-                el.extraDays = momentEndDate.diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
-            }
-        
-            //if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
-                //let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
-                
-            if(el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0)){
-                let serviceDays = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services.days
-                
-                //////Verificación de días especiales de cliente////
-                let serviceID = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services._id
-                let clientService = el.clientRates.find(x => x.services==serviceID)
-                if(clientService){
-                    serviceDays = clientService.days
-                }
-                /////////////////////////////////////////////////
+           
+                if(el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+                    let serviceName = el.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0).services.name
+                    
+                    let deconDate = el.movements.find(x => x.movement==='DESCONSOLIDADO').datetime
 
-                if(el.extraDays<=serviceDays){
-                    el.extraDays = 0
+                    //Días Extras posteriores a Desconsolidado
+                    deconExtraDays = momentEndDate.diff(moment(deconDate).format('YYYY-MM-DD'), 'days')
+                    
+                    let serviceDays = el.services.find(x => x.services.name===serviceName).services.days
+                    //////Verificación de días especiales de cliente////
+                    let serviceID = el.services.find(x => x.services.name===serviceName).services._id
+                    let clientService = el.clientRates.find(x => x.services==serviceID)
+                    if(clientService){
+                        serviceDays = clientService.days
+                    }
+                    /////////////////////////////////////////////////
+
+                    if(deconExtraDays<=serviceDays){
+                        deconExtraDays = 0
+                    }else{
+                        deconExtraDays -= serviceDays
+                    }
+
+                    el.extraDays = moment(deconDate).diff(moment(el.datetime).format('YYYY-MM-DD'), 'days') //Se toma como último día el del desconsolidado
                 }else{
-                    el.extraDays -= serviceDays
+                    el.extraDays = momentEndDate.diff(moment(el.datetime).format('YYYY-MM-DD'), 'days')
                 }
-            }else{
-                if(el.extraDays<=5){
-                    el.extraDays = 0
+            
+                //if(el.services.find(x => x.services.name==='Almacenamiento IMO')){
+                    //let serviceDays = el.services.find(x => x.services.name==='Almacenamiento IMO').services.days
+                    
+                if(el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0)){
+                    let serviceDays = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services.days
+                    
+                    //////Verificación de días especiales de cliente////
+                    let serviceID = el.services.find(x => x.services.name.indexOf('Almacenamiento')>=0).services._id
+                    let clientService = el.clientRates.find(x => x.services==serviceID)
+                    if(clientService){
+                        serviceDays = clientService.days
+                    }
+                    /////////////////////////////////////////////////
+
+                    if(el.extraDays<=serviceDays){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= serviceDays
+                    }
                 }else{
-                    el.extraDays -= 5
+                    if(el.extraDays<=5){
+                        el.extraDays = 0
+                    }else{
+                        el.extraDays -= 5
+                    }
                 }
             }
             
@@ -839,6 +860,22 @@ $('#optionModMovement').on('click', async function () {
                 extraDays = 0
             }else{
                 extraDays -= 5
+            }
+        }
+
+        if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
+            try{
+                if(container.services.find(x => x.services.name == 'Día(s) Extra')){
+                    extraDays = container.services.find(x => x.services.name == 'Día(s) Extra').extraDays
+                }else if(container.services.find(x => x.services.name == 'Día(s) Extra IMO')){
+                    extraDays = container.services.find(x => x.services.name == 'Día(s) Extra IMO').extraDays
+                }else if(container.services.find(x => x.services.name == 'Post Desconsolidado')){
+                    deconExtraDays = container.services.find(x => x.services.name == 'Post Desconsolidado').extraDays
+                }
+            } catch (error) {
+                //loadingHandler('stop')
+
+                console.log(error)
             }
         }
 
@@ -3293,7 +3330,7 @@ function setServiceList(type,array,containerLarge){
                 
                 let listService = ''
 
-                if(array[i].services.name!='Día(s) Extra' && array[i].services.name.indexOf('Desconsolidado') ==-1 ){
+                if(array[i].services.name.indexOf('Día(s) Extra') && array[i].services.name.indexOf('Desconsolidado') ==-1 ){
                     services.reduce((acc,el)=>{
                         if(el._id==array[i].services._id){
                             listService += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
@@ -3311,7 +3348,7 @@ function setServiceList(type,array,containerLarge){
                         }
                     },'')
                 }
-                if(array[i].services.name!='Día(s) Extra'){
+                if(array[i].services.name.indexOf('Día(s) Extra')){
                     $("#tableServicesBody").append(`
                         <tr class="${trClass}">
                             <td>
@@ -3398,7 +3435,7 @@ function setServiceList(type,array,containerLarge){
 }
 
 function setExtraDays(quantity,quantityDecon,serviceType){
-
+    
     let net = 0, iva = 0, total = 0
 
     let extraType = 'Día(s) Extra', name = 'Almacenamiento'
@@ -3411,7 +3448,7 @@ function setExtraDays(quantity,quantityDecon,serviceType){
     
     let extraRow = `<tr class="table-dangerSoft">
             <td>
-                Almacenamiento
+                ${name}
             </td>
             <td style="text-align: center;">
                 <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" disabled>

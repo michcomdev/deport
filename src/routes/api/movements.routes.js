@@ -808,7 +808,7 @@ export default [
                         movement.total = serv.paymentTotal
                     }                    
                     
-                    if(container.services.find(x => x.services.name=='Día(s) Extra')){
+                    if(container.services.find(x => x.services.name.indexOf('Día(s) Extra'))){
 
                         movement.extraDays = 0
                         movement.extraDayServiceNet = 0
