@@ -30,7 +30,9 @@ const clientSchema = new Schema({
         services: { type: Schema.Types.ObjectId, ref: 'services' },
         net: { type: Number },
         days: { type: Number }
-    }]
+    }],
+    passwordString: { type: String },
+    password: { type: String }
 }, {
     versionKey: false
 })

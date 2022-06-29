@@ -551,6 +551,157 @@ export default [
     },
     {
         method: 'POST',
+        path: '/api/movementsByContainerNumber',
+        options: {
+            description: 'get one movement data',
+            notes: 'return all data from movement',
+            tags: ['api'],
+            handler: async (request, h) => {
+                try {
+                    let payload = request.payload
+                    let query = {}
+                    let status = ''
+
+                    query.containerNumber = new RegExp(payload.containerNumber, 'i') //i se aplica para case insensitive
+
+                    let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
+
+                    if(payload.table){
+                        containers = containers.reduce((acc, el, i) => {
+
+                            /////SERVICIOS/////
+                            let containerState = 'N/A'
+                            if(el.services.find(x => x.services.name == 'Almacenamiento Vacío') || el.services.find(x => x.services.name == 'Desconsolidado')){
+                                containerState = 'VACÍO'
+                            }else if(el.services.find(x => x.services.name == 'Almacenamiento Full') || el.services.find(x => x.services.name == 'Almacenamiento IMO')){
+                                containerState = 'LLENO'
+                            }
+                            let lastMov = el.movements.length - 1
+
+                            let site = 'N/A'
+                            if(el.movements[lastMov].sites){
+                                site = el.movements[lastMov].sites.name
+                            }
+                            let position = 'N/A'
+                            if(el.movements[lastMov].position.row){
+                                position = el.movements[lastMov].position.row + el.movements[lastMov].position.position + '_' + el.movements[lastMov].position.level
+                            }
+
+                            if(el.movements[lastMov].movement=='SALIDA'){
+                                if(site=='N/A'){
+                                    if(el.movements[lastMov-1].sites){
+                                        site = el.movements[lastMov-1].sites.name
+                                    }
+                                }
+
+                                if(position=='N/A'){
+                                    if(el.movements[lastMov-1].position.row){
+                                        position = el.movements[lastMov-1].position.row + el.movements[lastMov-1].position.position + '_' + el.movements[lastMov-1].position.level
+                                    }
+                                }
+                            }
+
+                            let datetimeIn = '-'
+                            let datetimeOut = '-'
+                            if(el.movements[lastMov].movement=='SALIDA' || el.movements[lastMov].movement=='POR SALIR'){
+                                datetimeIn = el.movements[0].datetime //Modificar por último "ingreso"
+                                datetimeOut = el.movements[lastMov].datetime
+                            }else if(el.movements[lastMov].movement=='TRASPASO'){
+                                datetimeIn = el.movements[lastMov].datetime
+                                datetimeOut = el.movements[lastMov].datetime
+                            }else if(el.movements[lastMov].movement=='DESCONSOLIDADO'){
+                                datetimeIn = el.movements[0].datetime //Modificar por último "ingreso"
+                                datetimeOut = '-'
+                            }else{
+                                //datetimeIn = el.movements[lastMov].datetime
+                                datetimeIn = el.movements[0].datetime
+                                datetimeOut = '-' //Modificar por 5 días y/o +extras
+                            }
+
+                            let driverName = '', driverPlate = ''
+                            if(el.movements[lastMov].driverName){
+                                driverName = el.movements[lastMov].driverName
+                                driverPlate = el.movements[lastMov].driverPlate
+                            }else{
+                                for(let i=el.movements.length-1; i>=0; i--){
+                                    if(el.movements[i].driverName){
+                                        driverName = el.movements[i].driverName
+                                        driverPlate = el.movements[i].driverPlate
+                                        i=0
+                                    }
+                                }
+                            }
+
+                            if(el.movements[lastMov].movement=='SALIDA'){
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: datetimeIn,
+                                    datetimeOut: datetimeOut,
+                                    movementID: lastMov,
+                                    movement: el.movements[lastMov].movement,
+                                    client: el.clients.name,
+                                    clientRates: el.clients.rates,
+                                    containerNumber: el.containerNumber,
+                                    containerType: el.containertypes.name,
+                                    containerLarge: el.containerLarge,
+                                    containerState: containerState,
+                                    site: site,
+                                    position: position,
+                                    driverName: driverName,
+                                    driverPlate: driverPlate,
+                                    services: el.services,
+                                    payments: el.payments,
+                                    paymentCredit: el.paymentCredit,
+                                    movements: el.movements
+                                })
+                            }else{
+                                acc.push({
+                                    id: el._id.toString(),
+                                    datetime: datetimeIn,
+                                    datetimeOut: datetimeOut,
+                                    movementID: lastMov,
+                                    movement: el.movements[lastMov].movement,
+                                    client: el.clients.name,
+                                    clientRates: el.clients.rates,
+                                    containerNumber: el.containerNumber,
+                                    containerType: el.containertypes.name,
+                                    containerLarge: el.containerLarge,
+                                    containerState: containerState,
+                                    site: site,
+                                    position: position,
+                                    driverName: driverName,
+                                    driverPlate: driverPlate,
+                                    services: el.services,
+                                    payments: el.payments,
+                                    paymentCredit: el.paymentCredit,
+                                    movements: el.movements
+                                })
+                            }
+                    
+                            return acc
+                        }, [])
+                    }
+                    
+                    return containers
+                
+                } catch (error) {
+                    console.log(error)
+
+                    return h.response({
+                        error: 'Internal Server Error'
+                    }).code(500)
+                }
+            },
+            validate: {
+                payload: Joi.object().keys({
+                    table: Joi.boolean().required(),
+                    containerNumber: Joi.string().optional().allow('')
+                })
+            }
+        }
+    },
+    {
+        method: 'POST',
         path: '/api/movementVoucher',
         options: {
             description: 'get one movement data',
@@ -1383,6 +1534,26 @@ export default [
                     let container = await Containers.findById(payload.id).populate(['clients'])
 
                     if(isEmail(container.clients.email)){
+                        
+
+                        if(isEmail(container.clients.email2)){
+                            let response2 = await sendEmail({
+                                clientMail: container.clients.email2, 
+                                type: payload.type,
+                                pdf: payload.pdf,
+                                voucher: payload.voucher
+                            })
+                        }
+                        
+                        if(isEmail(container.clients.email3)){
+                            let response3 = await sendEmail({
+                                clientMail: container.clients.email3, 
+                                type: payload.type,
+                                pdf: payload.pdf,
+                                voucher: payload.voucher
+                            })
+                        }
+
                         let response = await sendEmail({
                             clientMail: container.clients.email, 
                             type: payload.type,

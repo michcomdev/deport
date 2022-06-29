@@ -133,6 +133,17 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
         }
     })
 
+    $('#clientWebAccess').change(function () {
+        if($(this).prop('checked')){
+            $('.classWeb').removeAttr('disabled')
+        }else{
+            $('.classWeb').attr('disabled',true)
+            $('#clientWebPassword').val('')
+            $("#clientWebPassword").prop('type','password')
+            $($('#btnWebPassword').children()[0]).removeClass('fa-eye-slash').addClass('fa-eye')
+        }
+    })
+
     new Cleave($('#clientCreditLimit'), {
         prefix: '$ ',
         numeral: true,
@@ -255,6 +266,17 @@ $('#optionCreateClient').on('click', function () { // CREAR CLIENTE
             rates: rates
         }
 
+        if($("#clientWebAccess").prop('checked')){
+            if($("#clientWebPassword").val().length>5){
+                clientData.password = $("#clientWebPassword").val()
+            }else{
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Debe ingresar una contraseña de al menos 6 caracteres</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+        }
+
         const res = validateClientData(clientData)
         if (res.ok) {
             let saveClient = await axios.post('/api/clientSave', clientData)
@@ -314,6 +336,17 @@ $('#optionModClient').on('click', async function () { // MODIFICA CLIENTE
         }
     })
 
+    $('#clientWebAccess').change(function () {
+        if($(this).prop('checked')){
+            $('.classWeb').removeAttr('disabled')
+        }else{
+            $('.classWeb').attr('disabled',true)
+            $('#clientWebPassword').val('')
+            $("#clientWebPassword").prop('type','password')
+            $($('#btnWebPassword').children()[0]).removeClass('fa-eye-slash').addClass('fa-eye')
+        }
+    })
+
     new Cleave($('#clientCreditLimit'), {
         prefix: '$ ',
         numeral: true,
@@ -350,6 +383,11 @@ $('#optionModClient').on('click', async function () { // MODIFICA CLIENTE
     $('#clientRUT').val(client.rut)
     $('#clientName').val(client.name)
     $('#clientNameFull').val(client.nameFull)
+    if(client.passwordString){
+        $('#clientWebAccess').prop('checked',true)
+        $('.classWeb').removeAttr('disabled')
+        $('#clientWebPassword').val(client.passwordString)
+    } 
     $('#clientEmail').val(client.email)
     $('#clientContact').val(client.contact)
     $('#clientContactPhone').val(client.contactPhone)
@@ -476,7 +514,16 @@ $('#optionModClient').on('click', async function () { // MODIFICA CLIENTE
             rates: rates
         }
 
-        console.log('save',clientData)
+        if($("#clientWebAccess").prop('checked')){
+            if($("#clientWebPassword").val().length>5){
+                clientData.password = $("#clientWebPassword").val()
+            }else{
+                $('#modal_title').html(`Error`)
+                $('#modal_body').html(`<h6 class="alert-heading">Debe ingresar una contraseña de al menos 6 caracteres</h6>`)
+                $('#modal').modal('show')
+                return
+            }
+        }
         
         const res = validateClientData(clientData)
         
@@ -564,19 +611,45 @@ function setModal(){
 
     return `
             <div class="row">
-                <div class="col-md-4" style="margin-top:10px;">
-                    RUT
-                    <input id="clientRUT" type="text" class="form-control form-control-sm border-input">
-                </div>
-                <div class="col-md-8" style="margin-top:10px;">
-                    Nombre (o nombre de fantasía SII)
-                    <input id="clientName" type="text" class="form-control form-control-sm border-input">
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-3">
+                            RUT
+                            <input id="clientRUT" type="text" class="form-control form-control-sm border-input">
+                        </div>
+                        <div class="col-md-9">
+                            Nombre (o nombre de fantasía SII)
+                            <input id="clientName" type="text" class="form-control form-control-sm border-input">
+                        </div>
+
+                        <div class="col-md-12">
+                            <br/>
+                            Nombre Facturación (nombre completo SII)
+                            <input id="clientNameFull" type="text" class="form-control form-control-sm border-input">
+                            <br/>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-12" style="margin-top:10px;">
-                    <br/>
-                    Nombre Facturación (nombre completo SII)
-                    <input id="clientNameFull" type="text" class="form-control form-control-sm border-input">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    Acceso Web Habilitado
+                                    <input type="checkbox" id="clientWebAccess">
+                                </div>
+                                <div class="col-md-9">
+                                    Contraseña
+                                    <input id="clientWebPassword" type="password" autocomplete="jope" class="form-control form-control-sm border-input classWeb" disabled>
+                                </div>
+                                <div class="col-md-3">
+                                    <br/>
+                                    <button id="btnWebPassword" class="btn btn-sm btn-primary classWeb" onclick="showPassword(this)" title="Mostrar Contraseña" disabled><i class="fas fa-eye"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-md-4">
@@ -675,7 +748,7 @@ function setModal(){
 
 
 
-                <div class="col-md-4" style="margin-top:10px;">
+                <div class="col-md-4">
                     Estado
                     <select id="clientStatus" class="custom-select">
                         <option value="enabled">HABILITADO</option>
@@ -685,18 +758,18 @@ function setModal(){
 
 
 
-                <div class="col-md-4" style="margin-top:10px;">
+                <div class="col-md-4">
                     <br/>
                     Cliente con Crédito
                     <input type="checkbox" id="clientCredit">
                 </div>
 
-                <div class="col-md-4" style="margin-top:10px;">
+                <div class="col-md-4">
                     Límite crédito (en pesos)
                     <input id="clientCreditLimit" type="text" class="form-control form-control-sm border-input" value="$ 0" disabled>
                 </div>
 
-                <div class="col-md-4" style="margin-top:10px;">
+                <div class="col-md-4">
                     <br/>
                     Servicios Habilitados
                     <br/><input type="checkbox" id="serviceStorage" checked> Almacenamiento
@@ -704,7 +777,7 @@ function setModal(){
                     <br/><input type="checkbox" id="servicePortage"> Porteo
                     <br/><input type="checkbox" id="serviceTransport"> Transporte
                 </div>
-                <div class="col-md-8" style="margin-top:10px;">
+                <div class="col-md-8">
                     <br/>
                     <div class="card border-primary">
                         <div class="card-body">
@@ -746,3 +819,14 @@ function setModal(){
         `
         
 }
+
+function showPassword(btn) {
+    var x = document.getElementById("clientWebPassword")
+    if (x.type === "password") {
+        x.type = "text"
+        $($(btn).children()[0]).removeClass('fa-eye').addClass('fa-eye-slash')
+    } else {
+        x.type = "password"
+        $($(btn).children()[0]).removeClass('fa-eye-slash').addClass('fa-eye')
+    }
+  }

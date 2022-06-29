@@ -465,6 +465,7 @@ async function getMovementsEnabled() {
     } else {
         toastr.warning('No se han encontrado movimientos en base a filtrado')
         $('#loadingMovements').empty()
+        loadingHandler('stop')
     }
 }
 
@@ -547,6 +548,23 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
     })
 
     $('#saveMovement').on('click', async function () {
+
+
+        /*
+        EN PROCESO!!!!!!!!!!!!!!!!!!!
+        if(!$('#movementContainerNumber').val().includes('_')){
+            let query = {
+                table: true,
+                containerNumber: $("#movementContainerNumber").val()
+            }
+        
+            let movementData = await axios.post('api/movementsByContainerNumber',query)
+
+            console.log(movementData)
+        }
+
+        console.log('testing')
+        return*/
 
         //let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
         //let iva = Math.round(net * 0.19)

@@ -2,6 +2,7 @@ import Client from '../../models/Client'
 import Logs from '../../models/Logs'
 import Joi from 'joi'
 import dotEnv from 'dotenv'
+import { hashPassword } from '../../utils/passwordHandler'
 
 dotEnv.config()
 
@@ -97,6 +98,14 @@ export default [
                     client.services = payload.services
                     client.rates = payload.rates
 
+                    if(payload.password){
+                        client.passwordString = payload.password
+                        client.password = hashPassword(payload.password)
+                    }else{
+                        client.passwordString = null
+                        client.password = null
+                    }
+
                     let log = new Logs({
                         users: credentials._id,
                         type: 'updateClient',
@@ -145,7 +154,8 @@ export default [
                         services: Joi.string().optional().allow(''),
                         net: Joi.number().allow(0).optional(),
                         days: Joi.number().allow(0).optional()
-                    }))
+                    })),
+                    password: Joi.string().optional()
                 })
             }
         }
@@ -169,6 +179,13 @@ export default [
                         return 'created'
                     }
 
+                    let passwordString = null, password = null
+
+                    if(payload.password){
+                        passwordString = payload.password
+                        password = hashPassword(payload.password)
+                    }
+
                     let client = new Client({
                         rut: payload.rut,
                         name: payload.name,
@@ -187,7 +204,9 @@ export default [
                         credit: payload.credit,
                         creditLimit: payload.creditLimit,
                         services: payload.services,
-                        rates: payload.rates
+                        rates: payload.rates,
+                        passwordString: passwordString,
+                        password: password
                     })
 
                     let log = new Logs({
@@ -237,7 +256,8 @@ export default [
                         services: Joi.string().optional().allow(''),
                         net: Joi.number().allow(0).optional(),
                         days: Joi.number().allow(0).optional()
-                    }))
+                    })),
+                    password: Joi.string().optional()
                 })
             }
         }
