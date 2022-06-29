@@ -1611,7 +1611,6 @@ $('#optionCloseMovement').on('click', async function () {
     }
 
     //extraDays += deconExtraDays
-
     setExtraDays(extraDays,deconExtraDays,serviceType)
 
     
@@ -2091,7 +2090,6 @@ $('#optionDeconsolidatedMovement').on('click', async function () {
             extraDays -= 5
         }
     }
-
     setExtraDays(extraDays,deconExtraDays,serviceType)
 
 
@@ -3101,7 +3099,7 @@ function createModalBody(type){
                             <table id="tableServices" class="display nowrap table table-condensed" cellspacing="0" width="100%">
                                 <thead>
                                     <tr>
-                                        <th>Servicio</th>
+                                        <th style="width: 35%">Servicio</th>
                                         <th>Neto</th>
                                         <th>IVA</th>
                                         <th>TOTAL</th>
@@ -3403,16 +3401,17 @@ function setExtraDays(quantity,quantityDecon,serviceType){
 
     let net = 0, iva = 0, total = 0
 
-    let extraType = 'Día(s) Extra'
+    let extraType = 'Día(s) Extra', name = 'Almacenamiento'
     if(serviceType=='imo'){
         extraType = 'Día(s) Extra IMO'
+        name = 'Almacenamiento IMO'
     }
 
     $("#tableServicesExtra").css('display','table')
     
     let extraRow = `<tr class="table-dangerSoft">
             <td>
-                Almacenamiento
+                ${name}
             </td>
             <td style="text-align: center;">
                 <input type="text" style="text-align: center" value="${quantity}" class="form-control border-input classMove classPayment" disabled>
@@ -3420,6 +3419,7 @@ function setExtraDays(quantity,quantityDecon,serviceType){
                 <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
                     ${
                         services.reduce((acc,el)=>{
+                            //console.log(el.name, extraType)
                             if(el.name==extraType){
                                 net = el.net
                                 acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
@@ -3553,10 +3553,10 @@ async function updatePayment(input,special) {
             })    
         }
 
-        if($(input).find(":selected").text()=='Almacenamiento IMO'){
+        if($(input).find(":selected").text()=='Almacenamiento IMO' || $(input).find(":selected").text()=='Día(s) Extra IMO'){
             serviceType = 'imo'
         }
-        
+
         setExtraDays(extraDays,deconExtraDays,serviceType)
 
         //setClientRates()
