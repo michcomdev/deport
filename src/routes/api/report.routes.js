@@ -416,6 +416,10 @@ export default [
                                 $nin : arrayContainers
                             }
                         }
+                    }else{
+                        if(payload.type=='DONE'){
+                            return []
+                        }
                     }
 
                     query.clients = payload.client
@@ -427,6 +431,8 @@ export default [
                             ]
                         }
                     }
+
+                    console.log(query)
 
                     let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
 
@@ -446,7 +452,7 @@ export default [
                                 serviceDecon = el.services[i].services.name
                                 serviceDeconValue = el.services[i].paymentNet
                             }
-                            if(el.services[i].services.name=='Día(s) Extra'){
+                            if(el.services[i].services.name=='Día(s) Extra' || el.services[i].services.name=='Día(s) Extra IMO'){
                                 extraDays += el.services[i].extraDays
                                 extraDaysValue += el.services[i].paymentNet
                             }
@@ -487,6 +493,12 @@ export default [
                         }
 */
                         let lastMov = el.movements.length - 1
+
+                        for(let j=0; j<el.movements.length; j++){
+                            if(el.movements[j].movement=='POR SALIR'){
+                                lastMov = j
+                            }
+                        }
 
                         acc.push({
                             id: el._id.toString(),
