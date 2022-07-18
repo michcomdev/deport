@@ -717,7 +717,10 @@ export default [
                         containerNumber: container.containerNumber,
                         containerLarge: container.containerLarge,
                         clientRUT: container.clients.rut,
-                        clientName: container.clients.name
+                        clientName: container.clients.name,
+                        clientMail1: container.clients.email,
+                        clientMail2: container.clients.email2,
+                        clientMail3: container.clients.email3
                     }
                     if(container.numberIn){
                         movement.numberIn = container.numberIn
@@ -1587,6 +1590,9 @@ export default [
                         transferIn: Joi.number().allow(0).optional(),
                         transferOut: Joi.number().allow(0).optional(),
                         clientName: Joi.string().optional().allow(''),
+                        clientMail1: Joi.string().optional().allow(''),
+                        clientMail2: Joi.string().optional().allow(''),
+                        clientMail3: Joi.string().optional().allow(''),
                         clientRUT: Joi.string().optional().allow(''),
                         containerNumber: Joi.string().optional().allow(''),
                         containerLarge: Joi.string().optional().allow(''),

@@ -20,6 +20,7 @@ let siteMap = {}
 let selectedSiteMap = {}
 
 $(document).ready(async function () {
+
     $('#searchDate').daterangepicker({
         opens: 'left',
         locale: dateRangePickerDefaultLocale,
@@ -376,10 +377,6 @@ async function getMovementsEnabled() {
     
     if (movementData.data.length > 0) {
         let formatData= movementData.data.map(el => {
-
-            if(el.containerNumber=='INKU-254429-0'){
-                console.log(el)
-            }
             
             /////CÁLCULO DE DÍAS EXTRAS SEGÚN SERVICIOS/////
             el.extraDays = 0
@@ -581,10 +578,8 @@ $('#optionCreateMovement').on('click', function () { // CREAR MOVIMIENTO
         
             let movementData = await axios.post('api/movementsByContainerNumber',query)
 
-            console.log(movementData)
         }
 
-        console.log('testing')
         return*/
 
         //let net = parseInt(replaceAll($('#movementPaymentNet').val(), '.', '').replace('$', '').replace(' ', ''))
@@ -902,24 +897,59 @@ $('#optionModMovement').on('click', async function () {
             numberDecon = 'N° ' + container.numberDecon
         }
 
-        $('#divPrintIn').html(`
-            <button class="btn btn-info btn-sm" id="printMovementIn" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${numberIn}
-            </button>
-        `)
-        
-        $('#divPrintOut').html(`
-            <button class="btn btn-info btn-sm" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')" disabled>
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${numberOut}
-            </button>
-        `)
-
-        if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
-            $('#divPrintDecon').html(`
-                <button class="btn btn-warning btn-sm" id="printMovementDecon" onclick="printVoucher('decon','${internals.dataRowSelected.id}')">
-                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER DESCONSOLIDADO ${numberDecon}
+        if(userCredentials.scope=='admin'){
+            $('#divPrintIn').html(`
+                <b>VOUCHER INGRESO ${numberIn}</b><br/>
+                <button class="btn btn-info btn-sm" id="printMovementIn" title="Imprimir Voucher" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> 
+                </button>
+                <button class="btn btn-warning btn-sm" id="sendMovementIn" title="Reenviar E-Mail" onclick="sendVoucher('in','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-envelope"></i> 
                 </button>
             `)
+
+            $('#divPrintOut').html(`
+                <b>VOUCHER SALIDA ${numberOut}</b><br/>
+                <button class="btn btn-info btn-sm" title="Imprimir Voucher" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i>
+                </button>
+                <button class="btn btn-warning btn-sm"title="Reenviar E-Mail"  id="sendMovementOut" onclick="sendVoucher('out','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-envelope"></i>
+                </button>
+            `)
+        }else{
+            $('#divPrintIn').html(`
+                <button class="btn btn-info btn-sm" id="printMovementIn" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${numberIn}
+                </button>
+            `)
+            
+            $('#divPrintOut').html(`
+                <button class="btn btn-info btn-sm" id="printMovementOut" onclick="printVoucher('out','${internals.dataRowSelected.id}')" disabled>
+                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${numberOut}
+                </button>
+            `)
+        }
+
+        if(container.services.find(x => x.services.name.indexOf('Desconsolidado') >= 0)){
+
+            if(userCredentials.scope=='admin'){
+                $('#divPrintDecon').html(`
+                    <b>VOUCHER DESCONSOL. ${numberDecon}</b><br/>
+                    <button class="btn btn-primary btn-sm" id="printMovementDecon" title="Imprimir Voucher" onclick="printVoucher('decon','${internals.dataRowSelected.id}')">
+                        <i ="color:#3498db;" class="fas fa-print"></i>
+                    </button>
+                    <button class="btn btn-warning btn-sm" id="sendMovementDecon" title="Reenviar E-Mail" onclick="sendVoucher('decon','${internals.dataRowSelected.id}')">
+                        <i ="color:#3498db;" class="fas fa-envelope"></i>
+                    </button>
+                `)
+            }else{
+                $('#divPrintDecon').html(`
+                    <button class="btn btn-primary btn-sm" id="printMovementDecon" onclick="printVoucher('decon','${internals.dataRowSelected.id}')">
+                        <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER DESCONSOL. ${numberDecon}
+                    </button>
+                `)
+            }
         }else{
             $('#divPrintDecon').html('')
         }
@@ -928,6 +958,7 @@ $('#optionModMovement').on('click', async function () {
 
         if(container.movements[movementID].movement=='POR SALIR' || container.movements[movementID].movement=='SALIDA'){
             $('#printMovementOut').removeAttr('disabled')
+            $('#sendMovementOut').removeAttr('disabled')
             $(".classOut").prop('disabled',true)
         }
 
@@ -1276,17 +1307,40 @@ $('#optionModMovement').on('click', async function () {
             transferOut = 'N° ' + container.transferOut
         }
 
-        $('#divPrintIn').html(`
-            <button class="btn btn-info btn-sm" id="printMovementTransferIn" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${transferIn}
-            </button>
-        `)
-        
-        $('#divPrintOut').html(`
-            <button class="btn btn-info btn-sm" id="printMovementTransferOut" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
-                <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${transferOut}
-            </button>
-        `)
+
+        if(userCredentials.scope=='admin'){
+            $('#divPrintIn').html(`
+                <b>VOUCHER INGRESO ${numberIn}</b><br/>
+                <button class="btn btn-info btn-sm" id="printMovementIn" title="Imprimir Voucher" onclick="printVoucher('in','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> 
+                </button>
+                <button class="btn btn-warning btn-sm" id="sendMovementIn" title="Reenviar E-Mail" onclick="sendVoucher('in','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-envelope"></i> 
+                </button>
+            `)
+
+            $('#divPrintOut').html(`
+                <b>VOUCHER SALIDA ${numberOut}</b><br/>
+                <button class="btn btn-info btn-sm" id="printMovementOut" title="Imprimir Voucher" onclick="printVoucher('out','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i>
+                </button>
+                <button class="btn btn-warning btn-sm" id="sendMovementOut" title="Reenviar E-Mail" onclick="sendVoucher('out','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-envelope"></i>
+                </button>
+            `)
+        }else{
+            $('#divPrintIn').html(`
+                <button class="btn btn-info btn-sm" id="printMovementTransferIn" onclick="printVoucher('transferIn','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER INGRESO ${transferIn}
+                </button>
+            `)
+            
+            $('#divPrintOut').html(`
+                <button class="btn btn-info btn-sm" id="printMovementTransferOut" onclick="printVoucher('transferOut','${internals.dataRowSelected.id}')">
+                    <i ="color:#3498db;" class="fas fa-print"></i> VOUCHER SALIDA ${transferOut}
+                </button>
+            `)
+        }
 
         $('#movementType').prop('disabled',true)
 
@@ -3456,7 +3510,6 @@ function setExtraDays(quantity,quantityDecon,serviceType){
                 <select class="custom-select classMove" onchange="updatePayment(this)" style="display: none;">
                     ${
                         services.reduce((acc,el)=>{
-                            //console.log(el.name, extraType)
                             if(el.name==extraType){
                                 net = el.net
                                 acc += '<option value="'+el._id+'" data-net="'+el.net+'">'+el.name+'</option>'
@@ -4490,7 +4543,6 @@ async function printVoucher(type,id,sendEmail) {
                     voucher: voucher
                 }
             )
-            console.log(email)
         }*/
     }
 
@@ -4521,6 +4573,97 @@ async function printVoucher(type,id,sendEmail) {
         }else{
             toastr.danger('Ha ocurrido un error al enviar correo a cliente')
         }
+    }
+}
+
+
+async function sendVoucher(type,id) {
+
+    loadingHandler('start')
+
+    let typeMail = ''
+
+    let movement = await axios.post('api/movementVoucher', {id: id, type: type})
+    let voucher = movement.data
+    if(type=="in"){
+        typeMail = 'INGRESO'
+    }else if(type=="out"){
+        typeMail = 'SALIDA'
+    }else if(type=="transferIn"){
+        typeMail = 'TRASPASO'
+    }else if(type=="transferOut"){
+        typeMail = 'TRASPASO'
+    }else if(type=="decon"){
+        typeMail = 'DESCONSOLIDADO'
+    }
+
+    voucher.datetimeInMail = '-'
+    voucher.datetimeOutMail = '-'
+
+    if(type=="transferIn" || type=="transferOut"){
+        voucher.datetimeOutMail = moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm')
+    }else{
+        voucher.datetimeInMail = moment(voucher.datetimeIn).format('DD/MM/YYYY HH:mm')
+        if(type=="out"){
+            voucher.datetimeOutMail = moment(voucher.datetimeOut).format('DD/MM/YYYY HH:mm')
+        }
+    }
+
+    let listEmail = ''
+    if(isEmail(voucher.clientMail1)){
+        listEmail += '<br/>'+voucher.clientMail1
+    }
+    if(isEmail(voucher.clientMail2)){
+        listEmail += '<br/>'+voucher.clientMail2
+    }
+    if(isEmail(voucher.clientMail3)){
+        listEmail += '<br/>'+voucher.clientMail3
+    }
+    loadingHandler('stop')
+
+    if(listEmail!=''){
+    
+        let sendEmail = await Swal.fire({
+            title: '¿Está seguro de reenviar el correo de aviso?',
+            customClass: 'swal-wide',
+            html: `Direcciones de correo a enviar:` + listEmail,
+            showCloseButton: true,
+            showCancelButton: true,
+            showConfirmButton: true,
+            focusConfirm: false,
+            confirmButtonText: 'Sí',
+            cancelButtonText: 'No'
+        })
+
+        //return
+        if (sendEmail.value) {
+            loadingHandler('start')
+            //ENVÍO DE EMAIL A CLIENTE
+            let pdf = ''
+            let email = await axios.post('api/sendMail',
+                {
+                    id: id, 
+                    type: typeMail,
+                    pdf: pdf,
+                    voucher: voucher
+                }
+            )
+
+            loadingHandler('stop')
+
+            if(email.data=='No Email'){
+                toastr.warning('Cliente sin correo asociado, no se ha enviado ningún aviso')
+            }else if(email.data.accepted.length>0){
+                toastr.success('Correo enviado a cliente correctamente')
+            }else{
+                toastr.danger('Ha ocurrido un error al enviar correo a cliente')
+            }
+        }
+    }else{
+        $('#modal_title').html(`Error`)
+        $('#modal_body').html(`<h6 class="alert-heading">Cliente sin correo asociado, debe asignarlo en menú Clientes</h6>`)
+        $('#modal').modal('show')
+        return
     }
 }
 

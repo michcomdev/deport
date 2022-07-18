@@ -432,8 +432,6 @@ export default [
                         }
                     }
 
-                    console.log(query)
-
                     let containers = await Containers.find(query).populate(['clients','containertypes','movements.sites','movements.cranes','services.services'])
 
                     containers = containers.reduce((acc, el, i) => {
